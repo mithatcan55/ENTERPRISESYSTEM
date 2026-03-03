@@ -827,3 +827,19 @@ Amaç:
 - Zayıf şifre kullanımını engellemek
 - Son N şifre tekrarını bloke etmek
 - Kısa sürede peş peşe şifre döndürerek policy atlatma girişimlerini azaltmak
+
+---
+
+## Cilt 39 — Password Policy Ops Endpoint
+
+Bu fazda eklendi:
+
+- `GET /api/ops/security/password-policy` endpoint'i
+	- Sadece `SYS_ADMIN`
+	- Aktif policy değerlerini snapshot olarak döner
+- Yeni DTO:
+	- `PasswordPolicySnapshotDto`
+
+Amaç:
+- Operasyon ekibinin canlı policy değerlerini (min length, history, min age vb.) API üzerinden doğrulayabilmesi
+- Konfigürasyon drift riskini azaltmak
