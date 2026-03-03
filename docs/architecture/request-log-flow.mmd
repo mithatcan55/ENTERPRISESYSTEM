@@ -5,6 +5,7 @@ flowchart TD
     SerilogReq[UseSerilogRequestLogging]
     ReqLife[RequestLifecycleLoggingMiddleware]
     Controller[TCodeController]
+    UserCtx[CurrentUserContext]
     Authz[TCodeAuthorizationService]
     BusinessDb[(BusinessDb)]
     LogDb[(LogDb)]
@@ -15,8 +16,10 @@ flowchart TD
     Corr --> SerilogReq
     SerilogReq --> ReqLife
     ReqLife --> Controller
+    Controller --> UserCtx
     Controller --> Authz
     Authz --> BusinessDb
+    Authz --> LogDb
     Controller --> BusinessDb
     ReqLife --> LogDb
     SerilogReq --> FileLog

@@ -1,4 +1,5 @@
 using Host.Api.Authorization.Services;
+using Host.Api.Services;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Host.Api.Controllers;
@@ -8,13 +9,15 @@ namespace Host.Api.Controllers;
 /// </summary>
 [ApiController]
 [Route("api/tcode")]
-public sealed class TCodeController(ITCodeAuthorizationService authorizationService) : ControllerBase
+public sealed class TCodeController(
+    ITCodeAuthorizationService authorizationService,
+    ICurrentUserContext currentUserContext) : ControllerBase
 {
     [HttpGet("{transactionCode}")]
     public async Task<IActionResult> Resolve(
         string transactionCode,
-        [FromQuery] int userId,
-        [FromQuery] int companyId,
+        [FromQuery] int? userId,
+        [FromQuery] int? companyId,
         [FromQuery] decimal? amount,
         CancellationToken cancellationToken)
     {
@@ -23,7 +26,24 @@ public sealed class TCodeController(ITCodeAuthorizationService authorizationServ
             return BadRequest("Transaction code boş olamaz.");
         }
 
-        var result = await authorizationService.AuthorizeAsync(transactionCode, userId, companyId, amount, cancellationToken);
+        var resolvedUserId = userId;
+        if (!resolvedUserId.HasValue && currentUserContext.TryGetUserId(out var claimUserId))
+        {
+            resolvedUserId = claimUserId;
+        }
+
+        var resolvedCompanyId = companyId;
+        if (!resolvedCompanyId.HasValue && currentUserContext.TryGetCompanyId(out var claimCompanyId))
+        {
+            resolvedCompanyId = claimCompanyId;
+        }
+
+        if (!resolvedUserId.HasValue || !resolvedCompanyId.HasValue)
+        {
+            return BadRequest("userId ve companyId query ile veya claim içinde sağlanmalıdır.");
+        }
+
+        var result = await authorizationService.AuthorizeAsync(transactionCode, resolvedUserId.Value, resolvedCompanyId.Value, amount, cancellationToken);
         if (!result.IsAllowed)
         {
             return StatusCode(StatusCodes.Status403Forbidden, result);

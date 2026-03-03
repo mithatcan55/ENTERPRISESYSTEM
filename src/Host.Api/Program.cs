@@ -21,6 +21,7 @@ builder.Services.AddControllers();
 builder.Services.AddOpenApi();
 builder.Services.AddHttpContextAccessor();
 builder.Services.AddScoped<IAuditActorAccessor, HttpContextAuditActorAccessor>();
+builder.Services.AddScoped<ICurrentUserContext, CurrentUserContext>();
 builder.Services.AddScoped<ITCodeAuthorizationService, TCodeAuthorizationService>();
 
 builder.Services.AddDbContext<LogDbContext>(options =>
