@@ -1,333 +1,395 @@
-# EnterpriseSystem Proje Kitabı (Canlı Ana Dosya)
+# EnterpriseSystem — Ana Proje Dosyası (Canlı Kitap)
 
-Bu doküman, projenin teknik kaynağıdır.
+Bu dosya projenin ana teknik kaynağıdır.
 
-- Neyi kurduk?
-- Neden kurduk?
-- Sınıflar nasıl bağlı?
-- Hangi dosya neye hizmet ediyor?
-- Değişiklik gelirse hangi şablonla güncellenecek?
+Amaç:
+- Baştan bugüne yapılanları kaybetmemek
+- Sınıf ilişkilerini görünür tutmak
+- Neyi neden yaptığımızı açık bırakmak
+- Yeni değişikliklerde aynı şablonla ilerlemek
 
-Bu dosya, her mimari değişiklikte güncellenir.
-
----
-
-## 1. Vizyon ve Kırmızı Çizgiler
-
-1. Mimari: Clean + Vertical Slice + Modular Monolith
-2. Altyapı: .NET 9 + PostgreSQL + EF Core
-3. Loglama: Dosya + LogDb (ayrı DB), immutable log tabloları
-4. Yetki: 6 seviye + T-Code erişimi (SYS01 vb.)
-5. Denetim: Ara tablolar dahil her kritik kayıtta Created/Modified/Deleted izi
-6. İsim standardı: Tablo/kolon/sınıf İngilizce, açıklamalar Türkçe
+Kural:
+- Mimariye dokunan her değişiklikte bu dosya güncellenir.
+- Bu dosya değişmeden mimari commit tamamlanmış sayılmaz.
 
 ---
 
-## 2. Klasör ve Katman Haritası
+## Cilt 1 — Mimari Çerçeve
 
-### 2.1 Kök
-- EnterpriseSystem.sln
-- Directory.Packages.props
-- global.json
-- project-map.md
-- project-book.md
-- learning-log.md
+### 1.1 Hedef Mimari
+- Teknoloji: .NET 9, ASP.NET Core API, EF Core, PostgreSQL
+- Mimari: Clean + Vertical Slice + Modular Monolith
+- Loglama: Dosya + ayrı LogDb
+- Yetki: Role + Permission + Condition + T-Code
+- Denetim: Ara tablolar dahil kim/ne/zaman izi
 
-### 2.2 Kaynak
+### 1.2 Neden Modular Monolith
+- Tek deploy kolaylığı
+- Modül bazlı büyüme
+- Mikroservise geçişte hazır ayrışma
+- Test ve bakım maliyetini düşürme
+
+### 1.3 Kırmızı Çizgiler
+- Tablolar/kolonlar İngilizce
+- Kod açıklamaları Türkçe
+- Log tabloları immutable
+- Yetki modeli 6 seviyeden aşağı düşmez
+
+---
+
+## Cilt 2 — Repo ve Katman Haritası
+
+### 2.1 Dizinler
 - src/Host.Api
-  - Program.cs
-  - Middleware/
-  - Services/
 - src/BuildingBlocks/SharedKernel
 - src/BuildingBlocks/Application
 - src/BuildingBlocks/Infrastructure
-  - Persistence/
-    - BusinessDbContext.cs
-    - LogDbContext.cs
-    - Entities/
-    - Migrations/
+- src/Modules/Identity
+- tests
+
+### 2.2 Katman Görevleri
+
+**Host.Api**
+- Composition root
+- Middleware zinciri
+- OpenAPI + Scalar
+- DI wiring
+
+**SharedKernel**
+- Ortak kontratlar (audit/soft delete)
+
+**Infrastructure**
+- DbContext'ler
+- Entity mapping
+- Migrations
+- Audit actor abstraction
+
+**Modules/Identity**
+- Şu an iskelet
+- User FK bağları için bir sonraki adım
+
+### 2.3 Proje Referans Mantığı
+- Host.Api -> Infrastructure + Module Infra/Presentation
+- Infrastructure -> Application + SharedKernel
+- Identity.Infrastructure -> Identity.Application + Identity.Domain + Infrastructure
 
 ---
 
-## 3. Proje Bağımlılık Haritası
+## Cilt 3 — Baştan Bugüne Teknik Akış
 
-1. Host.Api
-   - Infrastructure
-   - Identity.Infrastructure
-   - Identity.Presentation
-2. Infrastructure
-   - Application
-   - SharedKernel
-3. Identity.Infrastructure
-   - Identity.Application
-   - Identity.Domain
-   - Infrastructure
+### Aşama A — Skeleton
+- Solution ve proje yapısı kuruldu
+- Host API başlangıcı hazırlandı
 
-Yorum:
-- Host sadece composition root.
-- Persistence ve cross-cutting davranışlar Infrastructure altında.
+### Aşama B — Shared Audit Temeli
+- IAuditableEntity / ISoftDeletable ile temel izlilik sözleşmeleri
+
+### Aşama C — Log Modeli
+- LogDbContext oluşturuldu
+- 7 log tablosu EF modeli tanımlandı
+
+### Aşama D — Request Yaşam Döngüsü Loglama
+- CorrelationId middleware
+- RequestLifecycleLogging middleware
+- File + DB log birlikte
+
+### Aşama E — Immutable Log
+- LogDb migration ile UPDATE/DELETE bloklandı
+- Trigger tabanlı güvenlik aktif edildi
+
+### Aşama F — 6 Seviye Yetki + T-Code
+- BusinessDbContext kuruldu
+- İngilizce tablo/kolon standardına geçildi
+- SYS01/SYS02/SYS03/SYS04 seed eklendi
+- Ara tablolar dahil audit abstraction zorunlu kılındı
+
+### Aşama G — Dokümantasyon Standardı
+- project-map.md özet harita
+- project-book.md ana kitap
+- learning-log.md oturum şablonu
 
 ---
 
-## 4. Runtime Akışı (Request -> DB -> Log)
+## Cilt 4 — Runtime Akışı (Uçtan Uca)
 
-1. İstek Host.Api'ye gelir.
-2. CorrelationId middleware isteğe id atar.
-3. Serilog request logging çalışır.
-4. RequestLifecycle middleware request/response bilgisini toplar.
-5. DB'ye iki log atılır:
-   - http_request_logs
-   - system_logs
-6. Sonuç kullanıcıya döner.
+### 4.1 API İsteği Akışı
+1. Request gelir
+2. CorrelationId atanır/taşınır
+3. Serilog request pipeline işler
+4. RequestLifecycle middleware request/response bilgisi toplar
+5. LogDb'ye yazar
+6. Yanıt döner
+
+### 4.2 Audit Akışı
+1. DbContext SaveChanges çağrılır
+2. ApplyAuditRules çalışır
+3. Added -> CreatedBy/CreatedAt
+4. Modified -> ModifiedBy/ModifiedAt
+5. Deleted -> soft delete + DeletedBy/DeletedAt
+
+### 4.3 Yetki Akışı (Hedeflenen)
+1. T-Code çözülür (SYS01 -> page)
+2. Level 1-2-3 erişim doğrulanır
+3. Level 4 company scope uygulanır
+4. Level 5 action permission uygulanır
+5. Level 6 condition permission query’ye yansıtılır
+
+---
+
+## Cilt 5 — Sınıf Haritası (Ana ve Yardımcı)
+
+## 5.1 Ana Sınıflar
+
+### Program
+Görev:
+- Tüm bileşenleri ayağa kaldırma
 
 Neden:
-- Olay adli takibi için tek bir correlation zinciri oluşur.
+- Composition root tek olmalı
+
+Hizmet ettiği konu:
+- Uygulama başlatma, middleware sıralaması
+
+### LogDbContext
+Görev:
+- Log şemasını map etmek
+
+Neden:
+- Log tabloları tek context altında yönetilsin
+
+Hizmet ettiği konu:
+- İzlenebilirlik, olay analizi
+
+### BusinessDbContext
+Görev:
+- Yetki modelini map etmek
+- Seed üretmek
+- Audit kurallarını otomatik uygulamak
+
+Neden:
+- Yetki + denetim tek yerde tutarlı yönetilsin
+
+Hizmet ettiği konu:
+- ERP benzeri erişim kontrolü
+
+## 5.2 Yardımcı Sınıflar
+
+### IAuditActorAccessor
+Görev:
+- Aktör bilgisini soyutlamak
+
+Neden:
+- Persistence katmanı HTTP’ye direkt bağımlı olmasın
+
+### HttpContextAuditActorAccessor
+Görev:
+- HTTP user’dan aktör bilgisini almak
+
+Neden:
+- CreatedBy/ModifiedBy güvenilir dolsun
+
+### AuditableIntEntity
+Görev:
+- Tüm entity'lerde ortak audit alanları
+
+Neden:
+- Ara tablolar dahil iz kaçmasın
+
+### CorrelationIdMiddleware
+Görev:
+- Correlation zinciri kurmak
+
+Neden:
+- Dağınık log yerine tek işlem izi
+
+### RequestLifecycleLoggingMiddleware
+Görev:
+- Request/response detaylarını loglamak
+
+Neden:
+- Denetleyici ve operasyonel takip güvenliği
 
 ---
 
-## 5. Ana Sınıflar (Detaylı)
+## Cilt 6 — 6 Seviye Yetkilendirme Modeli
 
-## 5.1 Program.cs
-Dosya: src/Host.Api/Program.cs
-
-Görevler:
-- Serilog host entegrasyonu
-- OpenAPI + Scalar endpointleri
-- LogDbContext kaydı
-- BusinessDbContext kaydı
-- Audit actor accessor DI kaydı
-- Middleware sıralaması
-
-Hizmeti:
-- Uygulamanın teknik omurgasını başlatır.
-
-## 5.2 LogDbContext
-Dosya: src/BuildingBlocks/Infrastructure/Persistence/LogDbContext.cs
-
-Görevler:
-- logs şeması altında log tablolarını map eder.
-- Tablolar:
-  - database_query_logs
-  - entity_change_logs
-  - http_request_logs
-  - page_visit_logs
-  - performance_logs
-  - security_event_logs
-  - system_logs
-
-Hizmeti:
-- Log verisinin standart ve sorgulanabilir şekilde saklanması.
-
-## 5.3 BusinessDbContext
-Dosya: src/BuildingBlocks/Infrastructure/Persistence/BusinessDbContext.cs
-
-Görevler:
-- Yetki modelinin 6 seviyesini map eder.
-- SYS01-SYS04 seed kayıtlarını üretir.
-- SaveChanges sırasında audit alanlarını otomatik doldurur.
-- Soft-delete dönüşümünü yönetir.
-
-Hizmeti:
-- Yetki güvenliği + denetlenebilir veri değişimi.
-
-## 5.4 CorrelationIdMiddleware
-Dosya: src/Host.Api/Middleware/CorrelationIdMiddleware.cs
-
-Görevler:
-- Header varsa kullanır, yoksa üretir.
-- Response header'a geri yazar.
-- Serilog context'e property push eder.
-
-Hizmeti:
-- Tüm log kayıtlarının tek işlem kimliği altında toplanması.
-
-## 5.5 RequestLifecycleLoggingMiddleware
-Dosya: src/Host.Api/Middleware/RequestLifecycleLoggingMiddleware.cs
-
-Görevler:
-- Request body/header okuma
-- Response body/header okuma
-- Süre ölçümü
-- Kullanıcı/ip/session/correlation toplama
-- http_request_logs + system_logs yazımı
-
-Hizmeti:
-- Denetleyicilere karşı güçlü ve güvenilir log hattı.
-
-## 5.6 HttpContextAuditActorAccessor
-Dosya: src/Host.Api/Services/HttpContextAuditActorAccessor.cs
-
-Görevler:
-- Aktif kullanıcı kimliğini döndürür.
-- Kullanıcı yoksa system fallback döner.
-
-Hizmeti:
-- CreatedBy/ModifiedBy/DeletedBy alanlarının kaçmaması.
-
----
-
-## 6. Yardımcı Sınıflar
-
-## 6.1 IAuditActorAccessor
-Dosya: src/BuildingBlocks/Infrastructure/Persistence/Auditing/IAuditActorAccessor.cs
-
-Amaç:
-- DbContext ile kullanıcı kaynağını soyutlamak.
-
-## 6.2 AuditableIntEntity
-Dosya: src/BuildingBlocks/Infrastructure/Persistence/Entities/Abstractions/AuditableIntEntity.cs
-
-Amaç:
-- Tüm yetki entity'lerinde ortak audit alanlarını zorunlu kılmak.
-
----
-
-## 7. Yetkilendirme Modeli (6 Seviye)
-
-## Seviye 1: Module
-- Entity: Module
+### Level 1: Module
 - Table: Modules
-- Ne işe yarar: Üst modül erişimi
+- Amaç: Üst modül erişimi
 
-## Seviye 2: SubModule
-- Entity: SubModule
+### Level 2: SubModule
 - Table: SubModules
-- Ne işe yarar: Modül alt kırılımı
+- Amaç: Alt modül erişimi
 
-## Seviye 3: SubModulePage
-- Entity: SubModulePage
+### Level 3: SubModulePage
 - Table: SubModulePages
-- Kritik alan: TransactionCode (SYS01...)
-- Ne işe yarar: Ekran/fonksiyon erişimi
+- Amaç: Ekran erişimi
+- Kritik alan: TransactionCode
 
-## Seviye 4: UserCompanyPermission
+### Level 4: UserCompanyPermission
 - Table: UserCompanyPermissions
-- Ne işe yarar: Şirket kapsamı
+- Amaç: Şirket kapsamı
 
-## Seviye 5: UserPageActionPermission
+### Level 5: UserPageActionPermission
 - Table: UserPageActionPermissions
-- Ne işe yarar: Buton/kolon/aksiyon yetkisi
+- Amaç: Buton/kolon/işlem kontrolü
 
-## Seviye 6: UserPageConditionPermission
+### Level 6: UserPageConditionPermission
 - Table: UserPageConditionPermissions
-- Ne işe yarar: Veri filtresi (örn price <= 10000)
+- Amaç: Veri filtresi (örn price <= 10000)
 
-Destek tabloları:
+Destek eşleme tabloları:
 - UserModulePermissions
 - UserSubModulePermissions
 - UserPagePermissions
 
 ---
 
-## 8. T-Code Haritası (Başlangıç)
+## Cilt 7 — T-Code Haritası
 
+Başlangıç seed:
 - SYS01 -> Create User
 - SYS02 -> Update User
 - SYS03 -> View User
 - SYS04 -> User Report
 
-Bu kayıtlar BusinessDbContext içindeki seed ile gelir.
+Bu harita BusinessDbContext seed içinde tanımlıdır.
 
 ---
 
-## 9. Log Güvenilirlik Politikası
+## Cilt 8 — Loglama ve Denetim Güvenliği
 
-1. CorrelationId zorunlu
-2. Request+response metadata saklanır
-3. Hata stack bilgisi saklanır
-4. Log tabloları immutable migration ile korunur
-5. Runtime log dosyaları git'e alınmaz
+### 8.1 Log Tabloları
+- database_query_logs
+- entity_change_logs
+- http_request_logs
+- page_visit_logs
+- performance_logs
+- security_event_logs
+- system_logs
+
+### 8.2 İmmutability
+- Update/Delete trigger ile engellenir
+
+### 8.3 Denetim İlkeleri
+- CorrelationId zorunlu
+- Error mesaj + stack saklanır
+- Actor bilgisi her kritik tabloda tutulur
 
 ---
 
-## 10. Şu Ana Kadarki Commit Akışı
+## Cilt 9 — İlişki Matrisi
+
+1. Module (1) -> (N) SubModule
+2. SubModule (1) -> (N) SubModulePage
+3. User -> UserModulePermission -> Module
+4. User -> UserSubModulePermission -> SubModule
+5. User -> UserPagePermission -> SubModulePage
+6. User -> UserCompanyPermission -> Company scope
+7. User -> UserPageActionPermission -> action rights
+8. User -> UserPageConditionPermission -> data filter rights
+
+Not:
+- User entity FK bağları Identity modülüne sonraki adımda taşınacak.
+
+---
+
+## Cilt 10 — Kod Ekleri (Çekirdek Dosyalar)
+
+Aşağıdaki dosyalar bu projede ana teknik omurgadır:
+- src/Host.Api/Program.cs
+- src/Host.Api/Middleware/CorrelationIdMiddleware.cs
+- src/Host.Api/Middleware/RequestLifecycleLoggingMiddleware.cs
+- src/Host.Api/Services/HttpContextAuditActorAccessor.cs
+- src/BuildingBlocks/Infrastructure/Persistence/LogDbContext.cs
+- src/BuildingBlocks/Infrastructure/Persistence/BusinessDbContext.cs
+
+Not:
+- Kaynak kod tek doğru referanstır; bu bölüm yönlendirme amaçlıdır.
+
+---
+
+## Cilt 11 — Değişiklik Kayıt Formatı (Zorunlu)
+
+Her mimari değişiklikten sonra aşağıdaki başlıklar doldurulur.
+
+### 11.1 Change Record
+- Tarih:
+- Başlık:
+- Neyi değiştirdik:
+- Neden:
+- Etkilenen dosyalar:
+- Migration:
+- Build sonucu:
+- Risk:
+
+### 11.2 Architecture Delta
+- Yeni ana sınıf:
+- Yeni yardımcı sınıf:
+- Değişen ilişki:
+- Kaldırılan yapı:
+- Geri uyumluluk notu:
+
+### 11.3 Security Delta
+- Audit alanları etkisi:
+- Log güvenliği etkisi:
+- Yetki seviyeleri etkisi:
+
+---
+
+## Cilt 12 — Bu Şablon Nasıl Güncellenecek?
+
+Kural zinciri:
+1. Kod değişikliği
+2. Build
+3. Migration (gerekirse)
+4. project-map güncelleme
+5. project-book güncelleme
+6. learning-log güncelleme
+7. commit
+
+Eğer araya yeni bir aşama girerse:
+- Bu dosyada yeni Cilt açılır
+- Önceki Ciltte referans verilir
+- Değişen akış açıkça yazılır
+
+---
+
+## Cilt 13 — Mevcut Commit Akışı
 
 - chore: initialize clean modular monolith skeleton
 - feat: add shared kernel entity, domain event, and auditing contracts
 - feat: add EF log schema and request lifecycle logging
 - feat: enforce immutable log tables and update db credentials
 - feat: add 6-level authorization model with audit abstraction and project map
+- docs: add live project book and map synchronization guide
 
 ---
 
-## 11. Değişiklik Gelince Güncelleme Protokolü
+## Cilt 14 — Sonraki Yol Haritası
 
-Her değişiklikte aşağıdaki 4 dosya kontrol edilir:
-1. project-book.md (ana açıklama)
-2. project-map.md (özet harita)
-3. learning-log.md (oturum kaydı)
-4. ilgili migration dosyası (varsa)
-
-Güncelleme adımı:
-1. Değişikliği yap
-2. Build al
-3. Migration gerekliyse üret/uygula
-4. project-book.md bölümünü güncelle
-5. learning-log.md oturum kaydını gir
-6. Commit at
+1. Identity modülü ile gerçek User FK bağlantısı
+2. T-Code Resolver servisi
+3. 6-level authorization engine
+4. Condition parser ve query filter projection
+5. Security event log zenginleştirme (deny reason)
+6. Outbox + notification ile audit olay senkronizasyonu
 
 ---
 
-## 12. Şablonlar
+## Cilt 15 — Kısa Operasyon Rehberi
 
-## 12.1 Architecture Delta Şablonu
-- Değişiklik adı:
-- Etkilenen katman:
-- Yeni sınıf(lar):
-- Silinen sınıf(lar):
-- Yeni ilişki:
-- Risk:
-- Test/Build sonucu:
+### Build
+- dotnet build EnterpriseSystem.sln
 
-## 12.2 Migration Şablonu
-- Context:
-- Migration adı:
-- Eklenen tablo/alan:
-- Geri alma notu:
-- DB update sonucu:
+### BusinessDb Migration
+- dotnet ef migrations add <Name> --project src/BuildingBlocks/Infrastructure/Infrastructure.csproj --startup-project src/Host.Api/Host.Api.csproj --context Infrastructure.Persistence.BusinessDbContext --output-dir Persistence/Migrations/BusinessDb
+- dotnet ef database update --project src/BuildingBlocks/Infrastructure/Infrastructure.csproj --startup-project src/Host.Api/Host.Api.csproj --context Infrastructure.Persistence.BusinessDbContext
 
-## 12.3 Security/Audit Şablonu
-- CreatedBy doluyor mu:
-- ModifiedBy doluyor mu:
-- DeletedBy doluyor mu:
-- CorrelationId uçtan uca mı:
-- Log immutability korunuyor mu:
+### LogDb Migration
+- dotnet ef migrations add <Name> --project src/BuildingBlocks/Infrastructure/Infrastructure.csproj --startup-project src/Host.Api/Host.Api.csproj --context Infrastructure.Persistence.LogDbContext --output-dir Persistence/Migrations/LogDb
+- dotnet ef database update --project src/BuildingBlocks/Infrastructure/Infrastructure.csproj --startup-project src/Host.Api/Host.Api.csproj --context Infrastructure.Persistence.LogDbContext
 
 ---
 
-## 13. Kritik Kod Ekleri
-
-Bu bölümde çekirdek dosyaların kodu örnek olarak tutulur. Tam kaynak her zaman ilgili dosyalardadır.
-
-### 13.1 Program.cs (özet)
-- Serilog + OpenAPI + 2 DbContext + middleware zinciri.
-
-### 13.2 BusinessDbContext (özet)
-- 6 level yetki tabloları
-- SYS01-SYS04 seed
-- ApplyAuditRules
-
-### 13.3 RequestLifecycleLoggingMiddleware (özet)
-- request/response body yakalama
-- duration ölçümü
-- http_request_logs + system_logs yazımı
-
-Not:
-- Kod değişirse bu bölümdeki özet satırları güncellenir; asıl kaynak dosyalar tek doğru kaynaktır.
-
----
-
-## 14. Sonraki Teknik Yol
-
-1. T-Code Resolver servisi (SYSxx -> page + permission pipeline)
-2. Authorization Engine (seviye 1-6 karar birleştirme)
-3. Condition Parser (Field/Operator/Value -> query filter)
-4. SecurityEventLog zenginleştirme (deny reason)
-5. Identity modülü ile gerçek User FK bağlantısı
-
----
-
-## 15. Not
-
-Bu dosya bir “tek seferlik rapor” değil, canlı teknik kitaptır.
-Her mimari değişiklikte revize edilmelidir.
+Bu dosya canlıdır. Değişiklik oldukça revize edilir.
