@@ -1,4 +1,6 @@
 using Host.Api.Exceptions;
+using Host.Api.Middleware;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace Host.Api.DependencyInjection;
@@ -19,6 +21,28 @@ public static class HostServiceCollectionExtensions
         services.AddHttpContextAccessor();
         services.AddProblemDetails();
         services.AddExceptionHandler<GlobalExceptionHandler>();
+        services.Configure<ApiBehaviorOptions>(options =>
+        {
+            options.InvalidModelStateResponseFactory = context =>
+            {
+                var correlationId = context.HttpContext.Items[CorrelationIdMiddleware.CorrelationItemKey]?.ToString()
+                                    ?? context.HttpContext.TraceIdentifier;
+
+                var validationProblem = new ValidationProblemDetails(context.ModelState)
+                {
+                    Title = "Doğrulama hatası.",
+                    Detail = "Gönderilen veri doğrulama kurallarını sağlamıyor.",
+                    Status = StatusCodes.Status400BadRequest,
+                    Instance = context.HttpContext.Request.Path,
+                    Type = "https://httpstatuses.com/400"
+                };
+
+                validationProblem.Extensions["errorCode"] = "validation_error";
+                validationProblem.Extensions["correlationId"] = correlationId;
+
+                return new BadRequestObjectResult(validationProblem);
+            };
+        });
 
         services.Scan(scan => scan
             .FromAssemblyOf<HostAssemblyMarker>()

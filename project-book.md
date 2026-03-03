@@ -432,3 +432,23 @@ Bu ciltin amacı, yeni modül eklerken karar yükünü azaltmaktır.
 
 Modül ekleme adımları için referans:
 - docs/module-onboarding-playbook.md
+
+---
+
+## Cilt 18 — Öncelik Sırası ve Hata Sözleşmesi
+
+Konu bütünlüğü için zorunlu öncelik sırası:
+
+1. DI yapısı (extension + Scrutor)
+2. Global exception handling
+3. Validation response standardı
+4. Modül geliştirme
+
+Bu aşamada tamamlananlar:
+- Known exception tipleri eklendi (AppException tabanı)
+- GlobalExceptionHandler status/errorCode bazlı standard response üretir
+- Model validation 400 yanıtları aynı sözleşmeye hizalandı
+
+Amaç:
+- Modül yazarken hata formatını tekrar tekrar düşünmemek
+- Frontend tarafında tek tip hata sözleşmesi ile ilerlemek

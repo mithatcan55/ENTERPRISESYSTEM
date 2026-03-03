@@ -21,7 +21,16 @@ public sealed class GlobalExceptionHandler(
 {
     public async ValueTask<bool> TryHandleAsync(HttpContext httpContext, Exception exception, CancellationToken cancellationToken)
     {
-        logger.LogError(exception, "Unhandled exception caught by global exception handler.");
+        var (statusCode, title, detail, errorCode, errors) = MapException(exception, hostEnvironment.IsDevelopment());
+
+        if (statusCode >= StatusCodes.Status500InternalServerError)
+        {
+            logger.LogError(exception, "Unhandled exception caught by global exception handler.");
+        }
+        else
+        {
+            logger.LogWarning(exception, "Handled application exception caught by global exception handler.");
+        }
 
         var correlationId = httpContext.Items[CorrelationIdMiddleware.CorrelationItemKey]?.ToString()
                             ?? httpContext.TraceIdentifier;
@@ -38,11 +47,11 @@ public sealed class GlobalExceptionHandler(
         {
             Timestamp = DateTimeOffset.UtcNow,
             TimeZone = TimeZoneInfo.Local.Id,
-            Level = "Error",
-            Category = "UnhandledException",
+            Level = statusCode >= 500 ? "Error" : "Warning",
+            Category = statusCode >= 500 ? "UnhandledException" : "HandledAppException",
             Source = nameof(GlobalExceptionHandler),
             Message = exception.Message,
-            MessageTemplate = "Unhandled exception occurred while processing HTTP request.",
+            MessageTemplate = "Exception occurred while processing HTTP request.",
             Exception = exception.Message,
             StackTrace = exception.ToString(),
             UserId = actorIdentity,
@@ -54,7 +63,7 @@ public sealed class GlobalExceptionHandler(
             HttpMethod = httpContext.Request.Method,
             HttpPath = httpContext.Request.Path,
             QueryString = httpContext.Request.QueryString.HasValue ? httpContext.Request.QueryString.Value : null,
-            HttpStatusCode = StatusCodes.Status500InternalServerError,
+            HttpStatusCode = statusCode,
             MachineName = Environment.MachineName,
             Environment = hostEnvironment.EnvironmentName,
             ApplicationName = hostEnvironment.ApplicationName,
@@ -66,17 +75,23 @@ public sealed class GlobalExceptionHandler(
         logDbContext.SystemLogs.Add(systemLog);
         await logDbContext.SaveChangesAsync(cancellationToken);
 
-        httpContext.Response.StatusCode = StatusCodes.Status500InternalServerError;
+        httpContext.Response.StatusCode = statusCode;
 
         var problem = new ProblemDetails
         {
-            Title = "Beklenmeyen bir hata oluştu.",
-            Status = StatusCodes.Status500InternalServerError,
-            Detail = hostEnvironment.IsDevelopment() ? exception.Message : "İstek işlenirken bir hata oluştu.",
+            Title = title,
+            Status = statusCode,
+            Detail = detail,
             Instance = httpContext.Request.Path
         };
 
+        problem.Type = $"https://httpstatuses.com/{statusCode}";
+        problem.Extensions["errorCode"] = errorCode;
         problem.Extensions["correlationId"] = correlationId;
+        if (errors is not null)
+        {
+            problem.Extensions["errors"] = errors;
+        }
 
         var handled = await problemDetailsService.TryWriteAsync(new ProblemDetailsContext
         {
@@ -86,5 +101,36 @@ public sealed class GlobalExceptionHandler(
         });
 
         return handled;
+    }
+
+    private static (int StatusCode, string Title, string Detail, string ErrorCode, IReadOnlyDictionary<string, string[]>? Errors)
+        MapException(Exception exception, bool isDevelopment)
+    {
+        if (exception is AppException appException)
+        {
+            var title = appException.StatusCode switch
+            {
+                StatusCodes.Status400BadRequest => "Doğrulama hatası.",
+                StatusCodes.Status403Forbidden => "Bu işlem için yetkiniz yok.",
+                StatusCodes.Status404NotFound => "Kayıt bulunamadı.",
+                _ => "İstek işlenemedi."
+            };
+
+            var detail = appException.Detail
+                         ?? (isDevelopment ? appException.Message : "İstek işlenirken bir uygulama hatası oluştu.");
+
+            return (appException.StatusCode, title, detail, appException.ErrorCode, appException.Errors);
+        }
+
+        var defaultDetail = isDevelopment
+            ? exception.Message
+            : "İstek işlenirken beklenmeyen bir hata oluştu.";
+
+        return (
+            StatusCodes.Status500InternalServerError,
+            "Beklenmeyen bir hata oluştu.",
+            defaultDetail,
+            "internal_error",
+            null);
     }
 }
