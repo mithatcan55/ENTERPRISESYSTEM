@@ -726,3 +726,21 @@ Bu fazda eklendi:
 Amaç:
 - UI tarafının menü/ekran/buton kararını tek login çağrısı ile alabilmesi
 - Session açılışında kullanıcının efektif yetki görünümünü standartlaştırmak
+
+---
+
+## Cilt 34 — Auth OpenAPI Contract Visibility
+
+Bu fazda eklendi:
+
+- `AuthController` endpoint'leri OpenAPI için typed response metadata ile güçlendirildi.
+- `POST /api/auth/login`:
+	- `ActionResult<LoginResponse>` imzası
+	- `ProducesResponseType` ile 200/400/403 sözleşmesi
+- `POST /api/auth/change-password`:
+	- `ProducesResponseType` ile 204/400/403/404 sözleşmesi
+	- endpoint özetleri (XML summary) eklendi
+
+Amaç:
+- Scalar/OpenAPI ekranında login response modelini (effective authorization dahil) açık ve tıklanabilir hale getirmek
+- Tüketici tarafların response/exception sözleşmesini net görmesini sağlamak
