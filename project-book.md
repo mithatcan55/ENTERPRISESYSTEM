@@ -668,3 +668,30 @@ Bu fazda eklendi:
 Amaç:
 - Endpoint güvenliğini tek tipe bağlamadan (yalnızca T-Code gibi) kurumsal esneklik sağlamak
 - Farklı işlem türlerinde en uygun enforcement tipini seçebilmek
+
+---
+
+## Cilt 31 — Permission Management API (Admin)
+
+Bu fazda eklendi:
+
+- Admin tarafından user action permission yönetimi için endpoint:
+	- `GET /api/permissions/actions`
+	- `POST /api/permissions/actions`
+- Uygulama servisi:
+	- `IUserPermissionService`
+	- `UserPermissionService`
+- Contract seti:
+	- `UpsertUserActionPermissionRequest`
+	- `UserActionPermissionQueryRequest`
+	- `UserActionPermissionDto`
+
+Kurallar:
+
+- Endpointler `SYS_ADMIN` role koruması ile çalışır.
+- Upsert işlemi `subModulePageId` veya `transactionCode` ile sayfa çözümleyebilir.
+- `ActionCode` normalize edilerek (`UPPER`) saklanır.
+
+Amaç:
+- PermissionAuthorize altyapısını işletilebilir hale getirmek
+- Role/T-Code dışında permission tabanlı endpoint yetkilerini yönetim API’si ile sürdürülebilir yapmak

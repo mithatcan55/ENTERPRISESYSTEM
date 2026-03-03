@@ -21,6 +21,8 @@ Bu doküman, API endpoint'lerinin hangi kimlik doğrulama/yetkilendirme kuralı 
 | `/api/roles` | POST | Authorize(Roles) | `SYS_ADMIN` |
 | `/api/roles/{roleId}/assign/{userId}` | POST | Authorize(Roles) | `SYS_ADMIN` |
 | `/api/roles/users/{userId}` | GET | Authorize(Roles) | `SYS_ADMIN` |
+| `/api/permissions/actions` | GET | Authorize(Roles) | `SYS_ADMIN` |
+| `/api/permissions/actions` | POST | Authorize(Roles) | `SYS_ADMIN` |
 | `/api/sessions` | GET | Authorize | Authenticated user |
 | `/api/sessions/{sessionId}/revoke` | POST | Authorize | Authenticated user |
 | `/api/tcode/{transactionCode}` | GET | Authorize | Authenticated user |
