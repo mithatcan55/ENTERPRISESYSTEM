@@ -520,3 +520,18 @@ Bu fazda eklenenler:
 Amaç:
 - Dış sistemlerden veri çekerken dayanıklılık ve izlenebilirlik sağlamak
 - Yönetim odaklı operasyonlarda dış servis hatalarını merkezi izleyebilmek
+
+---
+
+## Cilt 23 — Audit ve Session Admin Operasyonları
+
+Bu fazda yönetim odaklı sorgu katmanına aşağıdaki endpointler eklendi:
+
+- `/api/ops/logs/entity-changes`
+- `/api/ops/logs/entity-changes/export` (CSV)
+- `/api/ops/logs/sessions`
+
+Kazanım:
+- Entity değişim kayıtlarını UI'dan filtreleyerek izleme
+- Denetim için CSV export alma
+- Session kayıtlarını admin perspektifinden listeleme

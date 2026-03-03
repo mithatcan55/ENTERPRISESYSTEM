@@ -10,6 +10,17 @@ public sealed class LogQueryRequest
     public string? Search { get; set; }
 }
 
+public sealed class SessionAdminQueryRequest
+{
+    public int Page { get; set; } = 1;
+    public int PageSize { get; set; } = 50;
+    public int? UserId { get; set; }
+    public bool IncludeRevoked { get; set; } = true;
+    public DateTime? StartAt { get; set; }
+    public DateTime? EndAt { get; set; }
+    public string? Search { get; set; }
+}
+
 public sealed record PagedResult<T>(
     IReadOnlyList<T> Items,
     int Page,
@@ -53,3 +64,33 @@ public sealed record HttpRequestLogListItemDto(
     string? UserId,
     string? Username,
     string? IpAddress);
+
+public sealed record EntityChangeLogListItemDto(
+    long Id,
+    DateTimeOffset Timestamp,
+    string? CorrelationId,
+    string? UserId,
+    string? Username,
+    string? EntityType,
+    string? EntityId,
+    string? Action,
+    string? TableName,
+    string? SchemaName,
+    string? ChangedProperties);
+
+public sealed record SessionAdminListItemDto(
+    int Id,
+    int UserId,
+    string SessionKey,
+    DateTime StartedAt,
+    DateTime ExpiresAt,
+    DateTime? LastSeenAt,
+    bool IsRevoked,
+    DateTime? RevokedAt,
+    string? RevokedBy,
+    string? ClientIpAddress,
+    string? UserAgent,
+    string? UserCode,
+    string? Username,
+    string? Email,
+    bool IsUserActive);
