@@ -1,5 +1,7 @@
 using Infrastructure.Persistence;
+using Infrastructure.Persistence.Auditing;
 using Host.Api.Middleware;
+using Host.Api.Services;
 using Microsoft.EntityFrameworkCore;
 using Scalar.AspNetCore;
 using Serilog;
@@ -16,6 +18,8 @@ builder.Host.UseSerilog((context, services, configuration) =>
 
 builder.Services.AddControllers();
 builder.Services.AddOpenApi();
+builder.Services.AddHttpContextAccessor();
+builder.Services.AddScoped<IAuditActorAccessor, HttpContextAuditActorAccessor>();
 
 builder.Services.AddDbContext<LogDbContext>(options =>
 {
@@ -23,6 +27,15 @@ builder.Services.AddDbContext<LogDbContext>(options =>
     options.UseNpgsql(connectionString, npgsql =>
     {
         npgsql.MigrationsHistoryTable("__EFMigrationsHistory", LogDbContext.LogsSchema);
+    });
+});
+
+builder.Services.AddDbContext<BusinessDbContext>(options =>
+{
+    var connectionString = builder.Configuration.GetConnectionString("BusinessDb");
+    options.UseNpgsql(connectionString, npgsql =>
+    {
+        npgsql.MigrationsHistoryTable("__EFMigrationsHistory", BusinessDbContext.AuthorizationSchema);
     });
 });
 
