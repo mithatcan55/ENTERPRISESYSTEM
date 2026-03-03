@@ -1,0 +1,100 @@
+@startuml
+title EnterpriseSystem Authorization Class Diagram
+
+abstract class AuditableIntEntity {
+  +int Id
+  +bool IsDeleted
+  +string CreatedBy
+  +DateTime CreatedAt
+  +string ModifiedBy
+  +DateTime ModifiedAt
+  +string DeletedBy
+  +DateTime DeletedAt
+}
+
+class Module {
+  +string Name
+  +string Code
+  +string Description
+  +int CompanyId
+  +string RouteLink
+}
+
+class SubModule {
+  +int ModuleId
+  +string Name
+  +string Code
+  +string Description
+  +string RouteLink
+}
+
+class SubModulePage {
+  +int SubModuleId
+  +string Name
+  +string Code
+  +string TransactionCode
+  +string RouteLink
+}
+
+class UserModulePermission {
+  +int UserId
+  +int ModuleId
+  +short AuthorizationLevel
+}
+
+class UserSubModulePermission {
+  +int UserId
+  +int SubModuleId
+  +short AuthorizationLevel
+}
+
+class UserPagePermission {
+  +int UserId
+  +int SubModulePageId
+  +short AuthorizationLevel
+}
+
+class UserCompanyPermission {
+  +int UserId
+  +int CompanyId
+  +short AuthorizationLevel
+}
+
+class UserPageActionPermission {
+  +int UserId
+  +int SubModulePageId
+  +string ActionCode
+  +bool IsAllowed
+  +short AuthorizationLevel
+}
+
+class UserPageConditionPermission {
+  +int UserId
+  +int SubModulePageId
+  +string FieldName
+  +string Operator
+  +string Value
+  +bool IsActive
+  +short AuthorizationLevel
+}
+
+AuditableIntEntity <|-- Module
+AuditableIntEntity <|-- SubModule
+AuditableIntEntity <|-- SubModulePage
+AuditableIntEntity <|-- UserModulePermission
+AuditableIntEntity <|-- UserSubModulePermission
+AuditableIntEntity <|-- UserPagePermission
+AuditableIntEntity <|-- UserCompanyPermission
+AuditableIntEntity <|-- UserPageActionPermission
+AuditableIntEntity <|-- UserPageConditionPermission
+
+Module "1" -- "N" SubModule
+SubModule "1" -- "N" SubModulePage
+
+Module "1" -- "N" UserModulePermission
+SubModule "1" -- "N" UserSubModulePermission
+SubModulePage "1" -- "N" UserPagePermission
+SubModulePage "1" -- "N" UserPageActionPermission
+SubModulePage "1" -- "N" UserPageConditionPermission
+
+@enduml

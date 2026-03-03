@@ -392,4 +392,22 @@ Eğer araya yeni bir aşama girerse:
 
 ---
 
+## Cilt 16 — Görsel Mimari Dosyaları
+
+Bu proje artık görsel harita dosyaları da içerir:
+
+- docs/architecture/solution-tree.md
+- docs/architecture/solution-dependency.mmd
+- docs/architecture/request-log-flow.mmd
+- docs/architecture/authorization-6-level.mmd
+- docs/architecture/class-diagram-authz.puml
+- docs/architecture/sequence-tcode-access.puml
+
+Not:
+- Mermaid dosyaları akış/bağımlılık görselleri içindir.
+- PlantUML dosyaları sınıf ve sequence diyagramları içindir.
+- Yeni modül eklendiğinde önce bu dosyalar güncellenir, sonra proje-map/project-book güncellenir.
+
+---
+
 Bu dosya canlıdır. Değişiklik oldukça revize edilir.

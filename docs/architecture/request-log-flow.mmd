@@ -1,0 +1,21 @@
+flowchart TD
+    Client[Client]
+    Api[Host.Api]
+    Corr[CorrelationIdMiddleware]
+    SerilogReq[UseSerilogRequestLogging]
+    ReqLife[RequestLifecycleLoggingMiddleware]
+    Controller[Controller/Endpoint]
+    BusinessDb[(BusinessDb)]
+    LogDb[(LogDb)]
+    FileLog[(logs/*.txt)]
+
+    Client --> Api
+    Api --> Corr
+    Corr --> SerilogReq
+    SerilogReq --> ReqLife
+    ReqLife --> Controller
+    Controller --> BusinessDb
+    ReqLife --> LogDb
+    SerilogReq --> FileLog
+    Controller --> ReqLife
+    ReqLife --> Client

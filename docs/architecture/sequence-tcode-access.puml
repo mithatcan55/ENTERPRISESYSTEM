@@ -1,0 +1,36 @@
+@startuml
+title T-Code Access and Authorization Sequence
+
+actor User
+participant "Host.Api" as Api
+participant "CorrelationIdMiddleware" as Corr
+participant "RequestLifecycleLoggingMiddleware" as ReqLog
+participant "Authorization Engine" as Authz
+database "BusinessDb" as Bdb
+database "LogDb" as Ldb
+
+User -> Api: GET /api/tcode/SYS01
+Api -> Corr: Attach/Generate CorrelationId
+Corr --> Api: CorrelationId ready
+
+Api -> ReqLog: Start request capture
+ReqLog -> Authz: Resolve T-Code SYS01
+Authz -> Bdb: Query SubModulePage(TransactionCode)
+Bdb --> Authz: Page metadata
+
+Authz -> Bdb: Validate Levels 1..6
+Bdb --> Authz: Permission set
+
+alt Authorized
+  Authz --> Api: Allow + filtered policy
+  Api --> User: 200 OK
+else Forbidden
+  Authz --> Api: Deny reason
+  Api --> User: 403 Forbidden
+end
+
+ReqLog -> Ldb: Insert http_request_logs
+ReqLog -> Ldb: Insert system_logs
+ReqLog --> Api: End request capture
+
+@enduml

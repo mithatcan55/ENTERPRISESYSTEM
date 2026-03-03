@@ -6,6 +6,8 @@
 
 > Detaylı ana kitap dosyası: `project-book.md`
 
+> Görsel mimari seti: `docs/architecture/README.md`
+
 ---
 
 ## 1) Hedef ve Kapsam
