@@ -10,7 +10,7 @@
     <PackageVersion Include="Microsoft.EntityFrameworkCore.Design" Version="9.0.0" />
     <PackageVersion Include="Serilog.AspNetCore" Version="9.0.0" />
     <PackageVersion Include="Serilog.Sinks.File" Version="6.0.0" />
-    <PackageVersion Include="Serilog.Sinks.PostgreSQL" Version="5.0.0" />
+    <PackageVersion Include="Serilog.Sinks.PostgreSQL" Version="2.3.0" />
     <PackageVersion Include="Mapster" Version="7.4.0" />
     <PackageVersion Include="Mapster.DependencyInjection" Version="1.0.1" />
     <PackageVersion Include="FluentValidation" Version="11.11.0" />
