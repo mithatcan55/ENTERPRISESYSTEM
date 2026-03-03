@@ -78,4 +78,40 @@ GET {{Host.Api_HostAddress}}/api/tcode/SYS03?userId=1&companyId=1&amount=500
 Authorization: Bearer {{SessionToken}}
 Accept: application/json
 
+### NEGATIVE - Unauthorized snapshot (expected 401)
+GET {{Host.Api_HostAddress}}/api/ops/security/password-policy
+Accept: application/json
+
+### NEGATIVE - Forbidden snapshot with non-admin token (expected 403)
+GET {{Host.Api_HostAddress}}/api/ops/security/password-policy
+Authorization: Bearer REPLACE_WITH_NON_ADMIN_TOKEN
+Accept: application/json
+
+### NEGATIVE - Invalid policy preview config (expected 200 with IsValidConfiguration=false)
+PUT {{Host.Api_HostAddress}}/api/ops/security/password-policy
+Authorization: Bearer {{SessionToken}}
+Content-Type: application/json
+
+{
+	"minLength": 4,
+	"requireUppercase": false,
+	"requireLowercase": false,
+	"requireDigit": false,
+	"requireSpecialCharacter": false,
+	"historyCount": 0,
+	"minimumPasswordAgeMinutes": 2000,
+	"samples": [
+		{
+			"password": "123",
+			"username": "sysadmin",
+			"email": "sysadmin@enterprise.local"
+		}
+	]
+}
+
+### NEGATIVE - TCode resolve bad request (missing userId/companyId, expected 400)
+GET {{Host.Api_HostAddress}}/api/tcode/SYS03
+Authorization: Bearer {{SessionToken}}
+Accept: application/json
+
 ###

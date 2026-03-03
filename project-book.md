@@ -896,3 +896,19 @@ Bu fazda eklendi:
 Amaç:
 - Security omurgasının (role + t-code + permission + preview) uçtan uca manuel test setini tek dosyada tamamlamak
 - Operasyon/demo/debug süreçlerinde endpoint keşif ve doğrulama süresini düşürmek
+
+---
+
+## Cilt 43 — Negative Security HTTP Templates
+
+Bu fazda eklendi:
+
+- `Host.Api.http` dosyasına negatif test senaryoları eklendi:
+	- Unauthorized snapshot (`401`)
+	- Non-admin token ile forbidden snapshot (`403`)
+	- Geçersiz preview config (response içinde `IsValidConfiguration=false`)
+	- Eksik query ile T-Code resolve bad request (`400`)
+
+Amaç:
+- Operasyon ekibinin yalnızca başarılı değil, başarısız güvenlik senaryolarını da hızlı doğrulayabilmesi
+- Yetki/policy regressions durumunda beklenen hata davranışını standart şekilde test edebilmek
