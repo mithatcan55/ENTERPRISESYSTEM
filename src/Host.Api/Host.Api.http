@@ -1,6 +1,54 @@
 @Host.Api_HostAddress = http://localhost:5279
+@SessionToken = REPLACE_WITH_SESSION_KEY
 
-GET {{Host.Api_HostAddress}}/weatherforecast/
+### Health
+GET {{Host.Api_HostAddress}}/health
+Accept: application/json
+
+### Login (AllowAnonymous)
+POST {{Host.Api_HostAddress}}/api/auth/login
+Content-Type: application/json
+
+{
+	"identifier": "SYSADMIN",
+	"password": "ChangeMe!123"
+}
+
+### Password policy snapshot (SYS_ADMIN)
+GET {{Host.Api_HostAddress}}/api/ops/security/password-policy
+Authorization: Bearer {{SessionToken}}
+Accept: application/json
+
+### Password policy preview simulation (SYS_ADMIN)
+PUT {{Host.Api_HostAddress}}/api/ops/security/password-policy
+Authorization: Bearer {{SessionToken}}
+Content-Type: application/json
+
+{
+	"minLength": 12,
+	"requireUppercase": true,
+	"requireLowercase": true,
+	"requireDigit": true,
+	"requireSpecialCharacter": true,
+	"historyCount": 6,
+	"minimumPasswordAgeMinutes": 10,
+	"samples": [
+		{
+			"password": "password",
+			"username": "sysadmin",
+			"email": "sysadmin@enterprise.local"
+		},
+		{
+			"password": "Strong#Pass123",
+			"username": "sysadmin",
+			"email": "sysadmin@enterprise.local"
+		}
+	]
+}
+
+### Sessions list
+GET {{Host.Api_HostAddress}}/api/sessions?onlyActive=true
+Authorization: Bearer {{SessionToken}}
 Accept: application/json
 
 ###

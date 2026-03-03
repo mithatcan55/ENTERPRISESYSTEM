@@ -863,3 +863,20 @@ Bu fazda eklendi:
 Amaç:
 - Policy değişikliği öncesi etki analizi yapmak
 - Canlıya riskli konfigürasyon taşımadan önce güvenli dry-run mekanizması sağlamak
+
+---
+
+## Cilt 41 — Host.Api.http Operational Templates
+
+Bu fazda eklendi:
+
+- `Host.Api.http` dosyası operasyon kullanımına uygun örneklerle genişletildi:
+	- `POST /api/auth/login`
+	- `GET /api/ops/security/password-policy`
+	- `PUT /api/ops/security/password-policy` (preview simulation)
+	- `GET /api/sessions`
+- `SessionToken` değişkeni üzerinden yetkili endpoint çağrıları standardize edildi.
+
+Amaç:
+- Operasyon ve geliştirme ekiplerinin yeni security endpoint’lerini hızlı test edebilmesini sağlamak
+- Preview/snapshot akışlarının manuel doğrulamasını kolaylaştırmak
