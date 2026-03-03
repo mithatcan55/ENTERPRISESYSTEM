@@ -1,5 +1,6 @@
 using Infrastructure.Persistence.Auditing;
 using Infrastructure.Persistence.Entities.Authorization;
+using Infrastructure.Persistence.Entities.Identity;
 using Microsoft.EntityFrameworkCore;
 using SharedKernel.Auditing;
 
@@ -25,6 +26,7 @@ public sealed class BusinessDbContext(
     public DbSet<UserCompanyPermission> UserCompanyPermissions => Set<UserCompanyPermission>();
     public DbSet<UserPageActionPermission> UserPageActionPermissions => Set<UserPageActionPermission>();
     public DbSet<UserPageConditionPermission> UserPageConditionPermissions => Set<UserPageConditionPermission>();
+    public DbSet<User> Users => Set<User>();
 
     public override int SaveChanges(bool acceptAllChangesOnSuccess)
     {
@@ -150,6 +152,19 @@ public sealed class BusinessDbContext(
                 .HasForeignKey(x => x.SubModulePageId)
                 .OnDelete(DeleteBehavior.Restrict);
             entity.HasIndex(x => new { x.UserId, x.SubModulePageId, x.FieldName, x.Operator, x.Value });
+        });
+
+        modelBuilder.Entity<User>(entity =>
+        {
+            entity.ToTable("Users");
+            entity.HasKey(x => x.Id);
+            entity.Property(x => x.UserCode).HasMaxLength(50).IsRequired();
+            entity.Property(x => x.Username).HasMaxLength(200).IsRequired();
+            entity.Property(x => x.Email).HasMaxLength(320).IsRequired();
+            entity.Property(x => x.PasswordHash).HasMaxLength(500).IsRequired();
+            entity.HasIndex(x => x.UserCode).IsUnique();
+            entity.HasIndex(x => x.Username).IsUnique();
+            entity.HasIndex(x => x.Email).IsUnique();
         });
 
         // SYS01-SYS04 başlangıç ekranları: T-Code ile doğrudan erişim sağlayan temel seed.

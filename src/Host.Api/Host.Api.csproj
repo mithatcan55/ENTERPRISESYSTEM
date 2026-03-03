@@ -13,6 +13,7 @@
   <PackageReference Include="Serilog.Sinks.File" />
   <PackageReference Include="Serilog.Sinks.PostgreSQL" />
   <PackageReference Include="Scrutor" />
+  <PackageReference Include="BCrypt.Net-Next" />
   <PackageReference Include="Microsoft.EntityFrameworkCore.Design">
     <PrivateAssets>all</PrivateAssets>
     <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>

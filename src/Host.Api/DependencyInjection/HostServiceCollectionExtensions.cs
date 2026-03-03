@@ -47,7 +47,7 @@ public static class HostServiceCollectionExtensions
         services.Scan(scan => scan
             .FromAssemblyOf<HostAssemblyMarker>()
             .AddClasses(classes => classes
-                .InNamespaces("Host.Api.Services", "Host.Api.Authorization.Services")
+                .InNamespaces("Host.Api.Services", "Host.Api.Authorization.Services", "Host.Api.Identity.Services")
                 .Where(type => type.Name.EndsWith("Service", StringComparison.Ordinal)
                             || type.Name.EndsWith("Accessor", StringComparison.Ordinal)
                             || type.Name.EndsWith("Context", StringComparison.Ordinal)))

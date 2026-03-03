@@ -1,5 +1,4 @@
 using Host.Api.Middleware;
-using Host.Api.Services;
 using Infrastructure.Persistence;
 using Infrastructure.Persistence.Entities;
 using Microsoft.AspNetCore.Diagnostics;
@@ -14,8 +13,7 @@ namespace Host.Api.Exceptions;
 /// </summary>
 public sealed class GlobalExceptionHandler(
     ILogger<GlobalExceptionHandler> logger,
-    LogDbContext logDbContext,
-    ICurrentUserContext currentUserContext,
+    IServiceScopeFactory serviceScopeFactory,
     IProblemDetailsService problemDetailsService,
     IHostEnvironment hostEnvironment) : IExceptionHandler
 {
@@ -35,13 +33,19 @@ public sealed class GlobalExceptionHandler(
         var correlationId = httpContext.Items[CorrelationIdMiddleware.CorrelationItemKey]?.ToString()
                             ?? httpContext.TraceIdentifier;
 
-        var actorIdentity = currentUserContext.TryGetActorIdentity(out var resolvedActor)
-            ? resolvedActor
-            : "anonymous";
+        var principal = httpContext.User;
+        var actorIdentity = principal?.FindFirst("user_code")?.Value
+                            ?? principal?.FindFirst("usercode")?.Value
+                            ?? principal?.FindFirst("preferred_username")?.Value
+                            ?? principal?.FindFirst("username")?.Value
+                            ?? principal?.FindFirst("sub")?.Value
+                            ?? principal?.FindFirst("user_id")?.Value
+                            ?? "anonymous";
 
-        var username = currentUserContext.TryGetUsername(out var resolvedUsername)
-            ? resolvedUsername
-            : actorIdentity;
+        var username = principal?.FindFirst("preferred_username")?.Value
+                       ?? principal?.FindFirst("username")?.Value
+                       ?? principal?.Identity?.Name
+                       ?? actorIdentity;
 
         var systemLog = new SystemLog
         {
@@ -72,8 +76,12 @@ public sealed class GlobalExceptionHandler(
             ThreadId = Environment.CurrentManagedThreadId
         };
 
-        logDbContext.SystemLogs.Add(systemLog);
-        await logDbContext.SaveChangesAsync(cancellationToken);
+        using (var scope = serviceScopeFactory.CreateScope())
+        {
+            var logDbContext = scope.ServiceProvider.GetRequiredService<LogDbContext>();
+            logDbContext.SystemLogs.Add(systemLog);
+            await logDbContext.SaveChangesAsync(cancellationToken);
+        }
 
         httpContext.Response.StatusCode = statusCode;
 

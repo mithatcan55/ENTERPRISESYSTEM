@@ -16,5 +16,6 @@
     <PackageVersion Include="FluentValidation" Version="11.11.0" />
     <PackageVersion Include="Scrutor" Version="5.0.1" />
     <PackageVersion Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="9.0.0" />
+    <PackageVersion Include="BCrypt.Net-Next" Version="4.0.3" />
   </ItemGroup>
 </Project>

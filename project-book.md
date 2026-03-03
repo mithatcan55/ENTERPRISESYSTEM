@@ -452,3 +452,17 @@ Bu aşamada tamamlananlar:
 Amaç:
 - Modül yazarken hata formatını tekrar tekrar düşünmemek
 - Frontend tarafında tek tip hata sözleşmesi ile ilerlemek
+
+---
+
+## Cilt 19 — Kurumsal Omurga Master Planı
+
+Projenin "önce ne, sonra ne" akışı aşağıdaki dosyada faz bazlı tanımlıdır:
+
+- docs/enterprise-backbone-master-plan.md
+
+Bu plan şunları tek yerde toplar:
+- Roller/yetkiler/kullanıcılar güncel durum tablosu
+- Scalar test takvimi
+- Session, şifre politikası, rate limit ve operasyon yönetimi fazları
+- Denetim kapıları (audit/compliance gates)

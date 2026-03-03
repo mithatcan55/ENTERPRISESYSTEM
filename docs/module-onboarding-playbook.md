@@ -254,3 +254,17 @@ Mini kullanım örneği:
 3. `{{TCODE_PREFIX}}` yerine `INV` yaz.
 4. Seed checklist'i sırayla tamamla.
 
+Scaffold'ı otomatik üretmek için script:
+
+- Dry run:
+	- `./scripts/new-module.ps1 -ModuleName Inventory -TCodePrefix INV -DryRun`
+- Gerçek üretim:
+	- `./scripts/new-module.ps1 -ModuleName Inventory -TCodePrefix INV`
+
+Çıktı klasörü:
+- `scaffolds/generated/Inventory`
+
+Not:
+- Bu script mevcut çalışma koduna dokunmaz.
+- Altyapı tamamlanana kadar sadece şablon üretip kenarda bekletmek için tasarlanmıştır.
+
