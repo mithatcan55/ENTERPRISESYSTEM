@@ -1,0 +1,33 @@
+using Host.Api.Services;
+using Microsoft.AspNetCore.Mvc;
+
+namespace {{ModuleName}}.Presentation.Controllers;
+
+[ApiController]
+[Route("api/{{module-route}}")] 
+public sealed class {{ModuleName}}Controller(
+    ICurrentUserContext currentUserContext,
+    I{{ModuleName}}AppService appService) : ControllerBase
+{
+    [HttpGet("items")]
+    public async Task<IActionResult> GetItems(
+        [FromQuery] int? companyId,
+        CancellationToken cancellationToken)
+    {
+        var resolvedCompanyId = companyId;
+        if (!resolvedCompanyId.HasValue && currentUserContext.TryGetCompanyId(out var claimCompanyId))
+        {
+            resolvedCompanyId = claimCompanyId;
+        }
+
+        if (!resolvedCompanyId.HasValue)
+        {
+            throw new ValidationAppException(
+                "Company bilgisi gerekli.",
+                new Dictionary<string, string[]> { ["companyId"] = ["companyId query veya claim içinde bulunmalı."] });
+        }
+
+        var items = await appService.GetItemsAsync(resolvedCompanyId.Value, cancellationToken);
+        return Ok(items);
+    }
+}

@@ -237,3 +237,20 @@ Bir modül aşağıdakiler tamam değilse bitmiş sayılmaz:
 
 Bu özet doğru uygulanırsa modül eklemek çocuk oyuncağına döner.
 
+---
+
+## 11) Hazır Scaffold Nerede?
+
+Bu rehberin birebir kopyalanabilir şablonları burada:
+
+- `templates/module-scaffold/README.md`
+- `templates/module-scaffold/backend/module-template/...`
+- `templates/module-scaffold/checklists/seed-checklist.md.template`
+- `templates/module-scaffold/frontend/contract/module.contract.stub.json.template`
+
+Mini kullanım örneği:
+1. `{{ModuleName}}` yerine `Inventory` yaz.
+2. `{{module-route}}` yerine `inventory` yaz.
+3. `{{TCODE_PREFIX}}` yerine `INV` yaz.
+4. Seed checklist'i sırayla tamamla.
+

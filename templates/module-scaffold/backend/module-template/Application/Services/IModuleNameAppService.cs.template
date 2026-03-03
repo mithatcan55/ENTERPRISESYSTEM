@@ -1,0 +1,6 @@
+namespace {{ModuleName}}.Application.Services;
+
+public interface I{{ModuleName}}AppService
+{
+    Task<IReadOnlyList<{{ModuleName}}ListItemDto>> GetItemsAsync(int companyId, CancellationToken cancellationToken);
+}

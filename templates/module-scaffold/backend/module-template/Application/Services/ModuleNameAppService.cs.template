@@ -1,0 +1,15 @@
+namespace {{ModuleName}}.Application.Services;
+
+public sealed class {{ModuleName}}AppService : I{{ModuleName}}AppService
+{
+    public Task<IReadOnlyList<{{ModuleName}}ListItemDto>> GetItemsAsync(int companyId, CancellationToken cancellationToken)
+    {
+        IReadOnlyList<{{ModuleName}}ListItemDto> items =
+        [
+            new {{ModuleName}}ListItemDto(1, "{{ModuleName}}-001", companyId, "Active"),
+            new {{ModuleName}}ListItemDto(2, "{{ModuleName}}-002", companyId, "Passive")
+        ];
+
+        return Task.FromResult(items);
+    }
+}
