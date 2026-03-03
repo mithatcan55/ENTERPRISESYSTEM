@@ -7,7 +7,7 @@ namespace Host.Api.Controllers;
 
 [ApiController]
 [Route("api/roles")]
-[Authorize]
+[Authorize(Roles = "SYS_ADMIN")]
 public sealed class RolesController(IRoleManagementService roleManagementService) : ControllerBase
 {
     [HttpGet]

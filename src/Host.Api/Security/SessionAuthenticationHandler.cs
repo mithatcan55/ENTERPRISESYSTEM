@@ -95,25 +95,25 @@ public sealed class SessionAuthenticationHandler(
 
         var claims = new List<Claim>
         {
-            new("sub", user.Id.ToString()),
-            new("user_id", user.Id.ToString()),
-            new("user_code", user.UserCode),
-            new("username", user.Username),
-            new(ClaimTypes.NameIdentifier, user.Id.ToString()),
-            new(ClaimTypes.Name, user.Username),
-            new("session_id", session.Id.ToString()),
-            new("session_key", session.SessionKey)
+            new(SecurityClaimTypes.Subject, user.Id.ToString()),
+            new(SecurityClaimTypes.UserId, user.Id.ToString()),
+            new(SecurityClaimTypes.UserCode, user.UserCode),
+            new(SecurityClaimTypes.Username, user.Username),
+            new(SecurityClaimTypes.NameIdentifier, user.Id.ToString()),
+            new(SecurityClaimTypes.Name, user.Username),
+            new(SecurityClaimTypes.SessionId, session.Id.ToString()),
+            new(SecurityClaimTypes.SessionKey, session.SessionKey)
         };
 
         if (companyId.HasValue)
         {
-            claims.Add(new Claim("company_id", companyId.Value.ToString()));
+            claims.Add(new Claim(SecurityClaimTypes.CompanyId, companyId.Value.ToString()));
         }
 
         foreach (var role in roles)
         {
-            claims.Add(new Claim(ClaimTypes.Role, role));
-            claims.Add(new Claim("role", role));
+            claims.Add(new Claim(SecurityClaimTypes.RoleClaim, role));
+            claims.Add(new Claim(SecurityClaimTypes.Role, role));
         }
 
         var identity = new ClaimsIdentity(claims, SchemeName);

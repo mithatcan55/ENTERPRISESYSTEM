@@ -4,6 +4,7 @@ using Host.Api.Middleware;
 using Host.Api.Security;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authorization;
+using Host.Api.Security.Authorization;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Options;
 using Microsoft.AspNetCore.Mvc;
@@ -43,6 +44,8 @@ public static class HostServiceCollectionExtensions
                 .RequireAuthenticatedUser()
                 .Build();
         });
+        services.AddSingleton<IAuthorizationPolicyProvider, TCodeAuthorizationPolicyProvider>();
+        services.AddScoped<IAuthorizationHandler, TCodeAuthorizationHandler>();
 
         services.AddProblemDetails();
         services.AddExceptionHandler<GlobalExceptionHandler>();

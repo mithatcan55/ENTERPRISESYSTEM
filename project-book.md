@@ -551,3 +551,56 @@ Bu fazda eklendi:
 Amaç:
 - Role/permission enforcement öncesi gerçek kimlik doğrulama musluğunu açmak
 - Revoke/expiry durumlarında erişimi request anında kesebilmek
+
+---
+
+## Cilt 25 — Role/Permission Policy Enforcement Bridge
+
+Bu fazda eklendi:
+
+- Dinamik `TCode:*` policy sağlayan `TCodeAuthorizationPolicyProvider`
+- Policy requirement modeli `TCodeRequirement`
+- Kullanım attribute'u `[TCodeAuthorize("...")]`
+- Policy engine ile mevcut T-Code servis köprüsü `TCodeAuthorizationHandler`
+
+Uygulanan korumalar:
+
+- `UsersController.List` -> `SYS03`
+- `UsersController.Create` -> `SYS01`
+- `RolesController` -> sadece `SYS_ADMIN`
+- `OperationsLogsController` -> `SYS_ADMIN` veya `SYS_OPERATOR`
+
+Amaç:
+- Authentication sonrası authorization katmanını işlem kodu + rol düzeyinde zorlamak
+- Yönetim API'lerinde minimum yetki ilkesini uygulamak
+
+---
+
+## Cilt 26 — Authorization Hardening (Claim Standardization)
+
+Bu fazda eklendi:
+
+- `SecurityClaimTypes` ile claim anahtarları merkezileştirildi.
+- `SessionAuthenticationHandler` claim üretimi bu sabitlere taşındı.
+- `TCodeAuthorizationHandler` içinde claim okuma sabitlere taşındı.
+- Authorization karar çağrısında `RequestAborted` kullanımı eklendi (cancel-aware).
+- `TCodeAuthorize` attribute boş/null transaction code için fail-fast doğrulama alıyor.
+
+Amaç:
+- Sessiz claim drift riskini kapatmak
+- Uzun isteklerde iptal zincirini authorization katmanına kadar taşımak
+
+---
+
+## Cilt 27 — Endpoint Authorization Policy Matrix
+
+Bu fazda eklendi:
+
+- Tüm API endpoint'leri için tek kaynak yetki matrisi:
+	- `docs/authorization-policy-matrix.md`
+- Matrise authentication, role ve T-Code kuralları ayrı sütunlarla işlendi.
+- Anonymous istisna endpoint'leri (login) açıkça işaretlendi.
+
+Amaç:
+- Yeni endpoint eklendiğinde yetki boşluğu bırakmamak
+- Kod inceleme ve denetimlerde “hangi endpoint hangi kuralla korunuyor” sorusunu tek dosyadan yanıtlamak

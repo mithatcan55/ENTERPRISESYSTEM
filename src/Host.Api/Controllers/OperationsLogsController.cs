@@ -7,7 +7,7 @@ namespace Host.Api.Controllers;
 
 [ApiController]
 [Route("api/ops/logs")]
-[Authorize]
+[Authorize(Roles = "SYS_ADMIN,SYS_OPERATOR")]
 public sealed class OperationsLogsController(IOperationsLogQueryService operationsLogQueryService) : ControllerBase
 {
     [HttpGet("system")]
