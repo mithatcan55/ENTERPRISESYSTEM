@@ -1,9 +1,14 @@
 using Host.Api.Exceptions;
+using Host.Api.Integrations.Configuration;
 using Host.Api.Middleware;
+using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Options;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.DependencyInjection;
 using System.Text.Json;
 using System.Threading.RateLimiting;
+using Polly;
+using Polly.Extensions.Http;
 
 namespace Host.Api.DependencyInjection;
 
@@ -18,11 +23,12 @@ public static class HostServiceCollectionExtensions
     /// <summary>
     /// Host katmanı core servislerini ve cross-cutting bileşenlerini kaydeder.
     /// </summary>
-    public static IServiceCollection AddHostCoreServices(this IServiceCollection services)
+    public static IServiceCollection AddHostCoreServices(this IServiceCollection services, IConfiguration configuration)
     {
         services.AddHttpContextAccessor();
         services.AddProblemDetails();
         services.AddExceptionHandler<GlobalExceptionHandler>();
+
         services.AddRateLimiter(options =>
         {
             options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
@@ -96,12 +102,31 @@ public static class HostServiceCollectionExtensions
         services.Scan(scan => scan
             .FromAssemblyOf<HostAssemblyMarker>()
             .AddClasses(classes => classes
-                .InNamespaces("Host.Api.Services", "Host.Api.Authorization.Services", "Host.Api.Identity.Services", "Host.Api.Operations.Services")
+                .InNamespaces("Host.Api.Services", "Host.Api.Authorization.Services", "Host.Api.Identity.Services", "Host.Api.Operations.Services", "Host.Api.Integrations.Services")
                 .Where(type => type.Name.EndsWith("Service", StringComparison.Ordinal)
                             || type.Name.EndsWith("Accessor", StringComparison.Ordinal)
-                            || type.Name.EndsWith("Context", StringComparison.Ordinal)))
+                            || type.Name.EndsWith("Context", StringComparison.Ordinal)
+                            || type.Name.EndsWith("Gateway", StringComparison.Ordinal)))
             .AsImplementedInterfaces()
             .WithScopedLifetime());
+
+        services.AddOptions<ExternalServicesOptions>()
+            .BindConfiguration("ExternalServices")
+            .ValidateDataAnnotations();
+
+        services.AddHttpClient("reference-api", (serviceProvider, client) =>
+            {
+                var options = serviceProvider.GetRequiredService<IOptions<ExternalServicesOptions>>().Value;
+                client.BaseAddress = new Uri(options.ReferenceApi.BaseUrl);
+                client.Timeout = TimeSpan.FromSeconds(options.ReferenceApi.TimeoutSeconds <= 0 ? 5 : options.ReferenceApi.TimeoutSeconds);
+            })
+            .AddPolicyHandler(HttpPolicyExtensions
+                .HandleTransientHttpError()
+                .WaitAndRetryAsync(3, retryAttempt => TimeSpan.FromMilliseconds(200 * retryAttempt)))
+            .AddPolicyHandler(HttpPolicyExtensions
+                .HandleTransientHttpError()
+                .CircuitBreakerAsync(5, TimeSpan.FromSeconds(30)))
+            .AddPolicyHandler(Policy.TimeoutAsync<HttpResponseMessage>(TimeSpan.FromSeconds(6)));
 
         return services;
     }

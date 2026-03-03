@@ -500,3 +500,23 @@ Bu fazda eklenenler:
 Amaç:
 - API kötüye kullanımını sınırlamak
 - Yönetim arayüzünden log/denetim kayıtlarını filtrelenebilir şekilde izlemek
+
+---
+
+## Cilt 22 — Dış Servis Entegrasyon Omurgası
+
+Bu fazda eklenenler:
+
+- External service options (`ExternalServices:ReferenceApi`)
+- Named HttpClient (`reference-api`)
+- Resilience politikaları:
+	- Retry
+	- Circuit Breaker
+	- Timeout
+- Outbound çağrıların `system_logs` tablosuna yazılması
+- Test endpoint:
+	- `/api/integrations/reference/company/{externalId}`
+
+Amaç:
+- Dış sistemlerden veri çekerken dayanıklılık ve izlenebilirlik sağlamak
+- Yönetim odaklı operasyonlarda dış servis hatalarını merkezi izleyebilmek

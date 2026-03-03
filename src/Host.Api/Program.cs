@@ -17,7 +17,7 @@ builder.Host.UseSerilog((context, services, configuration) =>
 
 builder.Services.AddControllers();
 builder.Services.AddOpenApi();
-builder.Services.AddHostCoreServices();
+builder.Services.AddHostCoreServices(builder.Configuration);
 builder.Services.AddInfrastructurePersistence(builder.Configuration);
 builder.Services.AddIdentityPresentationModule();
 
