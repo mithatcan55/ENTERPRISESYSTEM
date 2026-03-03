@@ -3,9 +3,10 @@ title T-Code Access and Authorization Sequence
 
 actor User
 participant "Host.Api" as Api
+participant "TCodeController" as Ctrl
 participant "CorrelationIdMiddleware" as Corr
 participant "RequestLifecycleLoggingMiddleware" as ReqLog
-participant "Authorization Engine" as Authz
+participant "TCodeAuthorizationService" as Authz
 database "BusinessDb" as Bdb
 database "LogDb" as Ldb
 
@@ -14,7 +15,8 @@ Api -> Corr: Attach/Generate CorrelationId
 Corr --> Api: CorrelationId ready
 
 Api -> ReqLog: Start request capture
-ReqLog -> Authz: Resolve T-Code SYS01
+ReqLog -> Ctrl: Route request to endpoint
+Ctrl -> Authz: AuthorizeAsync(SYS01, userId, companyId, amount)
 Authz -> Bdb: Query SubModulePage(TransactionCode)
 Bdb --> Authz: Page metadata
 
@@ -22,10 +24,12 @@ Authz -> Bdb: Validate Levels 1..6
 Bdb --> Authz: Permission set
 
 alt Authorized
-  Authz --> Api: Allow + filtered policy
+  Authz --> Ctrl: Allow + filtered policy
+  Ctrl --> Api: 200 payload
   Api --> User: 200 OK
 else Forbidden
-  Authz --> Api: Deny reason
+  Authz --> Ctrl: Deny reason
+  Ctrl --> Api: 403 payload
   Api --> User: 403 Forbidden
 end
 

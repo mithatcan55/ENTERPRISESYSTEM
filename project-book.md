@@ -369,11 +369,14 @@ Eğer araya yeni bir aşama girerse:
 ## Cilt 14 — Sonraki Yol Haritası
 
 1. Identity modülü ile gerçek User FK bağlantısı
-2. T-Code Resolver servisi
-3. 6-level authorization engine
-4. Condition parser ve query filter projection
-5. Security event log zenginleştirme (deny reason)
-6. Outbox + notification ile audit olay senkronizasyonu
+2. Condition parser ve query filter projection geliştirme
+3. Security event log zenginleştirme (deny reason)
+4. Outbox + notification ile audit olay senkronizasyonu
+
+Not: T-Code Resolver + authorization engine ilk sürümü tamamlandı.
+
+Aktif endpoint:
+- GET /api/tcode/{transactionCode}?userId={id}&companyId={id}&amount={decimal}
 
 ---
 

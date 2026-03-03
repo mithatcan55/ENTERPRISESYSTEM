@@ -1,5 +1,6 @@
 using Infrastructure.Persistence;
 using Infrastructure.Persistence.Auditing;
+using Host.Api.Authorization.Services;
 using Host.Api.Middleware;
 using Host.Api.Services;
 using Microsoft.EntityFrameworkCore;
@@ -20,6 +21,7 @@ builder.Services.AddControllers();
 builder.Services.AddOpenApi();
 builder.Services.AddHttpContextAccessor();
 builder.Services.AddScoped<IAuditActorAccessor, HttpContextAuditActorAccessor>();
+builder.Services.AddScoped<ITCodeAuthorizationService, TCodeAuthorizationService>();
 
 builder.Services.AddDbContext<LogDbContext>(options =>
 {

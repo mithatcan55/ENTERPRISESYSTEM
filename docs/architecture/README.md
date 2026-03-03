@@ -19,3 +19,8 @@ Bu klasör, projenin görsel haritasını içerir.
 ## Not
 
 Bu klasördeki diyagramlar canlıdır; yeni modül/katman eklendiğinde güncellenir.
+
+## Uygulama Notu
+
+- T-Code yetki endpoint'i: `GET /api/tcode/{transactionCode}`
+- Query parametreleri: `userId`, `companyId`, `amount`
