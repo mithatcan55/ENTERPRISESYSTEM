@@ -1,4 +1,5 @@
 using Host.Api.Exceptions;
+using Host.Api.Identity.Configuration;
 using Host.Api.Integrations.Configuration;
 using Host.Api.Middleware;
 using Host.Api.Security;
@@ -134,6 +135,10 @@ public static class HostServiceCollectionExtensions
 
         services.AddOptions<ExternalServicesOptions>()
             .BindConfiguration("ExternalServices")
+            .ValidateDataAnnotations();
+
+        services.AddOptions<PasswordPolicyOptions>()
+            .BindConfiguration(PasswordPolicyOptions.SectionName)
             .ValidateDataAnnotations();
 
         services.AddHttpClient("reference-api", (serviceProvider, client) =>

@@ -13,7 +13,8 @@ public sealed class AuthLifecycleService(
     BusinessDbContext businessDbContext,
     LogDbContext logDbContext,
     IHttpContextAccessor httpContextAccessor,
-    ICurrentUserContext currentUserContext) : IAuthLifecycleService
+    ICurrentUserContext currentUserContext,
+    IPasswordPolicyService passwordPolicyService) : IAuthLifecycleService
 {
     public async Task<LoginResponse> LoginAsync(LoginRequest request, CancellationToken cancellationToken)
     {
@@ -136,16 +137,6 @@ public sealed class AuthLifecycleService(
                 });
         }
 
-        if (request.NewPassword.Length < 8)
-        {
-            throw new ValidationAppException(
-                "Yeni şifre politikaya uymuyor.",
-                new Dictionary<string, string[]>
-                {
-                    ["newPassword"] = ["Yeni şifre en az 8 karakter olmalıdır."]
-                });
-        }
-
         if (!currentUserContext.TryGetUserId(out var authenticatedUserId))
         {
             throw new ForbiddenAppException("Kimliği doğrulanmış kullanıcı bilgisi çözümlenemedi.");
@@ -170,11 +161,22 @@ public sealed class AuthLifecycleService(
             throw new ForbiddenAppException("Mevcut şifre doğrulanamadı.");
         }
 
+        try
+        {
+            await passwordPolicyService.EnforcePasswordChangePolicyOrThrowAsync(user, request.NewPassword, cancellationToken);
+        }
+        catch (ValidationAppException)
+        {
+            await LogSecurityEventAsync("ChangePassword", false, "Yeni şifre policy doğrulamasını geçemedi.", user.UserCode, user.Id, cancellationToken);
+            throw;
+        }
+
         user.PasswordHash = BCrypt.Net.BCrypt.HashPassword(request.NewPassword);
         user.MustChangePassword = false;
         user.PasswordExpiresAt = DateTime.UtcNow.AddDays(90);
 
         await businessDbContext.SaveChangesAsync(cancellationToken);
+        await passwordPolicyService.RecordPasswordHistoryAsync(user.Id, user.PasswordHash, cancellationToken);
 
         await LogSecurityEventAsync("ChangePassword", true, null, user.UserCode, user.Id, cancellationToken,
             new { user.PasswordExpiresAt });

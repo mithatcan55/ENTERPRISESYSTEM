@@ -13,7 +13,9 @@ namespace Host.Api.Identity.Services;
 /// Users + UserModulePermissions + UserCompanyPermissions.
 /// Son adımda hata olursa tamamı rollback edilir.
 /// </summary>
-public sealed class UserManagementService(BusinessDbContext businessDbContext) : IUserManagementService
+public sealed class UserManagementService(
+    BusinessDbContext businessDbContext,
+    IPasswordPolicyService passwordPolicyService) : IUserManagementService
 {
     public async Task<IReadOnlyList<UserListItemDto>> ListAsync(CancellationToken cancellationToken)
     {
@@ -52,9 +54,9 @@ public sealed class UserManagementService(BusinessDbContext businessDbContext) :
             validationErrors["email"] = ["Email zorunludur."];
         }
 
-        if (string.IsNullOrWhiteSpace(request.Password) || request.Password.Length < 8)
+        if (string.IsNullOrWhiteSpace(request.Password))
         {
-            validationErrors["password"] = ["Password en az 8 karakter olmalıdır."];
+            validationErrors["password"] = ["Password zorunludur."];
         }
 
         if (request.CompanyId <= 0)
@@ -70,6 +72,8 @@ public sealed class UserManagementService(BusinessDbContext businessDbContext) :
         var normalizedUserCode = request.UserCode.Trim().ToUpperInvariant();
         var normalizedUsername = request.Username.Trim();
         var normalizedEmail = request.Email.Trim().ToLowerInvariant();
+
+        passwordPolicyService.ValidateComplexityOrThrow(request.Password, normalizedUsername, normalizedEmail);
 
         var duplicateExists = await businessDbContext.Users
             .AsNoTracking()
@@ -114,6 +118,8 @@ public sealed class UserManagementService(BusinessDbContext businessDbContext) :
 
             businessDbContext.Users.Add(user);
             await businessDbContext.SaveChangesAsync(cancellationToken);
+
+            await passwordPolicyService.RecordPasswordHistoryAsync(user.Id, user.PasswordHash, cancellationToken);
 
             businessDbContext.UserModulePermissions.Add(new UserModulePermission
             {

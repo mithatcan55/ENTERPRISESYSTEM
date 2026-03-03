@@ -797,3 +797,33 @@ Bu fazda eklendi:
 Amaç:
 - Controller yüzeyinin tamamında OpenAPI sözleşme tutarlılığını bitirmek
 - UI ve entegrasyon tüketicilerinin endpoint bazında başarı/hata tiplerini tek standartta görmesini sağlamak
+
+---
+
+## Cilt 38 — Password Policy Hardening (History + Complexity + Reuse Lock)
+
+Bu fazda eklendi:
+
+- Yeni kalıcı model:
+	- `UserPasswordHistory` (kullanıcı şifre geçmiş hash kayıtları)
+- Yeni policy servis katmanı:
+	- `IPasswordPolicyService`
+	- `PasswordPolicyService`
+- Konfigürasyon:
+	- `PasswordPolicy` bölümü (`MinLength`, `RequireUppercase`, `RequireLowercase`, `RequireDigit`, `RequireSpecialCharacter`, `HistoryCount`, `MinimumPasswordAgeMinutes`)
+
+Enforcement noktaları:
+
+- `UserManagementService.CreateAsync`
+	- Şifre complexity kontrolü
+	- Kullanıcı oluşturulduktan sonra ilk hash'in history tablosuna yazılması
+- `AuthLifecycleService.ChangePasswordAsync`
+	- Complexity + recent history reuse kontrolü
+	- Minimum password age kontrolü (reuse lock)
+	- Başarılı değişimde yeni hash'in history tablosuna yazılması
+	- Policy ihlalinin security event olarak loglanması
+
+Amaç:
+- Zayıf şifre kullanımını engellemek
+- Son N şifre tekrarını bloke etmek
+- Kısa sürede peş peşe şifre döndürerek policy atlatma girişimlerini azaltmak

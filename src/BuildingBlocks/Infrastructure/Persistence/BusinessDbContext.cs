@@ -30,6 +30,7 @@ public sealed class BusinessDbContext(
     public DbSet<Role> Roles => Set<Role>();
     public DbSet<UserRole> UserRoles => Set<UserRole>();
     public DbSet<UserSession> UserSessions => Set<UserSession>();
+    public DbSet<UserPasswordHistory> UserPasswordHistories => Set<UserPasswordHistory>();
 
     public override int SaveChanges(bool acceptAllChangesOnSuccess)
     {
@@ -210,6 +211,18 @@ public sealed class BusinessDbContext(
                 .OnDelete(DeleteBehavior.Restrict);
             entity.HasIndex(x => x.SessionKey).IsUnique();
             entity.HasIndex(x => new { x.UserId, x.IsRevoked, x.ExpiresAt });
+        });
+
+        modelBuilder.Entity<UserPasswordHistory>(entity =>
+        {
+            entity.ToTable("UserPasswordHistories");
+            entity.HasKey(x => x.Id);
+            entity.Property(x => x.PasswordHash).HasMaxLength(500).IsRequired();
+            entity.HasOne<User>()
+                .WithMany()
+                .HasForeignKey(x => x.UserId)
+                .OnDelete(DeleteBehavior.Restrict);
+            entity.HasIndex(x => new { x.UserId, x.ChangedAt });
         });
 
         // SYS01-SYS04 başlangıç ekranları: T-Code ile doğrudan erişim sağlayan temel seed.
