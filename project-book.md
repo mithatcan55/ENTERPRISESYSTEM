@@ -843,3 +843,23 @@ Bu fazda eklendi:
 Amaç:
 - Operasyon ekibinin canlı policy değerlerini (min length, history, min age vb.) API üzerinden doğrulayabilmesi
 - Konfigürasyon drift riskini azaltmak
+
+---
+
+## Cilt 40 — Password Policy Preview Simulation
+
+Bu fazda eklendi:
+
+- `PUT /api/ops/security/password-policy` preview endpoint'i
+	- Runtime config update yapmaz
+	- Önerilen policy değerlerini doğrular
+	- Örnek şifre listesi üzerinde compliance simülasyonu üretir
+- Dönen çıktı:
+	- `IsValidConfiguration`
+	- `ValidationErrors`
+	- `Warnings`
+	- `SampleEvaluations`
+
+Amaç:
+- Policy değişikliği öncesi etki analizi yapmak
+- Canlıya riskli konfigürasyon taşımadan önce güvenli dry-run mekanizması sağlamak

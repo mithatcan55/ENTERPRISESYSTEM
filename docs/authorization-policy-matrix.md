@@ -33,6 +33,7 @@ Bu doküman, API endpoint'lerinin hangi kimlik doğrulama/yetkilendirme kuralı 
 | `/api/ops/logs/entity-changes/export` | GET | Authorize(Roles) | `SYS_ADMIN` or `SYS_OPERATOR` |
 | `/api/ops/logs/sessions` | GET | Authorize(Roles) | `SYS_ADMIN` or `SYS_OPERATOR` |
 | `/api/ops/security/password-policy` | GET | Authorize(Roles) | `SYS_ADMIN` |
+| `/api/ops/security/password-policy` | PUT | Authorize(Roles) | `SYS_ADMIN` |
 | `/api/integrations/reference/company/{externalId}` | GET | Authorize | Authenticated user |
 
 ## Operasyon Notları
