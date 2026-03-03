@@ -1,6 +1,7 @@
 using System.Diagnostics;
 using System.Text;
 using System.Text.Json;
+using Host.Api.Services;
 using Infrastructure.Persistence;
 using Infrastructure.Persistence.Entities;
 using Microsoft.AspNetCore.Http.Features;
@@ -11,7 +12,7 @@ public sealed class RequestLifecycleLoggingMiddleware(RequestDelegate next, ILog
 {
     private static readonly JsonSerializerOptions JsonOptions = new(JsonSerializerDefaults.Web);
 
-    public async Task Invoke(HttpContext context, LogDbContext logDbContext)
+    public async Task Invoke(HttpContext context, LogDbContext logDbContext, ICurrentUserContext currentUserContext)
     {
         var startedAt = DateTimeOffset.UtcNow;
         var stopwatch = Stopwatch.StartNew();
@@ -47,8 +48,12 @@ public sealed class RequestLifecycleLoggingMiddleware(RequestDelegate next, ILog
             context.Response.Body = originalResponseBody;
 
             var correlationId = context.Items[CorrelationIdMiddleware.CorrelationItemKey]?.ToString() ?? context.TraceIdentifier;
-            var userId = context.User?.FindFirst("sub")?.Value ?? context.User?.FindFirst("user_id")?.Value;
-            var username = context.User?.Identity?.Name;
+            var userId = currentUserContext.TryGetActorIdentity(out var actorIdentity)
+                ? actorIdentity
+                : null;
+            var username = currentUserContext.TryGetUsername(out var resolvedUsername)
+                ? resolvedUsername
+                : userId;
             var ipAddress = context.Connection.RemoteIpAddress?.ToString();
             var sessionId = context.Features.Get<ISessionFeature>()?.Session?.Id;
             var requestHeaders = JsonSerializer.Serialize(context.Request.Headers.ToDictionary(h => h.Key, h => h.Value.ToString()), JsonOptions);

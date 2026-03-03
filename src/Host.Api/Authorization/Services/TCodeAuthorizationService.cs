@@ -1,4 +1,5 @@
 using Host.Api.Authorization.Models;
+using Host.Api.Services;
 using Infrastructure.Persistence;
 using Infrastructure.Persistence.Entities;
 using Microsoft.EntityFrameworkCore;
@@ -12,8 +13,13 @@ namespace Host.Api.Authorization.Services;
 public sealed class TCodeAuthorizationService(
     BusinessDbContext businessDbContext,
     LogDbContext logDbContext,
+    ICurrentUserContext currentUserContext,
     IHttpContextAccessor httpContextAccessor) : ITCodeAuthorizationService
 {
+    /// <summary>
+    /// T-Code için 6 seviyeli yetki kontrolünü çalıştırır ve nihai erişim kararını üretir.
+    /// Seviye sırası bozulmadan ilerlenir; herhangi bir seviyede red alınırsa işlem sonlandırılır.
+    /// </summary>
     public async Task<TCodeAccessResult> AuthorizeAsync(
         string transactionCode,
         int userId,
@@ -29,7 +35,7 @@ public sealed class TCodeAuthorizationService(
 
         if (page is null)
         {
-            return await DenyAsync(normalizedTCode, userId, 3, "T-Code için eşleşen sayfa bulunamadı.", cancellationToken);
+            return await DenyAsync(normalizedTCode, userId, 3, $"T-Code '{normalizedTCode}' için eşleşen sayfa bulunamadı.", cancellationToken);
         }
 
         var subModule = await businessDbContext.SubModules
@@ -38,7 +44,7 @@ public sealed class TCodeAuthorizationService(
 
         if (subModule is null)
         {
-            return await DenyAsync(normalizedTCode, userId, 2, "T-Code için alt modül bilgisi bulunamadı.", cancellationToken);
+            return await DenyAsync(normalizedTCode, userId, 2, $"T-Code '{normalizedTCode}' için alt modül bilgisi bulunamadı.", cancellationToken);
         }
 
         var module = await businessDbContext.Modules
@@ -47,7 +53,7 @@ public sealed class TCodeAuthorizationService(
 
         if (module is null)
         {
-            return await DenyAsync(normalizedTCode, userId, 1, "T-Code için modül bilgisi bulunamadı.", cancellationToken);
+            return await DenyAsync(normalizedTCode, userId, 1, $"T-Code '{normalizedTCode}' için modül bilgisi bulunamadı.", cancellationToken);
         }
 
         var level1Allowed = await businessDbContext.UserModulePermissions
@@ -56,7 +62,7 @@ public sealed class TCodeAuthorizationService(
 
         if (!level1Allowed)
         {
-            return await DenyAsync(normalizedTCode, userId, 1, "Kullanıcının modül erişim yetkisi yok.", cancellationToken);
+            return await DenyAsync(normalizedTCode, userId, 1, $"Kullanıcının T-Code '{normalizedTCode}' için modül erişim yetkisi yok.", cancellationToken);
         }
 
         var level2Allowed = await businessDbContext.UserSubModulePermissions
@@ -65,7 +71,7 @@ public sealed class TCodeAuthorizationService(
 
         if (!level2Allowed)
         {
-            return await DenyAsync(normalizedTCode, userId, 2, "Kullanıcının alt modül erişim yetkisi yok.", cancellationToken);
+            return await DenyAsync(normalizedTCode, userId, 2, $"Kullanıcının T-Code '{normalizedTCode}' için alt modül erişim yetkisi yok.", cancellationToken);
         }
 
         var level3Allowed = await businessDbContext.UserPagePermissions
@@ -74,7 +80,7 @@ public sealed class TCodeAuthorizationService(
 
         if (!level3Allowed)
         {
-            return await DenyAsync(normalizedTCode, userId, 3, "Kullanıcının sayfa/T-Code erişim yetkisi yok.", cancellationToken);
+            return await DenyAsync(normalizedTCode, userId, 3, $"Kullanıcının T-Code '{normalizedTCode}' için sayfa erişim yetkisi yok.", cancellationToken);
         }
 
         var level4Allowed = await businessDbContext.UserCompanyPermissions
@@ -83,7 +89,7 @@ public sealed class TCodeAuthorizationService(
 
         if (!level4Allowed)
         {
-            return await DenyAsync(normalizedTCode, userId, 4, "Kullanıcının şirket kapsam yetkisi yok.", cancellationToken);
+            return await DenyAsync(normalizedTCode, userId, 4, $"Kullanıcının companyId '{companyId}' için şirket kapsam yetkisi yok. T-Code: '{normalizedTCode}'.", cancellationToken);
         }
 
         var actionPermissions = await businessDbContext.UserPageActionPermissions
@@ -139,6 +145,10 @@ public sealed class TCodeAuthorizationService(
         return allowResult;
     }
 
+    /// <summary>
+    /// Koşul alan adını request context içinden çözer.
+    /// Önce birebir anahtar, sonra küçük harfli anahtar denenir.
+    /// </summary>
     private static string? ResolveActualValue(IReadOnlyDictionary<string, string?> contextValues, string fieldName)
     {
         if (contextValues.TryGetValue(fieldName, out var directValue))
@@ -155,6 +165,9 @@ public sealed class TCodeAuthorizationService(
         return null;
     }
 
+    /// <summary>
+    /// Condition karşılaştırmasını tipe göre (decimal/date/bool/string) değerlendirir.
+    /// </summary>
     private static bool EvaluateCondition(string? actualValue, string op, string expectedValue)
     {
         if (actualValue is null)
@@ -265,6 +278,9 @@ public sealed class TCodeAuthorizationService(
         return false;
     }
 
+    /// <summary>
+    /// Red kararını standart formatta üretir ve security_event_logs'a yazar.
+    /// </summary>
     private async Task<TCodeAccessResult> DenyAsync(string transactionCode, int userId, short level, string reason, CancellationToken cancellationToken)
     {
         var denied = new TCodeAccessResult
@@ -279,6 +295,9 @@ public sealed class TCodeAuthorizationService(
         return denied;
     }
 
+    /// <summary>
+    /// T-Code authorization sonucunu güvenlik olayı olarak kalıcı log tablosuna kaydeder.
+    /// </summary>
     private async Task LogSecurityEventAsync(
         TCodeAccessResult result,
         int userId,
@@ -287,8 +306,17 @@ public sealed class TCodeAuthorizationService(
         CancellationToken cancellationToken)
     {
         var httpContext = httpContextAccessor.HttpContext;
+        var userIdentity = currentUserContext.TryGetActorIdentity(out var actorIdentity)
+            ? actorIdentity
+            : userId.ToString();
+
+        var username = currentUserContext.TryGetUsername(out var currentUsername)
+            ? currentUsername
+            : userIdentity;
+
         var payload = JsonSerializer.Serialize(new
         {
+            NumericUserId = userId,
             result.ModuleCode,
             result.SubModuleCode,
             result.PageCode,
@@ -303,8 +331,8 @@ public sealed class TCodeAuthorizationService(
             Timestamp = DateTimeOffset.UtcNow,
             EventType = "TCodeAccess",
             Severity = isSuccessful ? "Information" : "Warning",
-            UserId = userId.ToString(),
-            Username = httpContext?.User?.Identity?.Name,
+            UserId = userIdentity,
+            Username = username,
             IpAddress = httpContext?.Connection.RemoteIpAddress?.ToString(),
             UserAgent = httpContext?.Request.Headers.UserAgent.ToString(),
             Resource = result.TransactionCode,

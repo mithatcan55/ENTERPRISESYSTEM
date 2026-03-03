@@ -1,6 +1,7 @@
 using Infrastructure.Persistence;
 using Infrastructure.Persistence.Auditing;
 using Host.Api.Authorization.Services;
+using Host.Api.Exceptions;
 using Host.Api.Middleware;
 using Host.Api.Services;
 using Microsoft.EntityFrameworkCore;
@@ -19,6 +20,8 @@ builder.Host.UseSerilog((context, services, configuration) =>
 
 builder.Services.AddControllers();
 builder.Services.AddOpenApi();
+builder.Services.AddProblemDetails();
+builder.Services.AddExceptionHandler<GlobalExceptionHandler>();
 builder.Services.AddHttpContextAccessor();
 builder.Services.AddScoped<IAuditActorAccessor, HttpContextAuditActorAccessor>();
 builder.Services.AddScoped<ICurrentUserContext, CurrentUserContext>();
@@ -50,6 +53,7 @@ if (app.Environment.IsDevelopment())
     app.MapScalarApiReference();
 }
 
+app.UseExceptionHandler();
 app.UseHttpsRedirection();
 app.UseMiddleware<CorrelationIdMiddleware>();
 app.UseSerilogRequestLogging();

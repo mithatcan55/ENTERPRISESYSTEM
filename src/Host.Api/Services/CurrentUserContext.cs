@@ -28,4 +28,65 @@ public sealed class CurrentUserContext(IHttpContextAccessor httpContextAccessor)
 
         return int.TryParse(raw, out companyId);
     }
+
+    public bool TryGetUserCode(out string userCode)
+    {
+        userCode = string.Empty;
+        var user = httpContextAccessor.HttpContext?.User;
+
+        var raw = user?.FindFirst("user_code")?.Value
+                  ?? user?.FindFirst("usercode")?.Value
+                  ?? user?.FindFirst("employee_code")?.Value;
+
+        if (string.IsNullOrWhiteSpace(raw))
+        {
+            return false;
+        }
+
+        userCode = raw;
+        return true;
+    }
+
+    public bool TryGetUsername(out string username)
+    {
+        username = string.Empty;
+        var user = httpContextAccessor.HttpContext?.User;
+
+        var raw = user?.FindFirst("preferred_username")?.Value
+                  ?? user?.FindFirst("username")?.Value
+                  ?? user?.Identity?.Name;
+
+        if (string.IsNullOrWhiteSpace(raw))
+        {
+            return false;
+        }
+
+        username = raw;
+        return true;
+    }
+
+    public bool TryGetActorIdentity(out string actorIdentity)
+    {
+        actorIdentity = string.Empty;
+
+        if (TryGetUserCode(out var userCode))
+        {
+            actorIdentity = userCode;
+            return true;
+        }
+
+        if (TryGetUsername(out var username))
+        {
+            actorIdentity = username;
+            return true;
+        }
+
+        if (TryGetUserId(out var userId))
+        {
+            actorIdentity = userId.ToString();
+            return true;
+        }
+
+        return false;
+    }
 }

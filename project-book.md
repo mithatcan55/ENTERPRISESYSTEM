@@ -369,8 +369,8 @@ Eğer araya yeni bir aşama girerse:
 ## Cilt 14 — Sonraki Yol Haritası
 
 1. Identity modülü ile gerçek User FK bağlantısı
-2. Condition parser sonucu query filter projection katmanına yansıtma
-3. Outbox + notification ile audit olay senkronizasyonu
+2. Outbox + notification ile audit olay senkronizasyonu
+3. Condition parser sonucu query filter projection katmanına yansıtma
 
 Not: T-Code Resolver + authorization engine ilk sürümü tamamlandı.
 Not: Claim fallback + security_event_logs allow/deny kayıtları tamamlandı.
@@ -417,3 +417,18 @@ Not:
 ---
 
 Bu dosya canlıdır. Değişiklik oldukça revize edilir.
+
+---
+
+## Cilt 17 — Core Standartları (Modül Tak-Çalıştır)
+
+Bu ciltin amacı, yeni modül eklerken karar yükünü azaltmaktır.
+
+- Global hata yönetimi aktif: `GlobalExceptionHandler` + `ProblemDetails`
+- Request loglama aktif ve merkezi: `RequestLifecycleLoggingMiddleware`
+- Actor identity çözümü merkezi: `CurrentUserContext`
+- Audit actor merkezi: `HttpContextAuditActorAccessor`
+- Yetki kontrolü merkezi: `TCodeAuthorizationService`
+
+Modül ekleme adımları için referans:
+- docs/module-onboarding-playbook.md
