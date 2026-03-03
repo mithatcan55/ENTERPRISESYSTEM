@@ -13,7 +13,13 @@ public sealed record LoginResponse(
     string SessionKey,
     DateTime SessionExpiresAt,
     bool MustChangePassword,
-    DateTime? PasswordExpiresAt);
+    DateTime? PasswordExpiresAt,
+    EffectiveAuthorizationSummary EffectiveAuthorization);
+
+public sealed record EffectiveAuthorizationSummary(
+    IReadOnlyList<string> Roles,
+    IReadOnlyList<string> TransactionCodes,
+    IReadOnlyList<string> Permissions);
 
 public sealed class ChangePasswordRequest
 {

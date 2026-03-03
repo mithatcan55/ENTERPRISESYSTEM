@@ -79,8 +79,39 @@ public sealed class AuthLifecycleService(
         businessDbContext.UserSessions.Add(session);
         await businessDbContext.SaveChangesAsync(cancellationToken);
 
+        var roles = await (
+                from userRole in businessDbContext.UserRoles.AsNoTracking()
+                join role in businessDbContext.Roles.AsNoTracking() on userRole.RoleId equals role.Id
+                where userRole.UserId == user.Id && !userRole.IsDeleted && !role.IsDeleted
+                select role.Code)
+            .Distinct()
+            .OrderBy(x => x)
+            .ToListAsync(cancellationToken);
+
+        var transactionCodes = await (
+                from userPagePermission in businessDbContext.UserPagePermissions.AsNoTracking()
+                join page in businessDbContext.SubModulePages.AsNoTracking()
+                    on userPagePermission.SubModulePageId equals page.Id
+                where userPagePermission.UserId == user.Id
+                      && !userPagePermission.IsDeleted
+                      && !page.IsDeleted
+                select page.TransactionCode)
+            .Distinct()
+            .OrderBy(x => x)
+            .ToListAsync(cancellationToken);
+
+        var permissions = await businessDbContext.UserPageActionPermissions
+            .AsNoTracking()
+            .Where(x => x.UserId == user.Id && !x.IsDeleted && x.IsAllowed)
+            .Select(x => x.ActionCode)
+            .Distinct()
+            .OrderBy(x => x)
+            .ToListAsync(cancellationToken);
+
+        var effectiveAuthorization = new EffectiveAuthorizationSummary(roles, transactionCodes, permissions);
+
         await LogSecurityEventAsync("Login", true, null, user.UserCode, user.Id, cancellationToken,
-            new { session.SessionKey, session.ExpiresAt, user.MustChangePassword });
+            new { session.SessionKey, session.ExpiresAt, user.MustChangePassword, effectiveAuthorization });
 
         return new LoginResponse(
             user.Id,
@@ -89,7 +120,8 @@ public sealed class AuthLifecycleService(
             session.SessionKey,
             session.ExpiresAt,
             user.MustChangePassword,
-            user.PasswordExpiresAt);
+                user.PasswordExpiresAt,
+                effectiveAuthorization);
     }
 
     public async Task ChangePasswordAsync(ChangePasswordRequest request, CancellationToken cancellationToken)

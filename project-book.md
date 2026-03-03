@@ -710,3 +710,19 @@ Bu fazda eklendi:
 Amaç:
 - Permission policy kararlarında gereksiz DB erişimini azaltmak
 - Claim ve kalıcı izin kaydı arasında güvenli fallback ile tutarlılığı korumak
+
+---
+
+## Cilt 33 — Login Effective Authorization Summary
+
+Bu fazda eklendi:
+
+- Login response modeli genişletildi:
+	- `EffectiveAuthorizationSummary`
+	- Alanlar: `Roles`, `TransactionCodes`, `Permissions`
+- `AuthLifecycleService.LoginAsync` artık girişte bu üç listeyi hesaplayıp response içine yazar.
+- Aynı özet security event payload'ına dahil edilir.
+
+Amaç:
+- UI tarafının menü/ekran/buton kararını tek login çağrısı ile alabilmesi
+- Session açılışında kullanıcının efektif yetki görünümünü standartlaştırmak
