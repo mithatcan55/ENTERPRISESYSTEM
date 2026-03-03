@@ -604,3 +604,47 @@ Bu fazda eklendi:
 Amaç:
 - Yeni endpoint eklendiğinde yetki boşluğu bırakmamak
 - Kod inceleme ve denetimlerde “hangi endpoint hangi kuralla korunuyor” sorusunu tek dosyadan yanıtlamak
+
+---
+
+## Cilt 28 — CI Security Guard (Zero-Leak Mode)
+
+Bu fazda eklendi:
+
+- `tests/UnitTests` test projesi çözüme dahil edildi.
+- Reflection tabanlı guard testi yazıldı:
+	- `tests/UnitTests/AuthorizationGuardTests.cs`
+- Guard kuralları:
+	- `[AllowAnonymous]` sadece allow-list endpoint'lerde serbest
+	- Endpoint'lerde `[Authorize]` zorunlu
+	- Mutating endpoint'lerde role veya T-Code enforcement zorunlu
+	- Self-service istisnaları açık allow-list ile tanımlı
+
+Servis katmanı sertleştirmesi:
+
+- `AuthLifecycleService.ChangePasswordAsync` artık authenticated user id çözülmeden devam etmez.
+- `AuthLifecycleService.RevokeSessionAsync` artık:
+	- kullanıcı kendi session'ını revoke edebilir,
+	- `SYS_ADMIN` / `SYS_OPERATOR` başka kullanıcının session'ını revoke edebilir,
+	- yetkisiz denemeyi security event olarak loglar ve `Forbidden` döner.
+
+Amaç:
+- Kod review kaçırsa bile CI aşamasında güvenlik boşluğunu merge öncesi durdurmak
+- Yetki ihlali denemelerini hem engellemek hem de denetlenebilir log izi bırakmak
+
+---
+
+## Cilt 29 — Pipeline Enforcement (GitHub Actions)
+
+Bu fazda eklendi:
+
+- GitHub Actions workflow dosyası:
+	- `.github/workflows/ci.yml`
+- Pipeline adımları:
+	- `dotnet restore EnterpriseSystem.sln`
+	- `dotnet build EnterpriseSystem.sln --configuration Release --no-restore`
+	- `dotnet test EnterpriseSystem.sln --configuration Release --no-build`
+
+Amaç:
+- Authorization guard testini lokal zorunluluktan çıkarıp PR/push aşamasında otomatik güvenlik kapısı haline getirmek
+- Build + test geçmeden merge edilmesini engellemek

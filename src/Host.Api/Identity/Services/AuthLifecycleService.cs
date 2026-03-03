@@ -114,7 +114,12 @@ public sealed class AuthLifecycleService(
                 });
         }
 
-        if (currentUserContext.TryGetUserId(out var authenticatedUserId) && authenticatedUserId != request.UserId)
+        if (!currentUserContext.TryGetUserId(out var authenticatedUserId))
+        {
+            throw new ForbiddenAppException("Kimliği doğrulanmış kullanıcı bilgisi çözümlenemedi.");
+        }
+
+        if (authenticatedUserId != request.UserId)
         {
             throw new ForbiddenAppException("Sadece kendi şifrenizi değiştirebilirsiniz.");
         }
@@ -185,6 +190,28 @@ public sealed class AuthLifecycleService(
         if (session.IsRevoked)
         {
             return;
+        }
+
+        if (!currentUserContext.TryGetUserId(out var actorUserId))
+        {
+            throw new ForbiddenAppException("Kimliği doğrulanmış kullanıcı bilgisi çözümlenemedi.");
+        }
+
+        var principal = httpContextAccessor.HttpContext?.User;
+        var isPrivilegedActor = principal?.IsInRole("SYS_ADMIN") == true || principal?.IsInRole("SYS_OPERATOR") == true;
+
+        if (!isPrivilegedActor && session.UserId != actorUserId)
+        {
+            await LogSecurityEventAsync(
+                "RevokeSession",
+                false,
+                "Başka kullanıcının session kaydını revoke etmeye yetki yok.",
+                actorUserId.ToString(),
+                actorUserId,
+                cancellationToken,
+                new { TargetSessionId = session.Id, TargetUserId = session.UserId });
+
+            throw new ForbiddenAppException("Sadece kendi session kaydınızı revoke edebilirsiniz.");
         }
 
         var actor = currentUserContext.TryGetActorIdentity(out var actorIdentity)

@@ -37,3 +37,24 @@ Bu doküman, API endpoint'lerinin hangi kimlik doğrulama/yetkilendirme kuralı 
 - Yeni endpoint açılırken bu matrise satır eklenmesi zorunludur.
 - Endpoint koruması değişirse aynı PR içinde bu doküman güncellenmelidir.
 - Yönetim endpoint'lerinde öncelik role bazlı, iş akışı endpoint'lerinde öncelik T-Code bazlıdır.
+
+## CI Guard Kuralları
+
+- Reflection tabanlı CI guard testi, tüm controller action'larını tarar.
+- `AllowAnonymous` sadece allow-list endpoint'lerde kabul edilir.
+- Tüm endpoint'lerde `[Authorize]` zorunludur (anonymous allow-list hariç).
+- Yazma işlemlerinde (`POST/PUT/PATCH/DELETE`) ek enforcement gerekir:
+	- `[Authorize(Roles = ...)]` veya `[TCodeAuthorize("...")]`
+	- İstisna: self-service allow-list endpoint'ler.
+
+Self-service allow-list:
+
+- `POST /api/auth/change-password`
+- `POST /api/sessions/{sessionId:int}/revoke`
+
+Not:
+
+- Self-service endpoint'lerde zorlayıcı yetki kontrolü servis katmanında uygulanır.
+	- Şifre değişimi: sadece kendi hesabı
+	- Session revoke: sadece kendi session'ı (SYS_ADMIN/SYS_OPERATOR istisnası)
+- Bu kurallar CI'da `.github/workflows/ci.yml` üzerinden otomatik doğrulanır.
