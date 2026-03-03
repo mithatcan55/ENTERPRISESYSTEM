@@ -1,11 +1,13 @@
 using Host.Api.Identity.Contracts;
 using Host.Api.Identity.Services;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Host.Api.Controllers;
 
 [ApiController]
 [Route("api/users")]
+[Authorize]
 public sealed class UsersController(IUserManagementService userManagementService) : ControllerBase
 {
     [HttpGet]

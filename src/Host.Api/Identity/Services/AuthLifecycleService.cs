@@ -114,6 +114,11 @@ public sealed class AuthLifecycleService(
                 });
         }
 
+        if (currentUserContext.TryGetUserId(out var authenticatedUserId) && authenticatedUserId != request.UserId)
+        {
+            throw new ForbiddenAppException("Sadece kendi şifrenizi değiştirebilirsiniz.");
+        }
+
         var user = await businessDbContext.Users
             .FirstOrDefaultAsync(x => x.Id == request.UserId && !x.IsDeleted, cancellationToken);
 

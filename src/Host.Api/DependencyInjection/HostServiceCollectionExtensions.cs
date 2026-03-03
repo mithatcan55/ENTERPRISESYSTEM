@@ -1,6 +1,9 @@
 using Host.Api.Exceptions;
 using Host.Api.Integrations.Configuration;
 using Host.Api.Middleware;
+using Host.Api.Security;
+using Microsoft.AspNetCore.Authentication;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Options;
 using Microsoft.AspNetCore.Mvc;
@@ -26,6 +29,21 @@ public static class HostServiceCollectionExtensions
     public static IServiceCollection AddHostCoreServices(this IServiceCollection services, IConfiguration configuration)
     {
         services.AddHttpContextAccessor();
+        services.AddAuthentication(options =>
+        {
+            options.DefaultAuthenticateScheme = SessionAuthenticationHandler.SchemeName;
+            options.DefaultChallengeScheme = SessionAuthenticationHandler.SchemeName;
+        }).AddScheme<AuthenticationSchemeOptions, SessionAuthenticationHandler>(
+            SessionAuthenticationHandler.SchemeName,
+            _ => { });
+
+        services.AddAuthorization(options =>
+        {
+            options.DefaultPolicy = new AuthorizationPolicyBuilder(SessionAuthenticationHandler.SchemeName)
+                .RequireAuthenticatedUser()
+                .Build();
+        });
+
         services.AddProblemDetails();
         services.AddExceptionHandler<GlobalExceptionHandler>();
 

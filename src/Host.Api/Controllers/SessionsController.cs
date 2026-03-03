@@ -1,12 +1,14 @@
 using Host.Api.Identity.Contracts;
 using Host.Api.Identity.Services;
 using Host.Api.Services;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Host.Api.Controllers;
 
 [ApiController]
 [Route("api/sessions")]
+[Authorize]
 public sealed class SessionsController(
     IAuthLifecycleService authLifecycleService,
     ICurrentUserContext currentUserContext) : ControllerBase

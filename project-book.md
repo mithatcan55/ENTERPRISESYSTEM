@@ -535,3 +535,19 @@ Kazanım:
 - Entity değişim kayıtlarını UI'dan filtreleyerek izleme
 - Denetim için CSV export alma
 - Session kayıtlarını admin perspektifinden listeleme
+
+---
+
+## Cilt 24 — Session Token Authentication Pipeline
+
+Bu fazda eklendi:
+
+- `SessionBearer` authentication handler
+- `UseAuthentication` + `UseAuthorization` pipeline aktivasyonu
+- Controller bazlı `[Authorize]` koruması
+- Login endpoint için `[AllowAnonymous]`
+- Change-password akışında "sadece kendi hesabını değiştir" kontrolü
+
+Amaç:
+- Role/permission enforcement öncesi gerçek kimlik doğrulama musluğunu açmak
+- Revoke/expiry durumlarında erişimi request anında kesebilmek

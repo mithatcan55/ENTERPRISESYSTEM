@@ -1,11 +1,13 @@
 using Host.Api.Operations.Contracts;
 using Host.Api.Operations.Services;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Host.Api.Controllers;
 
 [ApiController]
 [Route("api/ops/logs")]
+[Authorize]
 public sealed class OperationsLogsController(IOperationsLogQueryService operationsLogQueryService) : ControllerBase
 {
     [HttpGet("system")]

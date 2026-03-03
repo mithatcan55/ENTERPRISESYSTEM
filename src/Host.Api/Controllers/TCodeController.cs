@@ -1,5 +1,6 @@
 using Host.Api.Authorization.Services;
 using Host.Api.Services;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Host.Api.Controllers;
@@ -9,6 +10,7 @@ namespace Host.Api.Controllers;
 /// </summary>
 [ApiController]
 [Route("api/tcode")]
+[Authorize]
 public sealed class TCodeController(
     ITCodeAuthorizationService authorizationService,
     ICurrentUserContext currentUserContext) : ControllerBase

@@ -1,10 +1,12 @@
 using Host.Api.Integrations.Services;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Host.Api.Controllers;
 
 [ApiController]
 [Route("api/integrations/reference")]
+[Authorize]
 public sealed class IntegrationsController(IExternalDataGateway externalDataGateway) : ControllerBase
 {
     [HttpGet("company/{externalId:int}")]
