@@ -32,6 +32,7 @@ if (app.Environment.IsDevelopment())
 app.UseExceptionHandler();
 app.UseHttpsRedirection();
 app.UseMiddleware<CorrelationIdMiddleware>();
+app.UseRateLimiter();
 app.UseSerilogRequestLogging();
 app.UseMiddleware<RequestLifecycleLoggingMiddleware>();
 app.MapGet("/health", () => Results.Ok(new { Status = "ok" }));

@@ -1,11 +1,13 @@
 using Host.Api.Identity.Contracts;
 using Host.Api.Identity.Services;
+using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Host.Api.Controllers;
 
 [ApiController]
 [Route("api/auth")]
+[EnableRateLimiting("auth-strict")]
 public sealed class AuthController(IAuthLifecycleService authLifecycleService) : ControllerBase
 {
     [HttpPost("login")]

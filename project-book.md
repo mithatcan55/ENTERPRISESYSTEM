@@ -482,3 +482,21 @@ Bu fazda aşağıdaki çekirdek parçalar eklendi:
 Güvenlik notu:
 - Login ve session lifecycle olayları `security_event_logs` tablosuna kaydedilir.
 - Şifre politikası başlangıcı olarak 90 gün expiration + `MustChangePassword` akışı uygulanır.
+
+---
+
+## Cilt 21 — Rate Limit + Operasyonel Log Sorgu Katmanı
+
+Bu fazda eklenenler:
+
+- Global rate limit policy
+- Auth endpointleri için sıkı rate limit policy (`auth-strict`)
+- 429 yanıtları için standard payload (`errorCode=rate_limited`)
+- Operasyon log sorgu endpointleri:
+	- `/api/ops/logs/system`
+	- `/api/ops/logs/security`
+	- `/api/ops/logs/http`
+
+Amaç:
+- API kötüye kullanımını sınırlamak
+- Yönetim arayüzünden log/denetim kayıtlarını filtrelenebilir şekilde izlemek
