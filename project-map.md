@@ -4,6 +4,8 @@
 > 
 > Kural: Mimaride veya akışta her değişiklik olduğunda bu dosya güncellenir.
 
+> Detaylı ana kitap dosyası: `project-book.md`
+
 ---
 
 ## 1) Hedef ve Kapsam
