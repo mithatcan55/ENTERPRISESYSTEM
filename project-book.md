@@ -695,3 +695,18 @@ Kurallar:
 Amaç:
 - PermissionAuthorize altyapısını işletilebilir hale getirmek
 - Role/T-Code dışında permission tabanlı endpoint yetkilerini yönetim API’si ile sürdürülebilir yapmak
+
+---
+
+## Cilt 32 — Permission Claim Acceleration
+
+Bu fazda eklendi:
+
+- Session authentication aşamasında kullanıcı action permission kayıtları claim'e yazılıyor (`permission`).
+- `PermissionAuthorizationHandler` akışı optimize edildi:
+	- Önce claim üzerinden hızlı doğrulama
+	- Claim yoksa DB fallback kontrolü
+
+Amaç:
+- Permission policy kararlarında gereksiz DB erişimini azaltmak
+- Claim ve kalıcı izin kaydı arasında güvenli fallback ile tutarlılığı korumak

@@ -12,6 +12,7 @@ public static class SecurityClaimTypes
     public const string SessionKey = "session_key";
     public const string CompanyId = "company_id";
     public const string Role = "role";
+    public const string Permission = "permission";
 
     public const string NameIdentifier = ClaimTypes.NameIdentifier;
     public const string Name = ClaimTypes.Name;

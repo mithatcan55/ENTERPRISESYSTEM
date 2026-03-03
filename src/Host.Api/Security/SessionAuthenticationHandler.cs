@@ -93,6 +93,13 @@ public sealed class SessionAuthenticationHandler(
                 select role.Code)
             .ToListAsync(Context.RequestAborted);
 
+        var permissions = await businessDbContext.UserPageActionPermissions
+            .AsNoTracking()
+            .Where(x => x.UserId == user.Id && !x.IsDeleted && x.IsAllowed)
+            .Select(x => x.ActionCode)
+            .Distinct()
+            .ToListAsync(Context.RequestAborted);
+
         var claims = new List<Claim>
         {
             new(SecurityClaimTypes.Subject, user.Id.ToString()),
@@ -114,6 +121,11 @@ public sealed class SessionAuthenticationHandler(
         {
             claims.Add(new Claim(SecurityClaimTypes.RoleClaim, role));
             claims.Add(new Claim(SecurityClaimTypes.Role, role));
+        }
+
+        foreach (var permission in permissions)
+        {
+            claims.Add(new Claim(SecurityClaimTypes.Permission, permission));
         }
 
         var identity = new ClaimsIdentity(claims, SchemeName);

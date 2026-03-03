@@ -27,6 +27,17 @@ public sealed class PermissionAuthorizationHandler(BusinessDbContext businessDbC
         var cancellationToken = (context.Resource as HttpContext)?.RequestAborted ?? CancellationToken.None;
         var normalizedPermission = requirement.PermissionCode.Trim().ToUpperInvariant();
 
+        var hasPermissionClaim = context.User.Claims
+            .Where(x => string.Equals(x.Type, SecurityClaimTypes.Permission, StringComparison.OrdinalIgnoreCase))
+            .Select(x => x.Value)
+            .Any(x => string.Equals(x, normalizedPermission, StringComparison.OrdinalIgnoreCase));
+
+        if (hasPermissionClaim)
+        {
+            context.Succeed(requirement);
+            return;
+        }
+
         var isAllowed = await businessDbContext.UserPageActionPermissions
             .AsNoTracking()
             .AnyAsync(
