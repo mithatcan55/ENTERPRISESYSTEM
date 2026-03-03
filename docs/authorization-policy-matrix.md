@@ -44,7 +44,7 @@ Bu doküman, API endpoint'lerinin hangi kimlik doğrulama/yetkilendirme kuralı 
 - `AllowAnonymous` sadece allow-list endpoint'lerde kabul edilir.
 - Tüm endpoint'lerde `[Authorize]` zorunludur (anonymous allow-list hariç).
 - Yazma işlemlerinde (`POST/PUT/PATCH/DELETE`) ek enforcement gerekir:
-	- `[Authorize(Roles = ...)]` veya `[TCodeAuthorize("...")]`
+	- `[Authorize(Roles = ...)]` veya `[TCodeAuthorize("...")]` veya `[PermissionAuthorize("...")]`
 	- İstisna: self-service allow-list endpoint'ler.
 
 Self-service allow-list:

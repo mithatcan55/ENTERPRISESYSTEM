@@ -48,12 +48,14 @@ public sealed class AuthorizationGuardTests
                 var methodAuthorize = method.GetCustomAttributes<AuthorizeAttribute>(true).ToArray();
                 var methodAllowAnonymous = method.GetCustomAttributes<AllowAnonymousAttribute>(true).Any();
                 var methodTCode = method.GetCustomAttributes<TCodeAuthorizeAttribute>(true).ToArray();
+                var methodPermission = method.GetCustomAttributes<PermissionAuthorizeAttribute>(true).ToArray();
 
                 var hasAllowAnonymous = methodAllowAnonymous || classAllowAnonymous;
                 var effectiveAuthorize = methodAuthorize.Concat(classAuthorize).ToArray();
                 var hasAuthorize = effectiveAuthorize.Any();
                 var hasRolePolicy = effectiveAuthorize.Any(x => !string.IsNullOrWhiteSpace(x.Roles));
                 var hasTCode = methodTCode.Any() || controllerType.GetCustomAttributes<TCodeAuthorizeAttribute>(true).Any();
+                var hasPermission = methodPermission.Any() || controllerType.GetCustomAttributes<PermissionAuthorizeAttribute>(true).Any();
 
                 foreach (var httpAttribute in httpAttributes)
                 {
@@ -89,10 +91,10 @@ public sealed class AuthorizationGuardTests
                                          || verb.Equals("PATCH", StringComparison.OrdinalIgnoreCase)
                                          || verb.Equals("DELETE", StringComparison.OrdinalIgnoreCase);
 
-                        if (isMutating && !hasTCode && !hasRolePolicy && !MutatingSelfServiceAllowList.Contains(endpointKey))
+                        if (isMutating && !hasTCode && !hasRolePolicy && !hasPermission && !MutatingSelfServiceAllowList.Contains(endpointKey))
                         {
                             violations.Add(LogViolation("MISSING_ENFORCEMENT", endpointKey,
-                                "Yazma işlemlerinde en az bir enforcement gerekir: role veya T-Code."));
+                            "Yazma işlemlerinde en az bir enforcement gerekir: role veya T-Code veya Permission."));
                         }
                     }
                 }

@@ -36,6 +36,22 @@ public sealed class TCodeAuthorizationPolicyProvider(IOptions<AuthorizationOptio
             return Task.FromResult<AuthorizationPolicy?>(policy);
         }
 
+        if (policyName.StartsWith(PermissionAuthorizeAttribute.PolicyPrefix, StringComparison.OrdinalIgnoreCase))
+        {
+            var permissionCode = policyName[PermissionAuthorizeAttribute.PolicyPrefix.Length..].Trim();
+            if (string.IsNullOrWhiteSpace(permissionCode))
+            {
+                return Task.FromResult<AuthorizationPolicy?>(null);
+            }
+
+            var policy = new AuthorizationPolicyBuilder(SessionAuthenticationHandler.SchemeName)
+                .RequireAuthenticatedUser()
+                .AddRequirements(new PermissionRequirement(permissionCode))
+                .Build();
+
+            return Task.FromResult<AuthorizationPolicy?>(policy);
+        }
+
         return _fallbackPolicyProvider.GetPolicyAsync(policyName);
     }
 }

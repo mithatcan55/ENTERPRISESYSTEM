@@ -648,3 +648,23 @@ Bu fazda eklendi:
 Amaç:
 - Authorization guard testini lokal zorunluluktan çıkarıp PR/push aşamasında otomatik güvenlik kapısı haline getirmek
 - Build + test geçmeden merge edilmesini engellemek
+
+---
+
+## Cilt 30 — Authorization OR Modeli (T-Code / Role / Permission)
+
+Bu fazda eklendi:
+
+- Permission tabanlı dinamik policy attribute:
+	- `PermissionAuthorizeAttribute` (`Permission:*`)
+- Permission requirement/handler:
+	- `PermissionRequirement`
+	- `PermissionAuthorizationHandler`
+- Dynamic policy provider genişletmesi:
+	- `TCodeAuthorizationPolicyProvider` artık `Permission:*` policy adlarını da çözümler.
+- CI guard güncellemesi:
+	- Mutating endpoint enforcement artık `Role OR T-Code OR Permission` olarak doğrulanır.
+
+Amaç:
+- Endpoint güvenliğini tek tipe bağlamadan (yalnızca T-Code gibi) kurumsal esneklik sağlamak
+- Farklı işlem türlerinde en uygun enforcement tipini seçebilmek

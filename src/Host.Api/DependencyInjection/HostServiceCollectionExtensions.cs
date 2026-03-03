@@ -46,6 +46,7 @@ public static class HostServiceCollectionExtensions
         });
         services.AddSingleton<IAuthorizationPolicyProvider, TCodeAuthorizationPolicyProvider>();
         services.AddScoped<IAuthorizationHandler, TCodeAuthorizationHandler>();
+        services.AddScoped<IAuthorizationHandler, PermissionAuthorizationHandler>();
 
         services.AddProblemDetails();
         services.AddExceptionHandler<GlobalExceptionHandler>();
