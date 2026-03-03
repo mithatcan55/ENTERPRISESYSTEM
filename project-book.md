@@ -880,3 +880,19 @@ Bu fazda eklendi:
 Amaç:
 - Operasyon ve geliştirme ekiplerinin yeni security endpoint’lerini hızlı test edebilmesini sağlamak
 - Preview/snapshot akışlarının manuel doğrulamasını kolaylaştırmak
+
+---
+
+## Cilt 42 — Security E2E HTTP Templates Completion
+
+Bu fazda eklendi:
+
+- `Host.Api.http` dosyasına aşağıdaki güvenlik akışları eklendi:
+	- `GET /api/users` (T-Code protected)
+	- `POST /api/permissions/actions` (permission upsert)
+	- `GET /api/permissions/actions` (permission list)
+	- `GET /api/tcode/{transactionCode}` (authorization resolve simulation)
+
+Amaç:
+- Security omurgasının (role + t-code + permission + preview) uçtan uca manuel test setini tek dosyada tamamlamak
+- Operasyon/demo/debug süreçlerinde endpoint keşif ve doğrulama süresini düşürmek

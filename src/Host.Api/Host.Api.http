@@ -51,4 +51,31 @@ GET {{Host.Api_HostAddress}}/api/sessions?onlyActive=true
 Authorization: Bearer {{SessionToken}}
 Accept: application/json
 
+### User list (T-Code protected: SYS03)
+GET {{Host.Api_HostAddress}}/api/users
+Authorization: Bearer {{SessionToken}}
+Accept: application/json
+
+### Assign/Upsert user action permission (SYS_ADMIN)
+POST {{Host.Api_HostAddress}}/api/permissions/actions
+Authorization: Bearer {{SessionToken}}
+Content-Type: application/json
+
+{
+	"userId": 1,
+	"transactionCode": "SYS03",
+	"actionCode": "USER_LIST_EXPORT",
+	"isAllowed": true
+}
+
+### List user action permissions (SYS_ADMIN)
+GET {{Host.Api_HostAddress}}/api/permissions/actions?userId=1&transactionCode=SYS03
+Authorization: Bearer {{SessionToken}}
+Accept: application/json
+
+### T-Code resolve simulation
+GET {{Host.Api_HostAddress}}/api/tcode/SYS03?userId=1&companyId=1&amount=500
+Authorization: Bearer {{SessionToken}}
+Accept: application/json
+
 ###
