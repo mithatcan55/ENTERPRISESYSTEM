@@ -22,6 +22,7 @@ public sealed class TCodeConditionResult
 {
     public string FieldName { get; set; } = string.Empty;
     public string Operator { get; set; } = string.Empty;
-    public string Value { get; set; } = string.Empty;
+    public string ExpectedValue { get; set; } = string.Empty;
+    public string? ActualValue { get; set; }
     public bool IsSatisfied { get; set; }
 }

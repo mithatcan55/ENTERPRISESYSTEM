@@ -6,6 +6,7 @@ flowchart TD
     ReqLife[RequestLifecycleLoggingMiddleware]
     Controller[TCodeController]
     UserCtx[CurrentUserContext]
+    ContextMap[Context Values Map\nquery + claim + amount]
     Authz[TCodeAuthorizationService]
     BusinessDb[(BusinessDb)]
     LogDb[(LogDb)]
@@ -17,7 +18,8 @@ flowchart TD
     SerilogReq --> ReqLife
     ReqLife --> Controller
     Controller --> UserCtx
-    Controller --> Authz
+    Controller --> ContextMap
+    ContextMap --> Authz
     Authz --> BusinessDb
     Authz --> LogDb
     Controller --> BusinessDb
@@ -25,3 +27,4 @@ flowchart TD
     SerilogReq --> FileLog
     Controller --> ReqLife
     ReqLife --> Client
+

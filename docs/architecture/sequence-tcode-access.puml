@@ -19,12 +19,13 @@ Api -> ReqLog: Start request capture
 ReqLog -> Ctrl: Route request to endpoint
 Ctrl -> Ctx: Resolve userId/companyId from claims (fallback)
 Ctx --> Ctrl: Effective user/company
-Ctrl -> Authz: AuthorizeAsync(SYS01, userId, companyId, amount)
+Ctrl -> Authz: AuthorizeAsync(SYS01, userId, companyId, contextValues)
 Authz -> Bdb: Query SubModulePage(TransactionCode)
 Bdb --> Authz: Page metadata
 
 Authz -> Bdb: Validate Levels 1..6
 Bdb --> Authz: Permission set
+Authz -> Authz: Evaluate condition rules (number/date/string)
 Authz -> Ldb: Insert security_event_logs (allow/deny)
 
 alt Authorized

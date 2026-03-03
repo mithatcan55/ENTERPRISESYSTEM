@@ -14,7 +14,12 @@ public sealed class TCodeAuthorizationService(
     LogDbContext logDbContext,
     IHttpContextAccessor httpContextAccessor) : ITCodeAuthorizationService
 {
-    public async Task<TCodeAccessResult> AuthorizeAsync(string transactionCode, int userId, int companyId, decimal? amount, CancellationToken cancellationToken)
+    public async Task<TCodeAccessResult> AuthorizeAsync(
+        string transactionCode,
+        int userId,
+        int companyId,
+        IReadOnlyDictionary<string, string?> contextValues,
+        CancellationToken cancellationToken)
     {
         var normalizedTCode = transactionCode.Trim().ToUpperInvariant();
 
@@ -100,8 +105,9 @@ public sealed class TCodeAuthorizationService(
             {
                 FieldName = x.FieldName,
                 Operator = x.Operator,
-                Value = x.Value,
-                IsSatisfied = EvaluateCondition(x.FieldName, x.Operator, x.Value, amount)
+                ExpectedValue = x.Value,
+                ActualValue = ResolveActualValue(contextValues, x.FieldName),
+                IsSatisfied = EvaluateCondition(ResolveActualValue(contextValues, x.FieldName), x.Operator, x.Value)
             })
             .ToList();
 
@@ -133,29 +139,130 @@ public sealed class TCodeAuthorizationService(
         return allowResult;
     }
 
-    private static bool EvaluateCondition(string fieldName, string op, string value, decimal? amount)
+    private static string? ResolveActualValue(IReadOnlyDictionary<string, string?> contextValues, string fieldName)
     {
-        if (!fieldName.Equals("amount", StringComparison.OrdinalIgnoreCase)
-            && !fieldName.Equals("price", StringComparison.OrdinalIgnoreCase))
+        if (contextValues.TryGetValue(fieldName, out var directValue))
         {
-            return true;
+            return directValue;
         }
 
-        if (amount is null || !decimal.TryParse(value, out var threshold))
+        var lowered = fieldName.ToLowerInvariant();
+        if (contextValues.TryGetValue(lowered, out var loweredValue))
+        {
+            return loweredValue;
+        }
+
+        return null;
+    }
+
+    private static bool EvaluateCondition(string? actualValue, string op, string expectedValue)
+    {
+        if (actualValue is null)
         {
             return false;
         }
 
+        var normalizedOperator = op.Trim().ToLowerInvariant();
+
+        if (TryDecimal(actualValue, out var actualDecimal) && TryDecimal(expectedValue, out var expectedDecimal))
+        {
+            return CompareDecimal(actualDecimal, expectedDecimal, normalizedOperator);
+        }
+
+        if (TryDateTime(actualValue, out var actualDate) && TryDateTime(expectedValue, out var expectedDate))
+        {
+            return CompareDate(actualDate, expectedDate, normalizedOperator);
+        }
+
+        if (TryBool(actualValue, out var actualBool) && TryBool(expectedValue, out var expectedBool))
+        {
+            return normalizedOperator switch
+            {
+                "=" or "==" => actualBool == expectedBool,
+                "!=" => actualBool != expectedBool,
+                _ => false
+            };
+        }
+
+        return CompareString(actualValue, expectedValue, normalizedOperator);
+    }
+
+    private static bool CompareDecimal(decimal actual, decimal expected, string op)
+    {
         return op switch
         {
-            "<" => amount.Value < threshold,
-            "<=" => amount.Value <= threshold,
-            ">" => amount.Value > threshold,
-            ">=" => amount.Value >= threshold,
-            "=" or "==" => amount.Value == threshold,
-            "!=" => amount.Value != threshold,
+            "<" => actual < expected,
+            "<=" => actual <= expected,
+            ">" => actual > expected,
+            ">=" => actual >= expected,
+            "=" or "==" => actual == expected,
+            "!=" => actual != expected,
             _ => false
         };
+    }
+
+    private static bool CompareDate(DateTime actual, DateTime expected, string op)
+    {
+        return op switch
+        {
+            "<" => actual < expected,
+            "<=" => actual <= expected,
+            ">" => actual > expected,
+            ">=" => actual >= expected,
+            "=" or "==" => actual == expected,
+            "!=" => actual != expected,
+            _ => false
+        };
+    }
+
+    private static bool CompareString(string actual, string expected, string op)
+    {
+        return op switch
+        {
+            "=" or "==" => string.Equals(actual, expected, StringComparison.OrdinalIgnoreCase),
+            "!=" => !string.Equals(actual, expected, StringComparison.OrdinalIgnoreCase),
+            "contains" => actual.Contains(expected, StringComparison.OrdinalIgnoreCase),
+            "startswith" => actual.StartsWith(expected, StringComparison.OrdinalIgnoreCase),
+            "endswith" => actual.EndsWith(expected, StringComparison.OrdinalIgnoreCase),
+            "in" => expected.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+                .Any(x => string.Equals(x, actual, StringComparison.OrdinalIgnoreCase)),
+            "notin" => expected.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+                .All(x => !string.Equals(x, actual, StringComparison.OrdinalIgnoreCase)),
+            _ => false
+        };
+    }
+
+    private static bool TryDecimal(string value, out decimal parsed)
+    {
+        return decimal.TryParse(value, System.Globalization.NumberStyles.Any, System.Globalization.CultureInfo.InvariantCulture, out parsed)
+               || decimal.TryParse(value, out parsed);
+    }
+
+    private static bool TryDateTime(string value, out DateTime parsed)
+    {
+        return DateTime.TryParse(value, out parsed);
+    }
+
+    private static bool TryBool(string value, out bool parsed)
+    {
+        if (bool.TryParse(value, out parsed))
+        {
+            return true;
+        }
+
+        if (value == "1")
+        {
+            parsed = true;
+            return true;
+        }
+
+        if (value == "0")
+        {
+            parsed = false;
+            return true;
+        }
+
+        return false;
     }
 
     private async Task<TCodeAccessResult> DenyAsync(string transactionCode, int userId, short level, string reason, CancellationToken cancellationToken)
@@ -188,7 +295,7 @@ public sealed class TCodeAuthorizationService(
             result.RouteLink,
             result.Actions,
             result.AmountVisible,
-            Conditions = result.Conditions.Select(x => new { x.FieldName, x.Operator, x.Value, x.IsSatisfied })
+            Conditions = result.Conditions.Select(x => new { x.FieldName, x.Operator, x.ExpectedValue, x.ActualValue, x.IsSatisfied })
         });
 
         var log = new SecurityEventLog

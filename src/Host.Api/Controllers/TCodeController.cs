@@ -43,7 +43,26 @@ public sealed class TCodeController(
             return BadRequest("userId ve companyId query ile veya claim içinde sağlanmalıdır.");
         }
 
-        var result = await authorizationService.AuthorizeAsync(transactionCode, resolvedUserId.Value, resolvedCompanyId.Value, amount, cancellationToken);
+        var reservedKeys = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
+        {
+            "userId", "companyId", "transactionCode"
+        };
+
+        var contextValues = Request.Query
+            .Where(x => !reservedKeys.Contains(x.Key))
+            .ToDictionary(x => x.Key, x => (string?)x.Value.ToString(), StringComparer.OrdinalIgnoreCase);
+
+        if (amount.HasValue)
+        {
+            contextValues["amount"] = amount.Value.ToString(System.Globalization.CultureInfo.InvariantCulture);
+        }
+
+        var result = await authorizationService.AuthorizeAsync(
+            transactionCode,
+            resolvedUserId.Value,
+            resolvedCompanyId.Value,
+            contextValues,
+            cancellationToken);
         if (!result.IsAllowed)
         {
             return StatusCode(StatusCodes.Status403Forbidden, result);
