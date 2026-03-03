@@ -6,5 +6,7 @@ obj/
 *.user
 *.suo
 *.log
+logs/
+src/Host.Api/logs/
 .DS_Store
 Thumbs.db
