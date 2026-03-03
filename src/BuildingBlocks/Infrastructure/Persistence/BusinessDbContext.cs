@@ -27,6 +27,8 @@ public sealed class BusinessDbContext(
     public DbSet<UserPageActionPermission> UserPageActionPermissions => Set<UserPageActionPermission>();
     public DbSet<UserPageConditionPermission> UserPageConditionPermissions => Set<UserPageConditionPermission>();
     public DbSet<User> Users => Set<User>();
+    public DbSet<Role> Roles => Set<Role>();
+    public DbSet<UserRole> UserRoles => Set<UserRole>();
 
     public override int SaveChanges(bool acceptAllChangesOnSuccess)
     {
@@ -167,6 +169,32 @@ public sealed class BusinessDbContext(
             entity.HasIndex(x => x.Email).IsUnique();
         });
 
+        modelBuilder.Entity<Role>(entity =>
+        {
+            entity.ToTable("Roles");
+            entity.HasKey(x => x.Id);
+            entity.Property(x => x.Code).HasMaxLength(100).IsRequired();
+            entity.Property(x => x.Name).HasMaxLength(200).IsRequired();
+            entity.Property(x => x.Description).HasMaxLength(1000);
+            entity.HasIndex(x => x.Code).IsUnique();
+            entity.HasIndex(x => x.Name).IsUnique();
+        });
+
+        modelBuilder.Entity<UserRole>(entity =>
+        {
+            entity.ToTable("UserRoles");
+            entity.HasKey(x => x.Id);
+            entity.HasOne<User>()
+                .WithMany()
+                .HasForeignKey(x => x.UserId)
+                .OnDelete(DeleteBehavior.Restrict);
+            entity.HasOne<Role>()
+                .WithMany()
+                .HasForeignKey(x => x.RoleId)
+                .OnDelete(DeleteBehavior.Restrict);
+            entity.HasIndex(x => new { x.UserId, x.RoleId }).IsUnique();
+        });
+
         // SYS01-SYS04 başlangıç ekranları: T-Code ile doğrudan erişim sağlayan temel seed.
         modelBuilder.Entity<Module>().HasData(new Module
         {
@@ -234,6 +262,28 @@ public sealed class BusinessDbContext(
                 Code = "USER_REPORT",
                 TransactionCode = "SYS04",
                 RouteLink = "/system/users/report",
+                CreatedBy = "seed",
+                CreatedAt = seedCreatedAt
+            });
+
+        modelBuilder.Entity<Role>().HasData(
+            new Role
+            {
+                Id = 1,
+                Code = "SYS_ADMIN",
+                Name = "System Administrator",
+                Description = "Tam yetkili sistem yöneticisi",
+                IsSystemRole = true,
+                CreatedBy = "seed",
+                CreatedAt = seedCreatedAt
+            },
+            new Role
+            {
+                Id = 2,
+                Code = "SYS_OPERATOR",
+                Name = "System Operator",
+                Description = "Operasyonel kullanıcı",
+                IsSystemRole = true,
                 CreatedBy = "seed",
                 CreatedAt = seedCreatedAt
             });
