@@ -23,4 +23,6 @@ Bu klasördeki diyagramlar canlıdır; yeni modül/katman eklendiğinde güncell
 ## Uygulama Notu
 
 - T-Code yetki endpoint'i: `GET /api/tcode/{transactionCode}`
-- Query parametreleri: `userId`, `companyId`, `amount`
+- Query parametreleri: `amount` (zorunlu değil)
+- Opsiyonel: `userId`, `companyId`
+- `userId/companyId` yoksa claim fallback devreye girer.

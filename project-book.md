@@ -370,13 +370,15 @@ Eğer araya yeni bir aşama girerse:
 
 1. Identity modülü ile gerçek User FK bağlantısı
 2. Condition parser ve query filter projection geliştirme
-3. Security event log zenginleştirme (deny reason)
-4. Outbox + notification ile audit olay senkronizasyonu
+3. Outbox + notification ile audit olay senkronizasyonu
 
 Not: T-Code Resolver + authorization engine ilk sürümü tamamlandı.
+Not: Claim fallback + security_event_logs allow/deny kayıtları tamamlandı.
 
 Aktif endpoint:
-- GET /api/tcode/{transactionCode}?userId={id}&companyId={id}&amount={decimal}
+- GET /api/tcode/{transactionCode}?amount={decimal}
+- Opsiyonel query: userId, companyId
+- userId/companyId query verilmezse claim'den çözülür.
 
 ---
 

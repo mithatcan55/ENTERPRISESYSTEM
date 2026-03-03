@@ -53,6 +53,10 @@ public sealed class LogDbContext(DbContextOptions<LogDbContext> options) : DbCon
         {
             entity.ToTable("security_event_logs");
             entity.HasKey(x => x.Id);
+            entity.HasIndex(x => x.Timestamp);
+            entity.HasIndex(x => new { x.EventType, x.Timestamp });
+            entity.HasIndex(x => new { x.UserId, x.Timestamp });
+            entity.HasIndex(x => new { x.Resource, x.IsSuccessful, x.Timestamp });
         });
 
         modelBuilder.Entity<SystemLog>(entity =>
