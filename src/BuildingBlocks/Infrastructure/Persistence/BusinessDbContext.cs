@@ -29,6 +29,7 @@ public sealed class BusinessDbContext(
     public DbSet<User> Users => Set<User>();
     public DbSet<Role> Roles => Set<Role>();
     public DbSet<UserRole> UserRoles => Set<UserRole>();
+    public DbSet<UserSession> UserSessions => Set<UserSession>();
 
     public override int SaveChanges(bool acceptAllChangesOnSuccess)
     {
@@ -193,6 +194,22 @@ public sealed class BusinessDbContext(
                 .HasForeignKey(x => x.RoleId)
                 .OnDelete(DeleteBehavior.Restrict);
             entity.HasIndex(x => new { x.UserId, x.RoleId }).IsUnique();
+        });
+
+        modelBuilder.Entity<UserSession>(entity =>
+        {
+            entity.ToTable("UserSessions");
+            entity.HasKey(x => x.Id);
+            entity.Property(x => x.SessionKey).HasMaxLength(128).IsRequired();
+            entity.Property(x => x.ClientIpAddress).HasMaxLength(100);
+            entity.Property(x => x.UserAgent).HasMaxLength(1000);
+            entity.Property(x => x.RevokedBy).HasMaxLength(200);
+            entity.HasOne<User>()
+                .WithMany()
+                .HasForeignKey(x => x.UserId)
+                .OnDelete(DeleteBehavior.Restrict);
+            entity.HasIndex(x => x.SessionKey).IsUnique();
+            entity.HasIndex(x => new { x.UserId, x.IsRevoked, x.ExpiresAt });
         });
 
         // SYS01-SYS04 başlangıç ekranları: T-Code ile doğrudan erişim sağlayan temel seed.

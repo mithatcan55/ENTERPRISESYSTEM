@@ -466,3 +466,19 @@ Bu plan şunları tek yerde toplar:
 - Scalar test takvimi
 - Session, şifre politikası, rate limit ve operasyon yönetimi fazları
 - Denetim kapıları (audit/compliance gates)
+
+---
+
+## Cilt 20 — Auth Lifecycle (Faz-3 Başlangıcı)
+
+Bu fazda aşağıdaki çekirdek parçalar eklendi:
+
+- `UserSessions` tablosu (oturum izleme)
+- Login endpoint (`/api/auth/login`)
+- Şifre değişim endpoint (`/api/auth/change-password`)
+- Session listeleme endpoint (`/api/sessions`)
+- Session revoke endpoint (`/api/sessions/{sessionId}/revoke`)
+
+Güvenlik notu:
+- Login ve session lifecycle olayları `security_event_logs` tablosuna kaydedilir.
+- Şifre politikası başlangıcı olarak 90 gün expiration + `MustChangePassword` akışı uygulanır.
