@@ -1,10 +1,7 @@
-using Infrastructure.Persistence;
-using Infrastructure.Persistence.Auditing;
-using Host.Api.Authorization.Services;
-using Host.Api.Exceptions;
+using Host.Api.DependencyInjection;
+using Identity.Presentation.DependencyInjection;
+using Infrastructure.DependencyInjection;
 using Host.Api.Middleware;
-using Host.Api.Services;
-using Microsoft.EntityFrameworkCore;
 using Scalar.AspNetCore;
 using Serilog;
 
@@ -20,30 +17,9 @@ builder.Host.UseSerilog((context, services, configuration) =>
 
 builder.Services.AddControllers();
 builder.Services.AddOpenApi();
-builder.Services.AddProblemDetails();
-builder.Services.AddExceptionHandler<GlobalExceptionHandler>();
-builder.Services.AddHttpContextAccessor();
-builder.Services.AddScoped<IAuditActorAccessor, HttpContextAuditActorAccessor>();
-builder.Services.AddScoped<ICurrentUserContext, CurrentUserContext>();
-builder.Services.AddScoped<ITCodeAuthorizationService, TCodeAuthorizationService>();
-
-builder.Services.AddDbContext<LogDbContext>(options =>
-{
-    var connectionString = builder.Configuration.GetConnectionString("LogDb");
-    options.UseNpgsql(connectionString, npgsql =>
-    {
-        npgsql.MigrationsHistoryTable("__EFMigrationsHistory", LogDbContext.LogsSchema);
-    });
-});
-
-builder.Services.AddDbContext<BusinessDbContext>(options =>
-{
-    var connectionString = builder.Configuration.GetConnectionString("BusinessDb");
-    options.UseNpgsql(connectionString, npgsql =>
-    {
-        npgsql.MigrationsHistoryTable("__EFMigrationsHistory", BusinessDbContext.AuthorizationSchema);
-    });
-});
+builder.Services.AddHostCoreServices();
+builder.Services.AddInfrastructurePersistence(builder.Configuration);
+builder.Services.AddIdentityPresentationModule();
 
 var app = builder.Build();
 
