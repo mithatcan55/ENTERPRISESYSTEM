@@ -762,3 +762,19 @@ Bu fazda eklendi:
 Amaç:
 - Auth dışındaki yönetim endpoint’lerinde de OpenAPI sözleşme görünürlüğünü aynı standarda getirmek
 - UI/entegrasyon ekiplerinin response tiplerini ve hata kodlarını doğrudan dokümandan görebilmesini sağlamak
+
+---
+
+## Cilt 36 — Operations & Integrations OpenAPI Standardization
+
+Bu fazda eklendi:
+
+- `OperationsLogsController` endpoint’leri typed response + `ProducesResponseType` ile standartlaştırıldı.
+	- System/Security/Http/EntityChanges/Sessions -> `PagedResult<...>` sözleşmeleri
+	- EntityChanges export -> dosya response metadata
+- `IntegrationsController` endpoint’i typed response ve hata sözleşmeleri ile güncellendi.
+	- `GET /api/integrations/reference/company/{externalId}` -> `ReferenceCompanyDto`
+
+Amaç:
+- Operasyon ve entegrasyon endpoint’lerinde OpenAPI görünürlüğünü auth/sessions/permissions ile aynı seviyeye getirmek
+- Tüketici ekiplerin response tiplerini ve beklenen hata durumlarını tek doküman üzerinden net görmesini sağlamak
