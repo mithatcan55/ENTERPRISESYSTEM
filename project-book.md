@@ -778,3 +778,22 @@ Bu fazda eklendi:
 Amaç:
 - Operasyon ve entegrasyon endpoint’lerinde OpenAPI görünürlüğünü auth/sessions/permissions ile aynı seviyeye getirmek
 - Tüketici ekiplerin response tiplerini ve beklenen hata durumlarını tek doküman üzerinden net görmesini sağlamak
+
+---
+
+## Cilt 37 — Users / Roles / TCode OpenAPI Completion Sweep
+
+Bu fazda eklendi:
+
+- `UsersController` typed response + response metadata standardizasyonu
+	- `GET /api/users` -> `IReadOnlyList<UserListItemDto>`
+	- `POST /api/users` -> `CreatedUserDto`
+- `RolesController` typed response + response metadata standardizasyonu
+	- list/create/assign/list-user-roles endpoint'lerinde açık sözleşme
+- `TCodeController` typed response + response metadata standardizasyonu
+	- `GET /api/tcode/{transactionCode}` -> `TCodeAccessResult`
+	- 200/403/400/401 sözleşmeleri
+
+Amaç:
+- Controller yüzeyinin tamamında OpenAPI sözleşme tutarlılığını bitirmek
+- UI ve entegrasyon tüketicilerinin endpoint bazında başarı/hata tiplerini tek standartta görmesini sağlamak

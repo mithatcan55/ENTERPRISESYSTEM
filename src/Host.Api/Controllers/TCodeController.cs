@@ -1,4 +1,5 @@
 using Host.Api.Authorization.Services;
+using Host.Api.Authorization.Models;
 using Host.Api.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -15,8 +16,15 @@ public sealed class TCodeController(
     ITCodeAuthorizationService authorizationService,
     ICurrentUserContext currentUserContext) : ControllerBase
 {
+    /// <summary>
+    /// Verilen T-Code için kullanıcı erişim kararını üretir.
+    /// </summary>
     [HttpGet("{transactionCode}")]
-    public async Task<IActionResult> Resolve(
+    [ProducesResponseType(typeof(TCodeAccessResult), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(TCodeAccessResult), StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status401Unauthorized)]
+    public async Task<ActionResult<TCodeAccessResult>> Resolve(
         string transactionCode,
         [FromQuery] int? userId,
         [FromQuery] int? companyId,
