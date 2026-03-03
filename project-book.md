@@ -744,3 +744,21 @@ Bu fazda eklendi:
 Amaç:
 - Scalar/OpenAPI ekranında login response modelini (effective authorization dahil) açık ve tıklanabilir hale getirmek
 - Tüketici tarafların response/exception sözleşmesini net görmesini sağlamak
+
+---
+
+## Cilt 35 — Sessions & Permissions OpenAPI Standardization
+
+Bu fazda eklendi:
+
+- `SessionsController` için typed response ve response metadata:
+	- `GET /api/sessions` -> `ActionResult<IReadOnlyList<SessionListItemDto>>`
+	- `POST /api/sessions/{sessionId}/revoke` -> 204 + problem response sözleşmeleri
+- `PermissionsController` için typed response ve response metadata:
+	- `GET /api/permissions/actions` -> `ActionResult<IReadOnlyList<UserActionPermissionDto>>`
+	- `POST /api/permissions/actions` -> `ActionResult<UserActionPermissionDto>`
+- Her endpoint'e kısa XML summary açıklamaları eklendi.
+
+Amaç:
+- Auth dışındaki yönetim endpoint’lerinde de OpenAPI sözleşme görünürlüğünü aynı standarda getirmek
+- UI/entegrasyon ekiplerinin response tiplerini ve hata kodlarını doğrudan dokümandan görebilmesini sağlamak
