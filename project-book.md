@@ -912,3 +912,63 @@ Bu fazda eklendi:
 Amaç:
 - Operasyon ekibinin yalnızca başarılı değil, başarısız güvenlik senaryolarını da hızlı doğrulayabilmesi
 - Yetki/policy regressions durumunda beklenen hata davranışını standart şekilde test edebilmek
+
+---
+
+## Cilt 44 — Audit Dashboard API Aggregation
+
+Bu fazda eklendi:
+
+- `GET /api/ops/audit/dashboard/summary` endpoint'i
+- `IAuditDashboardService` + `AuditDashboardService`
+- Toplanan KPI seti:
+	- Son pencere `SystemErrorCount`
+	- `FailedLoginCount`
+	- Saatlik `FailedLoginTrend`
+	- `SessionRevokeRatePercent`
+	- `TopCriticalEvents` (ilk 10)
+
+Amaç:
+- Dashboard ekranının tek çağrıda özet KPI verisi alması
+- Log endpoint'lerini UI tarafında dağınık çağırma ihtiyacını azaltmak
+
+---
+
+## Cilt 45 — External Integration Outbox + Mail/Excel Services
+
+Bu fazda eklendi:
+
+- Outbox kalıcı modeli:
+	- `ExternalOutboxMessage`
+- Queue servis katmanı:
+	- `IExternalOutboxService` + `ExternalOutboxService`
+- Dispatcher worker:
+	- `ExternalOutboxDispatcherService` (`BackgroundService`)
+	- retry/backoff/dead-letter davranışı
+- İşleyici servisler:
+	- `IEmailDeliveryService` + `EmailDeliveryService` (log-only dispatch)
+	- `IExcelReportComposerService` + `ExcelReportComposerService` (CSV üretimi)
+- Operasyon endpoint'leri:
+	- `POST /api/ops/outbox/mail`
+	- `POST /api/ops/outbox/excel`
+- Kullanıcı oluşturma akışında opsiyonel admin mail kuyruğu:
+	- `CreateUserRequest.NotifyAdminByMail`
+	- `CreateUserRequest.AdminEmail`
+
+Amaç:
+- Dış entegrasyon çağrılarını transaction-safe kuyruk desenine taşımak
+- Mail ve rapor süreçlerini dayanıklı, retry edilebilir akışa almak
+
+---
+
+## Cilt 46 — Hata Dili Standardı (Türkçe)
+
+Bu fazda eklendi:
+
+- Global exception handler log metinleri Türkçeleştirildi.
+- ProblemDetails başlık eşlemeleri genişletildi:
+	- `401` -> "Kimlik doğrulaması gerekli."
+	- `429` -> "Çok fazla istek gönderildi."
+
+Amaç:
+- API hata dili ve operasyon loglarının kurumsal Türkçe standardıyla tutarlı olması

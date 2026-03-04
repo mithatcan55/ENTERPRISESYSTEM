@@ -1,4 +1,6 @@
 using Host.Api.Exceptions;
+using Host.Api.Integrations.Contracts;
+using Host.Api.Integrations.Services;
 using Host.Api.Identity.Contracts;
 using Infrastructure.Persistence;
 using Infrastructure.Persistence.Entities.Authorization;
@@ -15,7 +17,8 @@ namespace Host.Api.Identity.Services;
 /// </summary>
 public sealed class UserManagementService(
     BusinessDbContext businessDbContext,
-    IPasswordPolicyService passwordPolicyService) : IUserManagementService
+    IPasswordPolicyService passwordPolicyService,
+    IExternalOutboxService externalOutboxService) : IUserManagementService
 {
     public async Task<IReadOnlyList<UserListItemDto>> ListAsync(CancellationToken cancellationToken)
     {
@@ -62,6 +65,11 @@ public sealed class UserManagementService(
         if (request.CompanyId <= 0)
         {
             validationErrors["companyId"] = ["CompanyId pozitif bir değer olmalıdır."];
+        }
+
+        if (request.NotifyAdminByMail && string.IsNullOrWhiteSpace(request.AdminEmail))
+        {
+            validationErrors["adminEmail"] = ["NotifyAdminByMail=true ise adminEmail zorunludur."];
         }
 
         if (validationErrors.Count > 0)
@@ -138,6 +146,16 @@ public sealed class UserManagementService(
             await businessDbContext.SaveChangesAsync(cancellationToken);
 
             await transaction.CommitAsync(cancellationToken);
+
+            if (request.NotifyAdminByMail)
+            {
+                await externalOutboxService.QueueMailAsync(new QueueMailRequest
+                {
+                    To = request.AdminEmail!.Trim(),
+                    Subject = $"Yeni kullanıcı oluşturuldu: {user.UserCode}",
+                    Body = $"Kullanıcı oluşturuldu. UserCode={user.UserCode}, Username={user.Username}, Email={user.Email}"
+                }, cancellationToken);
+            }
 
             return new CreatedUserDto(
                 user.Id,

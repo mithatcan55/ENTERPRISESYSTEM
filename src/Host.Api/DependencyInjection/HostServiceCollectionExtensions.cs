@@ -1,6 +1,7 @@
 using Host.Api.Exceptions;
 using Host.Api.Identity.Configuration;
 using Host.Api.Integrations.Configuration;
+using Host.Api.Integrations.Services;
 using Host.Api.Middleware;
 using Host.Api.Security;
 using Microsoft.AspNetCore.Authentication;
@@ -154,6 +155,8 @@ public static class HostServiceCollectionExtensions
                 .HandleTransientHttpError()
                 .CircuitBreakerAsync(5, TimeSpan.FromSeconds(30)))
             .AddPolicyHandler(Policy.TimeoutAsync<HttpResponseMessage>(TimeSpan.FromSeconds(6)));
+
+        services.AddHostedService<ExternalOutboxDispatcherService>();
 
         return services;
     }

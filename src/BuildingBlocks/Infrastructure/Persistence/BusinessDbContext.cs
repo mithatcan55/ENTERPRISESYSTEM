@@ -1,5 +1,6 @@
 using Infrastructure.Persistence.Auditing;
 using Infrastructure.Persistence.Entities.Authorization;
+using Infrastructure.Persistence.Entities.Integration;
 using Infrastructure.Persistence.Entities.Identity;
 using Microsoft.EntityFrameworkCore;
 using SharedKernel.Auditing;
@@ -31,6 +32,7 @@ public sealed class BusinessDbContext(
     public DbSet<UserRole> UserRoles => Set<UserRole>();
     public DbSet<UserSession> UserSessions => Set<UserSession>();
     public DbSet<UserPasswordHistory> UserPasswordHistories => Set<UserPasswordHistory>();
+    public DbSet<ExternalOutboxMessage> ExternalOutboxMessages => Set<ExternalOutboxMessage>();
 
     public override int SaveChanges(bool acceptAllChangesOnSuccess)
     {
@@ -223,6 +225,20 @@ public sealed class BusinessDbContext(
                 .HasForeignKey(x => x.UserId)
                 .OnDelete(DeleteBehavior.Restrict);
             entity.HasIndex(x => new { x.UserId, x.ChangedAt });
+        });
+
+        modelBuilder.Entity<ExternalOutboxMessage>(entity =>
+        {
+            entity.ToTable("ExternalOutboxMessages");
+            entity.HasKey(x => x.Id);
+            entity.Property(x => x.EventType).HasMaxLength(200).IsRequired();
+            entity.Property(x => x.PayloadJson).HasColumnType("text").IsRequired();
+            entity.Property(x => x.Status).HasMaxLength(50).IsRequired();
+            entity.Property(x => x.LastError).HasMaxLength(4000);
+            entity.Property(x => x.CorrelationId).HasMaxLength(100);
+            entity.Property(x => x.DeduplicationKey).HasMaxLength(250);
+            entity.HasIndex(x => new { x.Status, x.NextAttemptAt });
+            entity.HasIndex(x => x.DeduplicationKey);
         });
 
         // SYS01-SYS04 başlangıç ekranları: T-Code ile doğrudan erişim sağlayan temel seed.

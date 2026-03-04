@@ -1,0 +1,71 @@
+using Host.Api.Operations.Contracts;
+using Infrastructure.Persistence;
+using Microsoft.EntityFrameworkCore;
+
+namespace Host.Api.Operations.Services;
+
+public sealed class AuditDashboardService(
+    LogDbContext logDbContext,
+    BusinessDbContext businessDbContext) : IAuditDashboardService
+{
+    public async Task<AuditDashboardSummaryDto> GetSummaryAsync(int windowHours, CancellationToken cancellationToken)
+    {
+        var normalizedHours = windowHours <= 0 ? 24 : Math.Min(windowHours, 24 * 14);
+        var now = DateTimeOffset.UtcNow;
+        var start = now.AddHours(-normalizedHours);
+
+        var systemErrorCount = await logDbContext.SystemLogs
+            .AsNoTracking()
+            .CountAsync(x => x.Timestamp >= start && (x.Level == "Error" || x.HttpStatusCode >= 500), cancellationToken);
+
+        var failedLoginQuery = logDbContext.SecurityEventLogs
+            .AsNoTracking()
+            .Where(x => x.Timestamp >= start
+                        && x.EventType == "AuthLifecycle"
+                        && x.Action == "Login"
+                        && !x.IsSuccessful);
+
+        var failedLoginCount = await failedLoginQuery.CountAsync(cancellationToken);
+
+        var failedLoginRaw = await failedLoginQuery
+            .Select(x => x.Timestamp)
+            .ToListAsync(cancellationToken);
+
+        var failedLoginTrend = failedLoginRaw
+            .GroupBy(t => new DateTimeOffset(t.Year, t.Month, t.Day, t.Hour, 0, 0, TimeSpan.Zero))
+            .OrderBy(g => g.Key)
+            .Select(g => new HourlyMetricDto(g.Key, g.Count()))
+            .ToList();
+
+        var startedSessions = await businessDbContext.UserSessions
+            .AsNoTracking()
+            .CountAsync(x => !x.IsDeleted && x.StartedAt >= start.UtcDateTime, cancellationToken);
+
+        var revokedSessions = await businessDbContext.UserSessions
+            .AsNoTracking()
+            .CountAsync(x => !x.IsDeleted && x.StartedAt >= start.UtcDateTime && x.IsRevoked, cancellationToken);
+
+        var revokeRate = startedSessions == 0
+            ? 0m
+            : Math.Round((decimal)revokedSessions / startedSessions * 100m, 2);
+
+        var topCriticalEvents = await logDbContext.SecurityEventLogs
+            .AsNoTracking()
+            .Where(x => x.Timestamp >= start
+                        && (!x.IsSuccessful || x.Severity == "Warning" || x.Severity == "Error"))
+            .GroupBy(x => x.EventType ?? "Unknown")
+            .Select(g => new TopEventDto(g.Key, g.Count()))
+            .OrderByDescending(x => x.Count)
+            .Take(10)
+            .ToListAsync(cancellationToken);
+
+        return new AuditDashboardSummaryDto(
+            GeneratedAt: now,
+            WindowHours: normalizedHours,
+            SystemErrorCount: systemErrorCount,
+            FailedLoginCount: failedLoginCount,
+            SessionRevokeRatePercent: revokeRate,
+            FailedLoginTrend: failedLoginTrend,
+            TopCriticalEvents: topCriticalEvents);
+    }
+}

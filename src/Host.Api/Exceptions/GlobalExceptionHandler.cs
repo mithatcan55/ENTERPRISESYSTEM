@@ -23,11 +23,11 @@ public sealed class GlobalExceptionHandler(
 
         if (statusCode >= StatusCodes.Status500InternalServerError)
         {
-            logger.LogError(exception, "Unhandled exception caught by global exception handler.");
+            logger.LogError(exception, "Global exception handler yakalanmamış bir hatayı işledi.");
         }
         else
         {
-            logger.LogWarning(exception, "Handled application exception caught by global exception handler.");
+            logger.LogWarning(exception, "Global exception handler uygulama hatasını yönetti.");
         }
 
         var correlationId = httpContext.Items[CorrelationIdMiddleware.CorrelationItemKey]?.ToString()
@@ -55,7 +55,7 @@ public sealed class GlobalExceptionHandler(
             Category = statusCode >= 500 ? "UnhandledException" : "HandledAppException",
             Source = nameof(GlobalExceptionHandler),
             Message = exception.Message,
-            MessageTemplate = "Exception occurred while processing HTTP request.",
+            MessageTemplate = "HTTP isteği işlenirken bir hata oluştu.",
             Exception = exception.Message,
             StackTrace = exception.ToString(),
             UserId = actorIdentity,
@@ -119,8 +119,10 @@ public sealed class GlobalExceptionHandler(
             var title = appException.StatusCode switch
             {
                 StatusCodes.Status400BadRequest => "Doğrulama hatası.",
+                StatusCodes.Status401Unauthorized => "Kimlik doğrulaması gerekli.",
                 StatusCodes.Status403Forbidden => "Bu işlem için yetkiniz yok.",
                 StatusCodes.Status404NotFound => "Kayıt bulunamadı.",
+                StatusCodes.Status429TooManyRequests => "Çok fazla istek gönderildi.",
                 _ => "İstek işlenemedi."
             };
 
