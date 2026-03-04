@@ -35,9 +35,16 @@ app.UseMiddleware<CorrelationIdMiddleware>();
 app.UseRateLimiter();
 app.UseAuthentication();
 app.UseAuthorization();
-app.UseSerilogRequestLogging();
-app.UseMiddleware<RequestLifecycleLoggingMiddleware>();
+
+if (!app.Environment.IsEnvironment("Testing"))
+{
+    app.UseSerilogRequestLogging();
+    app.UseMiddleware<RequestLifecycleLoggingMiddleware>();
+}
+
 app.MapGet("/health", () => Results.Ok(new { Status = "ok" }));
 app.MapControllers();
 
 app.Run();
+
+public partial class Program;
