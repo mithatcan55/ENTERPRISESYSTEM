@@ -4,6 +4,7 @@ using Host.Api.Integrations.Contracts;
 using Host.Api.Middleware;
 using Infrastructure.Persistence;
 using Infrastructure.Persistence.Entities.Integration;
+using Microsoft.EntityFrameworkCore;
 
 namespace Host.Api.Integrations.Services;
 
@@ -11,6 +12,60 @@ public sealed class ExternalOutboxService(
     BusinessDbContext businessDbContext,
     IHttpContextAccessor httpContextAccessor) : IExternalOutboxService
 {
+    public async Task<OutboxPagedResult<OutboxMessageListItemDto>> ListMessagesAsync(OutboxMessageQueryRequest request, CancellationToken cancellationToken)
+    {
+        var page = request.Page <= 0 ? 1 : request.Page;
+        var pageSize = request.PageSize <= 0 ? 50 : Math.Min(request.PageSize, 200);
+
+        var query = businessDbContext.ExternalOutboxMessages
+            .AsNoTracking()
+            .AsQueryable();
+
+        if (!string.IsNullOrWhiteSpace(request.Status))
+        {
+            var status = request.Status.Trim();
+            query = query.Where(x => x.Status == status);
+        }
+
+        if (!string.IsNullOrWhiteSpace(request.EventType))
+        {
+            var eventType = request.EventType.Trim();
+            query = query.Where(x => x.EventType == eventType);
+        }
+
+        if (!string.IsNullOrWhiteSpace(request.Search))
+        {
+            var search = request.Search.Trim().ToLowerInvariant();
+            query = query.Where(x =>
+                (x.LastError ?? string.Empty).ToLower().Contains(search)
+                || (x.CorrelationId ?? string.Empty).ToLower().Contains(search)
+                || (x.DeduplicationKey ?? string.Empty).ToLower().Contains(search)
+                || (x.EventType ?? string.Empty).ToLower().Contains(search));
+        }
+
+        var totalCount = await query.CountAsync(cancellationToken);
+
+        var items = await query
+            .OrderByDescending(x => x.CreatedAt)
+            .Skip((page - 1) * pageSize)
+            .Take(pageSize)
+            .Select(x => new OutboxMessageListItemDto(
+                x.Id,
+                x.CreatedAt,
+                x.EventType,
+                x.Status,
+                x.AttemptCount,
+                x.MaxAttempts,
+                x.NextAttemptAt,
+                x.ProcessedAt,
+                x.LastError,
+                x.CorrelationId,
+                x.DeduplicationKey))
+            .ToListAsync(cancellationToken);
+
+        return new OutboxPagedResult<OutboxMessageListItemDto>(items, page, pageSize, totalCount);
+    }
+
     public async Task<OutboxMessageQueuedDto> QueueMailAsync(QueueMailRequest request, CancellationToken cancellationToken)
     {
         if (string.IsNullOrWhiteSpace(request.To) || string.IsNullOrWhiteSpace(request.Subject) || string.IsNullOrWhiteSpace(request.Body))

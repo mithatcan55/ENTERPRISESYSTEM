@@ -972,3 +972,18 @@ Bu fazda eklendi:
 
 Amaç:
 - API hata dili ve operasyon loglarının kurumsal Türkçe standardıyla tutarlı olması
+
+---
+
+## Cilt 47 — Outbox Monitoring Endpoint
+
+Bu fazda eklendi:
+
+- `GET /api/ops/outbox/messages` endpoint'i
+	- status/eventType/search filtreleri
+	- sayfalı sonuç (`OutboxPagedResult`)
+- Outbox servis katmanında mesaj listeleme yeteneği eklendi.
+
+Amaç:
+- Pending/Failed/DeadLetter mesajlarını operasyon ekibinin API üzerinden anlık izleyebilmesi
+- Outbox retry/dead-letter davranışını şeffaf hale getirmek

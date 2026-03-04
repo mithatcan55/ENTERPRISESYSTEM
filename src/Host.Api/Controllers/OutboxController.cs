@@ -11,6 +11,19 @@ namespace Host.Api.Controllers;
 public sealed class OutboxController(IExternalOutboxService externalOutboxService) : ControllerBase
 {
     /// <summary>
+    /// Outbox mesajlarını durum ve tip bazında filtreleyerek listeler.
+    /// </summary>
+    [HttpGet("messages")]
+    [ProducesResponseType(typeof(OutboxPagedResult<OutboxMessageListItemDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status403Forbidden)]
+    public async Task<ActionResult<OutboxPagedResult<OutboxMessageListItemDto>>> ListMessages([FromQuery] OutboxMessageQueryRequest request, CancellationToken cancellationToken)
+    {
+        var result = await externalOutboxService.ListMessagesAsync(request, cancellationToken);
+        return Ok(result);
+    }
+
+    /// <summary>
     /// Mail gönderim işini outbox kuyruğuna alır.
     /// </summary>
     [HttpPost("mail")]

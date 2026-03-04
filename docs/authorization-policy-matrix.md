@@ -35,6 +35,7 @@ Bu doküman, API endpoint'lerinin hangi kimlik doğrulama/yetkilendirme kuralı 
 | `/api/ops/audit/dashboard/summary` | GET | Authorize(Roles) | `SYS_ADMIN` or `SYS_OPERATOR` |
 | `/api/ops/security/password-policy` | GET | Authorize(Roles) | `SYS_ADMIN` |
 | `/api/ops/security/password-policy` | PUT | Authorize(Roles) | `SYS_ADMIN` |
+| `/api/ops/outbox/messages` | GET | Authorize(Roles) | `SYS_ADMIN` or `SYS_OPERATOR` |
 | `/api/ops/outbox/mail` | POST | Authorize(Roles) | `SYS_ADMIN` or `SYS_OPERATOR` |
 | `/api/ops/outbox/excel` | POST | Authorize(Roles) | `SYS_ADMIN` or `SYS_OPERATOR` |
 | `/api/integrations/reference/company/{externalId}` | GET | Authorize | Authenticated user |

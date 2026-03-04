@@ -94,6 +94,11 @@ Content-Type: application/json
 	"body": "Yeni kullanıcı başarıyla oluşturuldu."
 }
 
+### Outbox messages monitoring
+GET {{Host.Api_HostAddress}}/api/ops/outbox/messages?page=1&pageSize=20&status=Pending
+Authorization: Bearer {{SessionToken}}
+Accept: application/json
+
 ### Outbox queue excel report
 POST {{Host.Api_HostAddress}}/api/ops/outbox/excel
 Authorization: Bearer {{SessionToken}}
