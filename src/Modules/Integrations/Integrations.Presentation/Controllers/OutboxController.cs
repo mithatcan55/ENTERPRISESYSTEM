@@ -1,6 +1,6 @@
+using Application.Observability;
 using Integrations.Application.Contracts;
 using Integrations.Application.Services;
-using Infrastructure.Observability;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 

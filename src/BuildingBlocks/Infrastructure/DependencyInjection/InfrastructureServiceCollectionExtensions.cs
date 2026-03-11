@@ -21,7 +21,6 @@ public static class InfrastructureServiceCollectionExtensions
     {
         services.AddScoped<ILogEventWriter, LogEventWriter>();
         services.AddScoped<Application.Observability.IOperationalEventPublisher, OperationalEventPublisher>();
-        services.AddScoped<Application.Observability.INotificationChannel, EmailNotificationChannel>();
         services.AddScoped<Application.Observability.INotificationChannel, WebhookNotificationChannel>();
         services.AddScoped<DatabaseCommandLoggingInterceptor>();
         services.AddScoped<EntityChangeLoggingInterceptor>();

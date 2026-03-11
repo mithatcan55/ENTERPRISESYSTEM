@@ -1,5 +1,6 @@
 using Integrations.Application.Services;
 using Integrations.Infrastructure.Services;
+using Application.Observability;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
@@ -15,6 +16,7 @@ public static class IntegrationsInfrastructureServiceCollectionExtensions
         services.AddScoped<IEmailDeliveryService, EmailDeliveryService>();
         services.AddScoped<IExcelReportComposerService, ExcelReportComposerService>();
         services.AddScoped<Identity.Application.Services.IIdentityNotificationService, IdentityNotificationService>();
+        services.AddScoped<INotificationChannel, EmailNotificationChannel>();
 
         services.AddOptions<Integrations.Application.Configuration.ExternalServicesOptions>()
             .BindConfiguration("ExternalServices")

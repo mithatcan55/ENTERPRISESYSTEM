@@ -1,7 +1,7 @@
 using System.Diagnostics;
 using System.Text.Json;
-using Application.Security;
 using Application.Observability;
+using Application.Security;
 using Microsoft.AspNetCore.Mvc.Controllers;
 using Microsoft.AspNetCore.Mvc.Filters;
 
@@ -13,8 +13,11 @@ public sealed class OperationLoggingFilter(
 {
     public async Task OnActionExecutionAsync(ActionExecutingContext context, ActionExecutionDelegate next)
     {
-        if (context.Filters.OfType<SkipOperationLogAttribute>().Any()
-            || context.ActionDescriptor.EndpointMetadata.OfType<SkipOperationLogAttribute>().Any())
+        var descriptor = context.ActionDescriptor as ControllerActionDescriptor;
+        var skipLogging = descriptor?.MethodInfo.GetCustomAttributes(typeof(SkipOperationLogAttribute), inherit: true).Any() == true
+            || descriptor?.ControllerTypeInfo.GetCustomAttributes(typeof(SkipOperationLogAttribute), inherit: true).Any() == true;
+
+        if (skipLogging)
         {
             await next();
             return;
@@ -32,8 +35,14 @@ public sealed class OperationLoggingFilter(
         {
             stopwatch.Stop();
 
-            var descriptor = context.ActionDescriptor as ControllerActionDescriptor;
-            var metadata = context.ActionDescriptor.EndpointMetadata.OfType<OperationLogAttribute>().LastOrDefault();
+            var metadata = descriptor?.MethodInfo
+                               .GetCustomAttributes(typeof(OperationLogAttribute), inherit: true)
+                               .OfType<OperationLogAttribute>()
+                               .LastOrDefault()
+                           ?? descriptor?.ControllerTypeInfo
+                               .GetCustomAttributes(typeof(OperationLogAttribute), inherit: true)
+                               .OfType<OperationLogAttribute>()
+                               .LastOrDefault();
             var operationName = metadata?.OperationName
                 ?? $"{descriptor?.ControllerName ?? "Unknown"}.{descriptor?.ActionName ?? "Unknown"}";
             var category = metadata?.Category ?? "BusinessOperation";
@@ -57,7 +66,7 @@ public sealed class OperationLoggingFilter(
                 UserId = userId,
                 Username = username,
                 IpAddress = httpContext.Connection.RemoteIpAddress?.ToString(),
-                UserAgent = httpContext.Request.Headers.UserAgent.ToString(),
+                UserAgent = httpContext.Request.Headers["User-Agent"].ToString(),
                 CorrelationId = httpContext.Items["CorrelationId"]?.ToString() ?? httpContext.TraceIdentifier,
                 HttpMethod = httpContext.Request.Method,
                 HttpPath = httpContext.Request.Path,

@@ -1,9 +1,10 @@
 using Application.Observability;
 using Identity.Application.Services;
+using Infrastructure.Observability;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 
-namespace Infrastructure.Observability;
+namespace Integrations.Infrastructure.Services;
 
 public sealed class EmailNotificationChannel(
     IIdentityNotificationService identityNotificationService,

@@ -1,6 +1,6 @@
+using Application.Observability;
 using Identity.Application.Contracts;
 using Identity.Application.Services;
-using Infrastructure.Observability;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
