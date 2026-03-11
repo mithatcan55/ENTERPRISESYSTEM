@@ -21,6 +21,8 @@ public sealed class AuthController(IAuthLifecycleService authLifecycleService) :
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status403Forbidden)]
     public async Task<ActionResult<LoginResponseDto>> Login([FromBody] LoginRequest request, CancellationToken cancellationToken)
     {
+        // Login anonim aciktir ama yine de operation log zincirine dahildir.
+        // Bu sayede basarili ve basarisiz giris denemeleri izlenebilir olur.
         var response = await authLifecycleService.LoginAsync(request, cancellationToken);
         return Ok(response);
     }
@@ -33,6 +35,7 @@ public sealed class AuthController(IAuthLifecycleService authLifecycleService) :
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status403Forbidden)]
     public async Task<ActionResult<RefreshTokenResponseDto>> Refresh([FromBody] RefreshTokenRequest request, CancellationToken cancellationToken)
     {
+        // Refresh akisinda da yeni token verilse bile session ve kullanici durumu tekrar dogrulanir.
         var response = await authLifecycleService.RefreshAsync(request, cancellationToken);
         return Ok(response);
     }
@@ -45,6 +48,8 @@ public sealed class AuthController(IAuthLifecycleService authLifecycleService) :
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
     public async Task<IActionResult> ChangePassword([FromBody] ChangePasswordRequest request, CancellationToken cancellationToken)
     {
+        // Change-password endpoint'i kimligi dogrulanmis kullanici bekler.
+        // Gercek "kendi hesabini degistirme" kurali servis katmaninda enforce edilir.
         await authLifecycleService.ChangePasswordAsync(request, cancellationToken);
         return NoContent();
     }

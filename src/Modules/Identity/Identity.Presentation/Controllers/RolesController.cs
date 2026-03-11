@@ -25,6 +25,8 @@ public sealed class RolesController(
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status403Forbidden)]
     public async Task<ActionResult<IReadOnlyList<RoleListItemDto>>> List(CancellationToken cancellationToken)
     {
+        // Roles akisi T-Code yerine dogrudan role korumasi ile aciliyor.
+        // Bunun nedeni bu endpoint'lerin sistem yonetimi niteliginde olmasi.
         var roles = await requestExecutionPipeline.ExecuteQueryAsync(
             new ListRolesQuery(),
             _ => listRolesQueryHandler.HandleAsync(cancellationToken),
@@ -55,6 +57,8 @@ public sealed class RolesController(
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
     public async Task<IActionResult> Assign(int roleId, int userId, CancellationToken cancellationToken)
     {
+        // Route parametreleri command modeline acikca tasiniyor.
+        // Boylece command kendi niyetini controller imzasindan bagimsiz sekilde tasir.
         await requestExecutionPipeline.ExecuteCommandAsync(
             new AssignRoleCommand(userId, roleId),
             _ => assignRoleCommandHandler.HandleAsync(userId, roleId, cancellationToken),

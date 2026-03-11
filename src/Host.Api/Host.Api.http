@@ -1,11 +1,21 @@
 @Host.Api_HostAddress = http://localhost:5279
 @SessionToken = REPLACE_WITH_SESSION_KEY
 
+### EGITIM NOTU
+# Bu dosya yalnizca test koleksiyonu degil, manuel ogrenme rehberi gibi de kullanilir.
+# Onerilen siralama:
+# 1. Health
+# 2. Login
+# 3. Sessions / Users / Permissions / TCode
+# 4. Audit / Outbox
+# 5. Negative senaryolar
+
 ### Health
 GET {{Host.Api_HostAddress}}/health
 Accept: application/json
 
 ### Login (AllowAnonymous)
+# Basarili login sonrasi donen token'i @SessionToken yerine koy.
 POST {{Host.Api_HostAddress}}/api/auth/login
 Content-Type: application/json
 
@@ -15,11 +25,13 @@ Content-Type: application/json
 }
 
 ### Password policy snapshot (SYS_ADMIN)
+# Bu endpoint canli policy'yi degistirmez, sadece o anki durumu dondurur.
 GET {{Host.Api_HostAddress}}/api/ops/security/password-policy
 Authorization: Bearer {{SessionToken}}
 Accept: application/json
 
 ### Password policy preview simulation (SYS_ADMIN)
+# Dry-run mantigiyla calisir; ayari kalici degistirmez.
 PUT {{Host.Api_HostAddress}}/api/ops/security/password-policy
 Authorization: Bearer {{SessionToken}}
 Content-Type: application/json
@@ -47,16 +59,19 @@ Content-Type: application/json
 }
 
 ### Sessions list
+# Auth sonrasi ilk kontrol adimlarindan biri aktif session listesidir.
 GET {{Host.Api_HostAddress}}/api/sessions?onlyActive=true
 Authorization: Bearer {{SessionToken}}
 Accept: application/json
 
 ### User list (T-Code protected: SYS03)
+# Bu cagrida endpoint yetkisi ve request pre-check mantigi dolayli olarak test edilir.
 GET {{Host.Api_HostAddress}}/api/users
 Authorization: Bearer {{SessionToken}}
 Accept: application/json
 
 ### Assign/Upsert user action permission (SYS_ADMIN)
+# Permission tarafinda yeni kayit acmak veya var olan kaydi guncellemek icin kullan.
 POST {{Host.Api_HostAddress}}/api/permissions/actions
 Authorization: Bearer {{SessionToken}}
 Content-Type: application/json
@@ -69,21 +84,25 @@ Content-Type: application/json
 }
 
 ### List user action permissions (SYS_ADMIN)
+# Bir onceki upsert cagrisi sonrasi kaydin gercekten olustugunu dogrulamak icin kullan.
 GET {{Host.Api_HostAddress}}/api/permissions/actions?userId=1&transactionCode=SYS03
 Authorization: Bearer {{SessionToken}}
 Accept: application/json
 
 ### T-Code resolve simulation
+# actionCode ve amount gibi alanlari degistirerek level 5 ve level 6 davranisini gozlemle.
 GET {{Host.Api_HostAddress}}/api/tcode/SYS03?userId=1&companyId=1&amount=500
 Authorization: Bearer {{SessionToken}}
 Accept: application/json
 
 ### Audit dashboard summary
+# Tek cagrida turetilmis operasyonel KPI ozeti doner.
 GET {{Host.Api_HostAddress}}/api/ops/audit/dashboard/summary?windowHours=24
 Authorization: Bearer {{SessionToken}}
 Accept: application/json
 
 ### Outbox queue mail
+# Mail hemen gonderilmez; once outbox kaydi acilir.
 POST {{Host.Api_HostAddress}}/api/ops/outbox/mail
 Authorization: Bearer {{SessionToken}}
 Content-Type: application/json
@@ -95,11 +114,13 @@ Content-Type: application/json
 }
 
 ### Outbox messages monitoring
+# Bir onceki kuyruklama isteginin outbox durumunu izlemek icin kullan.
 GET {{Host.Api_HostAddress}}/api/ops/outbox/messages?page=1&pageSize=20&status=Pending
 Authorization: Bearer {{SessionToken}}
 Accept: application/json
 
 ### Outbox queue excel report
+# Outbox deseni rapor olusturma akislarinda da ayni mantikla kullanilir.
 POST {{Host.Api_HostAddress}}/api/ops/outbox/excel
 Authorization: Bearer {{SessionToken}}
 Content-Type: application/json
@@ -115,15 +136,18 @@ Content-Type: application/json
 }
 
 ### NEGATIVE - Unauthorized snapshot (expected 401)
+# Auth header olmadan korumali endpoint cagrisi.
 GET {{Host.Api_HostAddress}}/api/ops/security/password-policy
 Accept: application/json
 
 ### NEGATIVE - Forbidden snapshot with non-admin token (expected 403)
+# Token var ama yetki yok senaryosu.
 GET {{Host.Api_HostAddress}}/api/ops/security/password-policy
 Authorization: Bearer REPLACE_WITH_NON_ADMIN_TOKEN
 Accept: application/json
 
 ### NEGATIVE - Invalid policy preview config (expected 200 with IsValidConfiguration=false)
+# Validation ve simulation davranisini ayni anda gormek icin kullan.
 PUT {{Host.Api_HostAddress}}/api/ops/security/password-policy
 Authorization: Bearer {{SessionToken}}
 Content-Type: application/json
@@ -146,6 +170,7 @@ Content-Type: application/json
 }
 
 ### NEGATIVE - TCode resolve bad request (missing userId/companyId, expected 400)
+# Resolve endpoint'i gerekli baglam verilmeden cagrilinca istemci hatasi donmelidir.
 GET {{Host.Api_HostAddress}}/api/tcode/SYS03
 Authorization: Bearer {{SessionToken}}
 Accept: application/json

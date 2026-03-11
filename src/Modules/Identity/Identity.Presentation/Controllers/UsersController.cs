@@ -27,6 +27,8 @@ public sealed class UsersController(
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status403Forbidden)]
     public async Task<ActionResult<IReadOnlyList<UserListItemDto>>> List(CancellationToken cancellationToken)
     {
+        // Controller burada dogrudan query handler cagirmaz; once pipeline'a girer.
+        // Boylece validation, pre-check ve event uretimi ortak standarda baglanmis olur.
         var users = await requestExecutionPipeline.ExecuteQueryAsync(
             new ListUsersQuery(),
             _ => listUsersQueryHandler.HandleAsync(cancellationToken),
@@ -43,6 +45,8 @@ public sealed class UsersController(
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status403Forbidden)]
     public async Task<ActionResult<CreatedUserDto>> Create([FromBody] CreateUserRequest request, CancellationToken cancellationToken)
     {
+        // HTTP body'den gelen request ile pipeline request modeli ayni sey degil.
+        // Presentation katmani API contract'ini alir, sonra bunu command modeline sarar.
         var created = await requestExecutionPipeline.ExecuteCommandAsync(
             new CreateUserCommand(request),
             _ => createUserCommandHandler.HandleAsync(request, cancellationToken),
@@ -76,6 +80,7 @@ public sealed class UsersController(
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
     public async Task<IActionResult> Deactivate(int userId, CancellationToken cancellationToken)
     {
+        // Response body'si olmayan mutating endpoint'lerde 204 secimi operasyonun tamamlandigini ama yeni temsil donmedigini anlatir.
         await requestExecutionPipeline.ExecuteCommandAsync(
             new DeactivateUserCommand(userId),
             _ => deactivateUserCommandHandler.HandleAsync(userId, cancellationToken),
