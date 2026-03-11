@@ -16,6 +16,9 @@ public sealed class GlobalExceptionHandler(
 {
     public async ValueTask<bool> TryHandleAsync(HttpContext httpContext, Exception exception, CancellationToken cancellationToken)
     {
+        // Hata yonetimi burada iki cikti uretir:
+        // 1. istemciye standard ProblemDetails
+        // 2. observability omurgasina standard OperationalEvent
         var (statusCode, title, detail, errorCode, errors) = MapException(exception, hostEnvironment.IsDevelopment(), localizer);
 
         if (statusCode >= StatusCodes.Status500InternalServerError)
@@ -74,6 +77,7 @@ public sealed class GlobalExceptionHandler(
             }
         };
 
+        // Exception mantigi da artik loga dogrudan yazmak yerine event backbone'a akitiliyor.
         await operationalEventPublisher.PublishAsync(operationalEvent, cancellationToken);
 
         httpContext.Response.StatusCode = statusCode;
@@ -109,6 +113,8 @@ public sealed class GlobalExceptionHandler(
     {
         if (exception is AppException appException)
         {
+            // AppException hiyerarsisi uygulamanin "beklenen hata" dilidir.
+            // Status code, error code ve optional validation errors bu katmanda tasinir.
             var title = appException.StatusCode switch
             {
                 StatusCodes.Status400BadRequest => localizer.Get("validation_title"),
@@ -141,6 +147,8 @@ public sealed class GlobalExceptionHandler(
 
     private static string ResolveLocalizedDetail(string errorCode, IApiTextLocalizer localizer)
     {
+        // Error code varsa dogrudan ona ait localization anahtari aranir.
+        // Yoksa genel uygulama hatasi detayina dusulur.
         var localizedByCode = localizer.Get(errorCode);
         return string.Equals(localizedByCode, errorCode, StringComparison.Ordinal)
             ? localizer.Get("app_error_detail")

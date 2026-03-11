@@ -16,6 +16,8 @@ public sealed class OperationalEventPublisher(
 
     public async Task PublishAsync(OperationalEvent operationalEvent, CancellationToken cancellationToken = default)
     {
+        // Publisher'in ana isi event'i "nereye gidecek?" sorusuna gore route etmektir.
+        // Handler veya middleware bununla ilgilenmez; sadece event uretir.
         var route = ResolveRoute(operationalEvent);
         if (route is null)
         {
@@ -53,6 +55,8 @@ public sealed class OperationalEventPublisher(
 
     private OperationalEventRouteOptions? ResolveRoute(OperationalEvent operationalEvent)
     {
+        // Route'lar ozelden genele dogru uygulanir.
+        // En sonda '*' varsa fallback route gibi davranir.
         var routes = routingOptions.Value.Routes
             .OrderBy(x => string.Equals(x.EventName, "*", StringComparison.OrdinalIgnoreCase) ? 1 : 0)
             .ToList();
@@ -197,6 +201,8 @@ public sealed class OperationalEventPublisher(
             builder.AppendLine(JsonSerializer.Serialize(operationalEvent.Properties));
         }
 
+        // Notification konusu logdan farklidir.
+        // Burada amac tum payload'i dump etmek degil, olayi hizli anlasilir hale getirmektir.
         return new NotificationMessage
         {
             EventName = operationalEvent.EventName,

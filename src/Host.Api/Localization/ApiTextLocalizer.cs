@@ -13,11 +13,15 @@ public sealed class ApiTextLocalizer(IHostEnvironment hostEnvironment) : IApiTex
         var language = CultureInfo.CurrentUICulture.Name;
         var resources = _resources.Value;
 
+        // Ilk tercih tam culture adidir.
+        // Ornek: tr-TR, en-US, de-DE.
         if (resources.TryGetValue(language, out var cultureTexts) && cultureTexts.TryGetValue(key, out var exactValue))
         {
             return exactValue;
         }
 
+        // Tam eslesme yoksa neutral language fallback uygulanir.
+        // Ornek: sadece "en" geldiyse en-US'e duser.
         var neutralLanguage = CultureInfo.CurrentUICulture.TwoLetterISOLanguageName;
         var fallbackCulture = neutralLanguage switch
         {
@@ -36,6 +40,7 @@ public sealed class ApiTextLocalizer(IHostEnvironment hostEnvironment) : IApiTex
             return englishValue;
         }
 
+        // Son emniyet supabi: hicbir kaynakta bulunamazsa key'in kendisini doneriz.
         return key;
     }
 
@@ -51,6 +56,8 @@ public sealed class ApiTextLocalizer(IHostEnvironment hostEnvironment) : IApiTex
 
         foreach (var filePath in Directory.GetFiles(resourcesDirectory, "*.json", SearchOption.TopDirectoryOnly))
         {
+            // Her JSON dosyasi bir culture sozlugu gibi davranir.
+            // Dosya adi culture adidir: tr-TR.json gibi.
             var cultureName = Path.GetFileNameWithoutExtension(filePath);
             var json = File.ReadAllText(filePath);
             var content = JsonSerializer.Deserialize<Dictionary<string, string>>(json)
