@@ -1,6 +1,7 @@
 using Authorization.Application.Security;
 using Identity.Application.Contracts;
-using Identity.Application.Services;
+using Identity.Application.Users.Commands;
+using Identity.Application.Users.Queries;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
@@ -9,7 +10,13 @@ namespace Identity.Presentation.Controllers;
 [ApiController]
 [Route("api/users")]
 [Authorize]
-public sealed class UsersController(IUserManagementService userManagementService) : ControllerBase
+public sealed class UsersController(
+    IListUsersQueryHandler listUsersQueryHandler,
+    ICreateUserCommandHandler createUserCommandHandler,
+    IUpdateUserCommandHandler updateUserCommandHandler,
+    IDeactivateUserCommandHandler deactivateUserCommandHandler,
+    IReactivateUserCommandHandler reactivateUserCommandHandler,
+    IDeleteUserCommandHandler deleteUserCommandHandler) : ControllerBase
 {
     [HttpGet]
     [TCodeAuthorize("SYS03", "READ")]
@@ -18,7 +25,7 @@ public sealed class UsersController(IUserManagementService userManagementService
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status403Forbidden)]
     public async Task<ActionResult<IReadOnlyList<UserListItemDto>>> List(CancellationToken cancellationToken)
     {
-        var users = await userManagementService.ListAsync(cancellationToken);
+        var users = await listUsersQueryHandler.HandleAsync(cancellationToken);
         return Ok(users);
     }
 
@@ -30,7 +37,7 @@ public sealed class UsersController(IUserManagementService userManagementService
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status403Forbidden)]
     public async Task<ActionResult<CreatedUserDto>> Create([FromBody] CreateUserRequest request, CancellationToken cancellationToken)
     {
-        var created = await userManagementService.CreateAsync(request, cancellationToken);
+        var created = await createUserCommandHandler.HandleAsync(request, cancellationToken);
         return Created($"/api/users/{created.Id}", created);
     }
 
@@ -43,7 +50,7 @@ public sealed class UsersController(IUserManagementService userManagementService
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
     public async Task<ActionResult<UserListItemDto>> Update(int userId, [FromBody] UpdateUserRequest request, CancellationToken cancellationToken)
     {
-        var updated = await userManagementService.UpdateAsync(userId, request, cancellationToken);
+        var updated = await updateUserCommandHandler.HandleAsync(userId, request, cancellationToken);
         return Ok(updated);
     }
 
@@ -55,7 +62,7 @@ public sealed class UsersController(IUserManagementService userManagementService
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
     public async Task<IActionResult> Deactivate(int userId, CancellationToken cancellationToken)
     {
-        await userManagementService.DeactivateAsync(userId, cancellationToken);
+        await deactivateUserCommandHandler.HandleAsync(userId, cancellationToken);
         return NoContent();
     }
 
@@ -67,7 +74,7 @@ public sealed class UsersController(IUserManagementService userManagementService
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
     public async Task<IActionResult> Reactivate(int userId, CancellationToken cancellationToken)
     {
-        await userManagementService.ReactivateAsync(userId, cancellationToken);
+        await reactivateUserCommandHandler.HandleAsync(userId, cancellationToken);
         return NoContent();
     }
 
@@ -79,7 +86,7 @@ public sealed class UsersController(IUserManagementService userManagementService
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
     public async Task<IActionResult> Delete(int userId, CancellationToken cancellationToken)
     {
-        await userManagementService.DeleteAsync(userId, cancellationToken);
+        await deleteUserCommandHandler.HandleAsync(userId, cancellationToken);
         return NoContent();
     }
 }
