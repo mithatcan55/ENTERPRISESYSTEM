@@ -1,0 +1,32 @@
+flowchart LR
+    HostApi[Host.Api]
+
+    subgraph BuildingBlocks
+      SharedKernel[SharedKernel]
+      Application[Application]
+      Infrastructure[Infrastructure]
+    end
+
+    subgraph IdentityModule
+      IdentityDomain[Identity.Domain]
+      IdentityApplication[Identity.Application]
+      IdentityInfrastructure[Identity.Infrastructure]
+      IdentityPresentation[Identity.Presentation]
+    end
+
+    HostApi --> Infrastructure
+    HostApi --> IdentityInfrastructure
+    HostApi --> IdentityPresentation
+
+    Infrastructure --> Application
+    Infrastructure --> SharedKernel
+
+    IdentityInfrastructure --> IdentityApplication
+    IdentityInfrastructure --> IdentityDomain
+    IdentityInfrastructure --> Infrastructure
+
+    IdentityApplication --> IdentityDomain
+    IdentityApplication --> Application
+    IdentityApplication --> SharedKernel
+
+    IdentityPresentation --> IdentityApplication

@@ -1,0 +1,7 @@
+namespace {{ModuleName}}.Application.Contracts;
+
+public sealed record {{ModuleName}}ListItemDto(
+    int Id,
+    string Code,
+    int CompanyId,
+    string Status);

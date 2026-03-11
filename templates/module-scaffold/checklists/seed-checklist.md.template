@@ -1,0 +1,41 @@
+# Seed Checklist — {{ModuleName}}
+
+Bu dosya migration öncesi "yetki kimliği" kontrol listesidir.
+
+## A) Kimlik Tanımı
+
+- [ ] Module kaydı eklendi (`Code={{MODULE_CODE}}`)
+- [ ] SubModule kaydı eklendi (`Code={{SUBMODULE_CODE}}`)
+- [ ] SubModulePage kaydı eklendi (`Code={{PAGE_CODE}}`)
+- [ ] TransactionCode tanımlandı (`{{TCODE_PREFIX}}01`)
+- [ ] RouteLink doğrulandı (`/{{module-route}}`)
+
+## B) Yetki Matris Başlangıcı
+
+- [ ] UserModulePermission seed planlandı
+- [ ] UserSubModulePermission seed planlandı
+- [ ] UserPagePermission seed planlandı
+- [ ] UserCompanyPermission seed planlandı
+
+Opsiyonel:
+- [ ] UserPageActionPermission ihtiyacı değerlendirildi
+- [ ] UserPageConditionPermission ihtiyacı değerlendirildi
+
+## C) İşletim Kontrolü
+
+- [ ] T-Code resolve endpoint test edildi (`GET /api/tcode/{{TCODE_PREFIX}}01`)
+- [ ] Denied senaryosu test edildi
+- [ ] Allowed senaryosu test edildi
+
+## D) Frontend Entegrasyon Kontrolü
+
+- [ ] FE ekip contract stub dosyasını aldı
+- [ ] Ekran açılışında T-Code resolve çağrısı bağlandı
+- [ ] `actions` sonucu butonlara uygulandı
+- [ ] `conditions` sonucu alan davranışına uygulandı
+
+## E) Teslim Kontrolü
+
+- [ ] Build başarılı
+- [ ] Dokümantasyon güncellendi
+- [ ] Commit mesajı yazıldı

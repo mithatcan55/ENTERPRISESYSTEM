@@ -1,0 +1,12 @@
+using Microsoft.Extensions.DependencyInjection;
+
+namespace {{ModuleName}}.Presentation.DependencyInjection;
+
+public static class {{ModuleName}}PresentationServiceCollectionExtensions
+{
+    public static IServiceCollection Add{{ModuleName}}PresentationModule(this IServiceCollection services)
+    {
+        services.AddScoped<I{{ModuleName}}AppService, {{ModuleName}}AppService>();
+        return services;
+    }
+}

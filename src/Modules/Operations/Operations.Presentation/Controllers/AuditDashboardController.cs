@@ -1,0 +1,22 @@
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
+using Operations.Application.Contracts;
+using Operations.Application.Services;
+
+namespace Operations.Presentation.Controllers;
+
+[ApiController]
+[Route("api/ops/audit/dashboard")]
+[Authorize(Roles = "SYS_ADMIN,SYS_OPERATOR")]
+public sealed class AuditDashboardController(IAuditDashboardService auditDashboardService) : ControllerBase
+{
+    [HttpGet("summary")]
+    [ProducesResponseType(typeof(AuditDashboardSummaryDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status403Forbidden)]
+    public async Task<ActionResult<AuditDashboardSummaryDto>> Summary([FromQuery] int windowHours = 24, CancellationToken cancellationToken = default)
+    {
+        var result = await auditDashboardService.GetSummaryAsync(windowHours, cancellationToken);
+        return Ok(result);
+    }
+}

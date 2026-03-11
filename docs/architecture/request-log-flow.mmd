@@ -1,0 +1,30 @@
+flowchart TD
+    Client[Client]
+    Api[Host.Api]
+    Corr[CorrelationIdMiddleware]
+    SerilogReq[UseSerilogRequestLogging]
+    ReqLife[RequestLifecycleLoggingMiddleware]
+    Controller[TCodeController]
+    UserCtx[CurrentUserContext]
+    ContextMap[Context Values Map\nquery + claim + amount]
+    Authz[TCodeAuthorizationService]
+    BusinessDb[(BusinessDb)]
+    LogDb[(LogDb)]
+    FileLog[(logs/*.txt)]
+
+    Client --> Api
+    Api --> Corr
+    Corr --> SerilogReq
+    SerilogReq --> ReqLife
+    ReqLife --> Controller
+    Controller --> UserCtx
+    Controller --> ContextMap
+    ContextMap --> Authz
+    Authz --> BusinessDb
+    Authz --> LogDb
+    Controller --> BusinessDb
+    ReqLife --> LogDb
+    SerilogReq --> FileLog
+    Controller --> ReqLife
+    ReqLife --> Client
+

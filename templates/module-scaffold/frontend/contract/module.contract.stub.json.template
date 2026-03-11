@@ -1,0 +1,35 @@
+{
+  "module": "{{ModuleName}}",
+  "version": "1.0.0",
+  "tcode": {
+    "openPage": "{{TCODE_PREFIX}}01",
+    "create": "{{TCODE_PREFIX}}02",
+    "update": "{{TCODE_PREFIX}}03",
+    "report": "{{TCODE_PREFIX}}04"
+  },
+  "resolveEndpoint": "/api/tcode/{transactionCode}",
+  "pageInitFlow": [
+    "Call resolveEndpoint with openPage T-Code",
+    "If isAllowed=false then block page and show denied reason",
+    "Map actions to button visibility/enabled state",
+    "Map conditions to field visibility/filter rules",
+    "Then call module data endpoint"
+  ],
+  "api": {
+    "list": {
+      "method": "GET",
+      "path": "/api/{{module-route}}/items",
+      "query": ["companyId"],
+      "responseItem": {
+        "id": "number",
+        "code": "string",
+        "companyId": "number",
+        "status": "string"
+      }
+    }
+  },
+  "errorContract": {
+    "type": "problem-details",
+    "fields": ["status", "title", "detail", "errorCode", "correlationId", "errors"]
+  }
+}

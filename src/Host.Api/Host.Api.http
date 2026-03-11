@@ -1,0 +1,153 @@
+@Host.Api_HostAddress = http://localhost:5279
+@SessionToken = REPLACE_WITH_SESSION_KEY
+
+### Health
+GET {{Host.Api_HostAddress}}/health
+Accept: application/json
+
+### Login (AllowAnonymous)
+POST {{Host.Api_HostAddress}}/api/auth/login
+Content-Type: application/json
+
+{
+	"identifier": "SYSADMIN",
+	"password": "ChangeMe!123"
+}
+
+### Password policy snapshot (SYS_ADMIN)
+GET {{Host.Api_HostAddress}}/api/ops/security/password-policy
+Authorization: Bearer {{SessionToken}}
+Accept: application/json
+
+### Password policy preview simulation (SYS_ADMIN)
+PUT {{Host.Api_HostAddress}}/api/ops/security/password-policy
+Authorization: Bearer {{SessionToken}}
+Content-Type: application/json
+
+{
+	"minLength": 12,
+	"requireUppercase": true,
+	"requireLowercase": true,
+	"requireDigit": true,
+	"requireSpecialCharacter": true,
+	"historyCount": 6,
+	"minimumPasswordAgeMinutes": 10,
+	"samples": [
+		{
+			"password": "password",
+			"username": "sysadmin",
+			"email": "sysadmin@enterprise.local"
+		},
+		{
+			"password": "Strong#Pass123",
+			"username": "sysadmin",
+			"email": "sysadmin@enterprise.local"
+		}
+	]
+}
+
+### Sessions list
+GET {{Host.Api_HostAddress}}/api/sessions?onlyActive=true
+Authorization: Bearer {{SessionToken}}
+Accept: application/json
+
+### User list (T-Code protected: SYS03)
+GET {{Host.Api_HostAddress}}/api/users
+Authorization: Bearer {{SessionToken}}
+Accept: application/json
+
+### Assign/Upsert user action permission (SYS_ADMIN)
+POST {{Host.Api_HostAddress}}/api/permissions/actions
+Authorization: Bearer {{SessionToken}}
+Content-Type: application/json
+
+{
+	"userId": 1,
+	"transactionCode": "SYS03",
+	"actionCode": "USER_LIST_EXPORT",
+	"isAllowed": true
+}
+
+### List user action permissions (SYS_ADMIN)
+GET {{Host.Api_HostAddress}}/api/permissions/actions?userId=1&transactionCode=SYS03
+Authorization: Bearer {{SessionToken}}
+Accept: application/json
+
+### T-Code resolve simulation
+GET {{Host.Api_HostAddress}}/api/tcode/SYS03?userId=1&companyId=1&amount=500
+Authorization: Bearer {{SessionToken}}
+Accept: application/json
+
+### Audit dashboard summary
+GET {{Host.Api_HostAddress}}/api/ops/audit/dashboard/summary?windowHours=24
+Authorization: Bearer {{SessionToken}}
+Accept: application/json
+
+### Outbox queue mail
+POST {{Host.Api_HostAddress}}/api/ops/outbox/mail
+Authorization: Bearer {{SessionToken}}
+Content-Type: application/json
+
+{
+	"to": "admin@enterprise.local",
+	"subject": "Kullanıcı oluşturuldu",
+	"body": "Yeni kullanıcı başarıyla oluşturuldu."
+}
+
+### Outbox messages monitoring
+GET {{Host.Api_HostAddress}}/api/ops/outbox/messages?page=1&pageSize=20&status=Pending
+Authorization: Bearer {{SessionToken}}
+Accept: application/json
+
+### Outbox queue excel report
+POST {{Host.Api_HostAddress}}/api/ops/outbox/excel
+Authorization: Bearer {{SessionToken}}
+Content-Type: application/json
+
+{
+	"reportName": "kullanici-ozet",
+	"headers": ["UserCode", "Username", "Email"],
+	"rows": [
+		["SYS001", "sysadmin", "sysadmin@enterprise.local"],
+		["USR001", "operator", "operator@enterprise.local"]
+	],
+	"notifyEmail": "admin@enterprise.local"
+}
+
+### NEGATIVE - Unauthorized snapshot (expected 401)
+GET {{Host.Api_HostAddress}}/api/ops/security/password-policy
+Accept: application/json
+
+### NEGATIVE - Forbidden snapshot with non-admin token (expected 403)
+GET {{Host.Api_HostAddress}}/api/ops/security/password-policy
+Authorization: Bearer REPLACE_WITH_NON_ADMIN_TOKEN
+Accept: application/json
+
+### NEGATIVE - Invalid policy preview config (expected 200 with IsValidConfiguration=false)
+PUT {{Host.Api_HostAddress}}/api/ops/security/password-policy
+Authorization: Bearer {{SessionToken}}
+Content-Type: application/json
+
+{
+	"minLength": 4,
+	"requireUppercase": false,
+	"requireLowercase": false,
+	"requireDigit": false,
+	"requireSpecialCharacter": false,
+	"historyCount": 0,
+	"minimumPasswordAgeMinutes": 2000,
+	"samples": [
+		{
+			"password": "123",
+			"username": "sysadmin",
+			"email": "sysadmin@enterprise.local"
+		}
+	]
+}
+
+### NEGATIVE - TCode resolve bad request (missing userId/companyId, expected 400)
+GET {{Host.Api_HostAddress}}/api/tcode/SYS03
+Authorization: Bearer {{SessionToken}}
+Accept: application/json
+
+###

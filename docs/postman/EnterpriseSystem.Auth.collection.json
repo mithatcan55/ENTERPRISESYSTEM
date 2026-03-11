@@ -1,0 +1,161 @@
+{
+  "info": {
+    "_postman_id": "f6f6b87d-5ef8-4f4f-9f17-932f8c67a9e1",
+    "name": "EnterpriseSystem Auth + Identity API",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Health",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": { "raw": "{{baseUrl}}/health", "host": ["{{baseUrl}}"], "path": ["health"] }
+      }
+    },
+    {
+      "name": "Auth/Login",
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "Accept-Language", "value": "tr-TR" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"identifier\": \"CORE_ADMIN\",\n  \"password\": \"CoreAdmin@12345\"\n}"
+        },
+        "url": { "raw": "{{baseUrl}}/api/auth/login", "host": ["{{baseUrl}}"], "path": ["api", "auth", "login"] }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('status is 200', function () { pm.response.to.have.status(200); });",
+              "var json = pm.response.json();",
+              "pm.environment.set('accessToken', json.accessToken);",
+              "pm.environment.set('refreshToken', json.refreshToken);",
+              "pm.environment.set('userId', json.userId);"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Auth/Refresh",
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "Accept-Language", "value": "en-US" }
+        ],
+        "body": { "mode": "raw", "raw": "{\n  \"refreshToken\": \"{{refreshToken}}\"\n}" },
+        "url": { "raw": "{{baseUrl}}/api/auth/refresh", "host": ["{{baseUrl}}"], "path": ["api", "auth", "refresh"] }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('status is 200', function () { pm.response.to.have.status(200); });",
+              "var json = pm.response.json();",
+              "pm.environment.set('accessToken', json.accessToken);",
+              "pm.environment.set('refreshToken', json.refreshToken);"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Users/List",
+      "request": {
+        "method": "GET",
+        "header": [
+          { "key": "Authorization", "value": "Bearer {{accessToken}}" },
+          { "key": "Accept-Language", "value": "de-DE" }
+        ],
+        "url": { "raw": "{{baseUrl}}/api/users", "host": ["{{baseUrl}}"], "path": ["api", "users"] }
+      }
+    },
+    {
+      "name": "Users/Create",
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Authorization", "value": "Bearer {{accessToken}}" },
+          { "key": "Content-Type", "value": "application/json" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"userCode\": \"USR998\",\n  \"username\": \"user.998\",\n  \"email\": \"user.998@local\",\n  \"password\": \"User998@Password1\",\n  \"companyId\": 1,\n  \"notifyAdminByMail\": false\n}"
+        },
+        "url": { "raw": "{{baseUrl}}/api/users", "host": ["{{baseUrl}}"], "path": ["api", "users"] }
+      }
+    },
+    {
+      "name": "Users/Update",
+      "request": {
+        "method": "PUT",
+        "header": [
+          { "key": "Authorization", "value": "Bearer {{accessToken}}" },
+          { "key": "Content-Type", "value": "application/json" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"username\": \"core.admin.updated\",\n  \"email\": \"core.admin.updated@local\",\n  \"isActive\": true\n}"
+        },
+        "url": { "raw": "{{baseUrl}}/api/users/{{userId}}", "host": ["{{baseUrl}}"], "path": ["api", "users", "{{userId}}"] }
+      }
+    },
+    {
+      "name": "Roles/Create",
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Authorization", "value": "Bearer {{accessToken}}" },
+          { "key": "Content-Type", "value": "application/json" }
+        ],
+        "body": { "mode": "raw", "raw": "{\n  \"code\": \"OPS_AUDIT\",\n  \"name\": \"Operations Audit\",\n  \"description\": \"Audit role\"\n}" },
+        "url": { "raw": "{{baseUrl}}/api/roles", "host": ["{{baseUrl}}"], "path": ["api", "roles"] }
+      }
+    },
+    {
+      "name": "Roles/Assign",
+      "request": {
+        "method": "POST",
+        "header": [ { "key": "Authorization", "value": "Bearer {{accessToken}}" } ],
+        "url": { "raw": "{{baseUrl}}/api/roles/{{roleId}}/assign/{{userId}}", "host": ["{{baseUrl}}"], "path": ["api", "roles", "{{roleId}}", "assign", "{{userId}}"] }
+      }
+    },
+    {
+      "name": "Permissions/Upsert",
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Authorization", "value": "Bearer {{accessToken}}" },
+          { "key": "Content-Type", "value": "application/json" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"userId\": {{userId}},\n  \"transactionCode\": \"SYS03\",\n  \"actionCode\": \"USER_LIST_EXPORT\",\n  \"isAllowed\": true\n}"
+        },
+        "url": { "raw": "{{baseUrl}}/api/permissions/actions", "host": ["{{baseUrl}}"], "path": ["api", "permissions", "actions"] }
+      }
+    },
+    {
+      "name": "Localization Check (invalid refresh token)",
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "Accept-Language", "value": "de-DE" }
+        ],
+        "body": { "mode": "raw", "raw": "{\n  \"refreshToken\": \"invalid-token\"\n}" },
+        "url": { "raw": "{{baseUrl}}/api/auth/refresh", "host": ["{{baseUrl}}"], "path": ["api", "auth", "refresh"] }
+      }
+    }
+  ]
+}
