@@ -1,13 +1,12 @@
 using Application.Security;
 using Authorization.Application.Security;
-using Infrastructure.Persistence;
+using Authorization.Application.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
-using Microsoft.EntityFrameworkCore;
 
 namespace Authorization.Infrastructure.Security;
 
-public sealed class PermissionAuthorizationHandler(AuthorizationDbContext authorizationDbContext)
+public sealed class PermissionAuthorizationHandler(IPermissionAuthorizationService permissionAuthorizationService)
     : AuthorizationHandler<PermissionRequirement>
 {
     protected override async Task HandleRequirementAsync(AuthorizationHandlerContext context, PermissionRequirement requirement)
@@ -26,27 +25,10 @@ public sealed class PermissionAuthorizationHandler(AuthorizationDbContext author
         }
 
         var cancellationToken = (context.Resource as HttpContext)?.RequestAborted ?? CancellationToken.None;
-        var normalizedPermission = requirement.PermissionCode.Trim().ToUpperInvariant();
-
-        var hasPermissionClaim = context.User.Claims
-            .Where(x => string.Equals(x.Type, SecurityClaimTypes.Permission, StringComparison.OrdinalIgnoreCase))
-            .Select(x => x.Value)
-            .Any(x => string.Equals(x, normalizedPermission, StringComparison.OrdinalIgnoreCase));
-
-        if (hasPermissionClaim)
-        {
-            context.Succeed(requirement);
-            return;
-        }
-
-        var isAllowed = await authorizationDbContext.UserPageActionPermissions
-            .AsNoTracking()
-            .AnyAsync(
-                x => x.UserId == userId
-                     && !x.IsDeleted
-                     && x.IsAllowed
-                     && x.ActionCode == normalizedPermission,
-                cancellationToken);
+        var isAllowed = await permissionAuthorizationService.IsAllowedAsync(
+            requirement.PermissionCode,
+            userId,
+            cancellationToken);
 
         if (isAllowed)
         {

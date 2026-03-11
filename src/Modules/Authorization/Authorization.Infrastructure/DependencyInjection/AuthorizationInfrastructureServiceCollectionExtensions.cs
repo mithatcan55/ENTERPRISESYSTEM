@@ -12,6 +12,7 @@ public static class AuthorizationInfrastructureServiceCollectionExtensions
     public static IServiceCollection AddAuthorizationInfrastructureModule(this IServiceCollection services)
     {
         services.AddScoped<ITCodeAuthorizationService, TCodeAuthorizationService>();
+        services.AddScoped<IPermissionAuthorizationService, PermissionAuthorizationService>();
         services.AddSingleton<IAuthorizationPolicyProvider, TCodeAuthorizationPolicyProvider>();
         services.AddScoped<IAuthorizationHandler, TCodeAuthorizationHandler>();
         services.AddScoped<IAuthorizationHandler, PermissionAuthorizationHandler>();

@@ -6,6 +6,7 @@ using Identity.Application.Roles.Queries;
 using Identity.Application.Users.Commands;
 using Identity.Application.Users.Queries;
 using Identity.Infrastructure.Permissions.Commands;
+using Identity.Infrastructure.Permissions.PreChecks;
 using Identity.Infrastructure.Permissions.Queries;
 using Identity.Infrastructure.Roles.Commands;
 using Identity.Infrastructure.Roles.Queries;
@@ -48,6 +49,9 @@ public static class IdentityInfrastructureServiceCollectionExtensions
         services.AddScoped<IRequestPreCheck<DeactivateUserCommand>, TCodeProtectedRequestPreCheck<DeactivateUserCommand>>();
         services.AddScoped<IRequestPreCheck<ReactivateUserCommand>, TCodeProtectedRequestPreCheck<ReactivateUserCommand>>();
         services.AddScoped<IRequestPreCheck<DeleteUserCommand>, TCodeProtectedRequestPreCheck<DeleteUserCommand>>();
+        services.AddScoped<IRequestPreCheck<ListUserActionPermissionsQuery>, PermissionProtectedRequestPreCheck<ListUserActionPermissionsQuery>>();
+        services.AddScoped<IRequestPreCheck<UpsertUserActionPermissionCommand>, PermissionProtectedRequestPreCheck<UpsertUserActionPermissionCommand>>();
+        services.AddScoped<IRequestPreCheck<DeleteUserActionPermissionCommand>, PermissionProtectedRequestPreCheck<DeleteUserActionPermissionCommand>>();
         services.AddScoped<IPasswordPolicyService, PasswordPolicyService>();
 
         return services;

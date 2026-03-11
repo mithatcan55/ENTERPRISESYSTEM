@@ -76,6 +76,7 @@ Ornek kullanimlar:
 - "bu request yalnizca SYS_ADMIN tarafindan calisabilir"
 - "company context olmadan bu command calisamaz"
 - "T-Code kontrolu command seviyesinde de yapilsin"
+- "permission kontrolu command seviyesinde de yapilsin"
 
 Bu turda sonuncusunun ilk gercek ornegi eklendi:
 
@@ -83,6 +84,12 @@ Bu turda sonuncusunun ilk gercek ornegi eklendi:
 
 Bu sinif `Users` command/query request'lerini pipeline icinde tekrar T-Code kontrolunden gecirir.
 Yani sadece controller attribute'una guvenilmez.
+
+Ayni mantik permission tarafi icin de acildi:
+
+- `PermissionProtectedRequestPreCheck<TRequest>`
+
+Bu sinif da request'in tasidigi `PermissionCode` bilgisini kontrol eder.
 
 ### 4.4 `IAdminOnlyRequest`
 
@@ -241,6 +248,14 @@ Cevap:
 Controller attribute birinci savunma hattidir.
 Pipeline pre-check ikinci savunma hattidir.
 Bu sayede ileride ayni command farkli bir giris noktasindan da calisirsa yetki mantigi korunur.
+
+### Soru: Permission icin neden ayri bir pre-check var?
+
+Cevap:
+Cunku T-Code ile permission ayni sey degildir.
+T-Code daha cok ekran/aksiyon erisimi,
+permission ise daha serbest operasyon kodu mantigidir.
+Ikisini ayni interface'e zorlamak yerine iki ayri marker ile yonettik.
 
 ### Soru: Handler icindeki tum validation'lar kaldirilacak mi?
 
