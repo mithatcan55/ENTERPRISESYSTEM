@@ -1,5 +1,6 @@
 using Identity.Application.Contracts;
-using Identity.Application.Services;
+using Identity.Application.Roles.Commands;
+using Identity.Application.Roles.Queries;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
@@ -8,7 +9,13 @@ namespace Identity.Presentation.Controllers;
 [ApiController]
 [Route("api/roles")]
 [Authorize(Roles = "SYS_ADMIN")]
-public sealed class RolesController(IRoleManagementService roleManagementService) : ControllerBase
+public sealed class RolesController(
+    IListRolesQueryHandler listRolesQueryHandler,
+    ICreateRoleCommandHandler createRoleCommandHandler,
+    IAssignRoleCommandHandler assignRoleCommandHandler,
+    IUnassignRoleCommandHandler unassignRoleCommandHandler,
+    IListUserRolesQueryHandler listUserRolesQueryHandler,
+    IDeleteRoleCommandHandler deleteRoleCommandHandler) : ControllerBase
 {
     [HttpGet]
     [ProducesResponseType(typeof(IReadOnlyList<RoleListItemDto>), StatusCodes.Status200OK)]
@@ -16,7 +23,7 @@ public sealed class RolesController(IRoleManagementService roleManagementService
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status403Forbidden)]
     public async Task<ActionResult<IReadOnlyList<RoleListItemDto>>> List(CancellationToken cancellationToken)
     {
-        var roles = await roleManagementService.ListRolesAsync(cancellationToken);
+        var roles = await listRolesQueryHandler.HandleAsync(cancellationToken);
         return Ok(roles);
     }
 
@@ -27,7 +34,7 @@ public sealed class RolesController(IRoleManagementService roleManagementService
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status403Forbidden)]
     public async Task<ActionResult<RoleListItemDto>> Create([FromBody] CreateRoleRequest request, CancellationToken cancellationToken)
     {
-        var role = await roleManagementService.CreateRoleAsync(request, cancellationToken);
+        var role = await createRoleCommandHandler.HandleAsync(request, cancellationToken);
         return Created($"/api/roles/{role.Id}", role);
     }
 
@@ -38,7 +45,7 @@ public sealed class RolesController(IRoleManagementService roleManagementService
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
     public async Task<IActionResult> Assign(int roleId, int userId, CancellationToken cancellationToken)
     {
-        await roleManagementService.AssignRoleAsync(userId, roleId, cancellationToken);
+        await assignRoleCommandHandler.HandleAsync(userId, roleId, cancellationToken);
         return NoContent();
     }
 
@@ -49,7 +56,7 @@ public sealed class RolesController(IRoleManagementService roleManagementService
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
     public async Task<IActionResult> Unassign(int roleId, int userId, CancellationToken cancellationToken)
     {
-        await roleManagementService.UnassignRoleAsync(userId, roleId, cancellationToken);
+        await unassignRoleCommandHandler.HandleAsync(userId, roleId, cancellationToken);
         return NoContent();
     }
 
@@ -59,7 +66,7 @@ public sealed class RolesController(IRoleManagementService roleManagementService
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status403Forbidden)]
     public async Task<ActionResult<IReadOnlyList<UserRoleItemDto>>> ListUserRoles(int userId, CancellationToken cancellationToken)
     {
-        var roles = await roleManagementService.ListUserRolesAsync(userId, cancellationToken);
+        var roles = await listUserRolesQueryHandler.HandleAsync(userId, cancellationToken);
         return Ok(roles);
     }
 
@@ -70,7 +77,7 @@ public sealed class RolesController(IRoleManagementService roleManagementService
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
     public async Task<IActionResult> DeleteRole(int roleId, CancellationToken cancellationToken)
     {
-        await roleManagementService.DeleteRoleAsync(roleId, cancellationToken);
+        await deleteRoleCommandHandler.HandleAsync(roleId, cancellationToken);
         return NoContent();
     }
 }

@@ -1,6 +1,10 @@
 using Identity.Application.Services;
+using Identity.Application.Roles.Commands;
+using Identity.Application.Roles.Queries;
 using Identity.Application.Users.Commands;
 using Identity.Application.Users.Queries;
+using Identity.Infrastructure.Roles.Commands;
+using Identity.Infrastructure.Roles.Queries;
 using Identity.Infrastructure.Services;
 using Identity.Infrastructure.Users.Commands;
 using Identity.Infrastructure.Users.Queries;
@@ -19,7 +23,12 @@ public static class IdentityInfrastructureServiceCollectionExtensions
         services.AddScoped<IDeactivateUserCommandHandler, DeactivateUserCommandHandler>();
         services.AddScoped<IReactivateUserCommandHandler, ReactivateUserCommandHandler>();
         services.AddScoped<IDeleteUserCommandHandler, DeleteUserCommandHandler>();
-        services.AddScoped<IRoleManagementService, RoleManagementService>();
+        services.AddScoped<IListRolesQueryHandler, ListRolesQueryHandler>();
+        services.AddScoped<IListUserRolesQueryHandler, ListUserRolesQueryHandler>();
+        services.AddScoped<ICreateRoleCommandHandler, CreateRoleCommandHandler>();
+        services.AddScoped<IAssignRoleCommandHandler, AssignRoleCommandHandler>();
+        services.AddScoped<IUnassignRoleCommandHandler, UnassignRoleCommandHandler>();
+        services.AddScoped<IDeleteRoleCommandHandler, DeleteRoleCommandHandler>();
         services.AddScoped<IUserPermissionService, UserPermissionService>();
         services.AddScoped<IPasswordPolicyService, PasswordPolicyService>();
 
