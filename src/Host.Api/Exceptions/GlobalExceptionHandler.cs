@@ -1,8 +1,7 @@
 using Host.Api.Localization;
 using Host.Api.Middleware;
 using Application.Exceptions;
-using Infrastructure.Observability;
-using Infrastructure.Persistence.Entities;
+using Application.Observability;
 using Microsoft.AspNetCore.Diagnostics;
 using Microsoft.AspNetCore.Mvc;
 
@@ -10,7 +9,7 @@ namespace Host.Api.Exceptions;
 
 public sealed class GlobalExceptionHandler(
     ILogger<GlobalExceptionHandler> logger,
-    ILogEventWriter logEventWriter,
+    IOperationalEventPublisher operationalEventPublisher,
     IProblemDetailsService problemDetailsService,
     IHostEnvironment hostEnvironment,
     IApiTextLocalizer localizer) : IExceptionHandler
@@ -45,36 +44,37 @@ public sealed class GlobalExceptionHandler(
                        ?? principal?.Identity?.Name
                        ?? actorIdentity;
 
-        var systemLog = new SystemLog
+        var operationalEvent = new OperationalEvent
         {
-            Timestamp = DateTimeOffset.UtcNow,
-            TimeZone = TimeZoneInfo.Local.Id,
-            Level = statusCode >= 500 ? "Error" : "Warning",
+            EventName = statusCode >= 500 ? "UnhandledExceptionOccurred" : "HandledApplicationException",
+            Severity = statusCode >= 500 ? "Error" : "Warning",
             Category = statusCode >= 500 ? "UnhandledException" : "HandledAppException",
             Source = nameof(GlobalExceptionHandler),
             Message = exception.Message,
-            MessageTemplate = "Exception occurred while processing HTTP request.",
-            Exception = exception.Message,
+            IsSuccessful = false,
+            FailureReason = exception.Message,
+            ExceptionMessage = exception.Message,
             StackTrace = exception.ToString(),
             UserId = actorIdentity,
             Username = username,
             IpAddress = httpContext.Connection.RemoteIpAddress?.ToString(),
             UserAgent = httpContext.Request.Headers.UserAgent.ToString(),
             CorrelationId = correlationId,
-            RequestId = httpContext.TraceIdentifier,
             HttpMethod = httpContext.Request.Method,
             HttpPath = httpContext.Request.Path,
-            QueryString = httpContext.Request.QueryString.HasValue ? httpContext.Request.QueryString.Value : null,
             HttpStatusCode = statusCode,
-            MachineName = Environment.MachineName,
-            Environment = hostEnvironment.EnvironmentName,
-            ApplicationName = hostEnvironment.ApplicationName,
-            ApplicationVersion = typeof(GlobalExceptionHandler).Assembly.GetName().Version?.ToString(),
-            ProcessId = Environment.ProcessId,
-            ThreadId = Environment.CurrentManagedThreadId
+            OperationName = $"{httpContext.Request.Method} {httpContext.Request.Path}",
+            Action = "Exception",
+            Resource = httpContext.Request.Path,
+            Properties = new Dictionary<string, object?>
+            {
+                ["errorCode"] = errorCode,
+                ["instance"] = httpContext.Request.Path,
+                ["requestId"] = httpContext.TraceIdentifier
+            }
         };
 
-        await logEventWriter.WriteSystemAsync(systemLog, cancellationToken);
+        await operationalEventPublisher.PublishAsync(operationalEvent, cancellationToken);
 
         httpContext.Response.StatusCode = statusCode;
 

@@ -2,6 +2,7 @@ using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
 using Application.Exceptions;
+using Application.Observability;
 using Identity.Application.Configuration;
 using Identity.Application.Contracts;
 using Identity.Application.Services;
@@ -16,7 +17,7 @@ namespace Identity.Infrastructure.Services;
 
 public sealed class AuthLifecycleService(
     BusinessDbContext businessDbContext,
-    ILogEventWriter logEventWriter,
+    IOperationalEventPublisher operationalEventPublisher,
     IIdentityRequestContext identityRequestContext,
     IPasswordPolicyService passwordPolicyService,
     IJwtAccessTokenService jwtAccessTokenService,
@@ -495,26 +496,29 @@ public sealed class AuthLifecycleService(
     {
         var payload = additional is null ? null : JsonSerializer.Serialize(additional);
 
-        var log = new SecurityEventLog
+        var operationalEvent = new OperationalEvent
         {
-            Timestamp = DateTimeOffset.UtcNow,
-            EventType = "AuthLifecycle",
+            EventName = isSuccessful ? "AuthLifecycleCompleted" : "AuthLifecycleFailed",
             Severity = isSuccessful ? "Information" : "Warning",
+            Category = "Authentication",
+            Source = nameof(AuthLifecycleService),
+            Message = $"{action} {(isSuccessful ? "completed" : "failed")} for {resource}",
+            IsSuccessful = isSuccessful,
+            FailureReason = failureReason,
             UserId = resource,
             Username = identityRequestContext.TryGetUsername(out var username) ? username : resource,
             IpAddress = identityRequestContext.RemoteIpAddress,
             UserAgent = identityRequestContext.UserAgent,
             Resource = resource,
             Action = action,
-            IsSuccessful = isSuccessful,
-            FailureReason = failureReason,
-            AdditionalData = JsonSerializer.Serialize(new
+            OperationName = action,
+            Properties = new Dictionary<string, object?>
             {
-                NumericUserId = numericUserId,
-                Payload = payload
-            })
+                ["numericUserId"] = numericUserId,
+                ["payload"] = payload
+            }
         };
 
-        await logEventWriter.WriteSecurityAsync(log, cancellationToken);
+        await operationalEventPublisher.PublishAsync(operationalEvent, cancellationToken);
     }
 }

@@ -1,5 +1,6 @@
 using Integrations.Application.Contracts;
 using Integrations.Application.Services;
+using Infrastructure.Observability;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
@@ -11,6 +12,7 @@ namespace Integrations.Presentation.Controllers;
 public sealed class OutboxController(IExternalOutboxService externalOutboxService) : ControllerBase
 {
     [HttpGet("messages")]
+    [OperationLog("Outbox.ListMessages", "Outbox")]
     [ProducesResponseType(typeof(OutboxPagedResult<OutboxMessageListItemDto>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status401Unauthorized)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status403Forbidden)]
@@ -21,6 +23,7 @@ public sealed class OutboxController(IExternalOutboxService externalOutboxServic
     }
 
     [HttpPost("mail")]
+    [OperationLog("Outbox.QueueMail", "Outbox")]
     [ProducesResponseType(typeof(OutboxMessageQueuedDto), StatusCodes.Status202Accepted)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status401Unauthorized)]
@@ -32,6 +35,7 @@ public sealed class OutboxController(IExternalOutboxService externalOutboxServic
     }
 
     [HttpPost("excel")]
+    [OperationLog("Outbox.QueueExcel", "Outbox")]
     [ProducesResponseType(typeof(OutboxMessageQueuedDto), StatusCodes.Status202Accepted)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status401Unauthorized)]

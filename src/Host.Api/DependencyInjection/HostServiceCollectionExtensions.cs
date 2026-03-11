@@ -8,6 +8,7 @@ using Host.Api.Observability;
 using Host.Api.Security;
 using Host.Api.Services;
 using Identity.Application.Configuration;
+using Infrastructure.Observability;
 using Infrastructure.Persistence;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
@@ -33,6 +34,7 @@ public static class HostServiceCollectionExtensions
         services.AddHttpContextAccessor();
         services.AddSingleton<IApiTextLocalizer, ApiTextLocalizer>();
         services.AddSingleton<ISensitiveDataRedactor, SensitiveDataRedactor>();
+        services.AddScoped<OperationLoggingFilter>();
 
         services.AddOptions<SensitiveDataLoggingOptions>()
             .BindConfiguration(SensitiveDataLoggingOptions.SectionName);
@@ -184,6 +186,11 @@ public static class HostServiceCollectionExtensions
 
                 return new BadRequestObjectResult(validationProblem);
             };
+        });
+
+        services.Configure<MvcOptions>(options =>
+        {
+            options.Filters.AddService<OperationLoggingFilter>();
         });
 
         services.Scan(scan => scan

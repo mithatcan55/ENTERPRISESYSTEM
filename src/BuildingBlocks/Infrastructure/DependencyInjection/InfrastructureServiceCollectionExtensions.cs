@@ -20,8 +20,31 @@ public static class InfrastructureServiceCollectionExtensions
     public static IServiceCollection AddInfrastructurePersistence(this IServiceCollection services, IConfiguration configuration)
     {
         services.AddScoped<ILogEventWriter, LogEventWriter>();
+        services.AddScoped<Application.Observability.IOperationalEventPublisher, OperationalEventPublisher>();
+        services.AddScoped<Application.Observability.INotificationChannel, EmailNotificationChannel>();
+        services.AddScoped<Application.Observability.INotificationChannel, WebhookNotificationChannel>();
         services.AddScoped<DatabaseCommandLoggingInterceptor>();
         services.AddScoped<EntityChangeLoggingInterceptor>();
+
+        services.AddOptions<ObservabilityRoutingOptions>()
+            .BindConfiguration(ObservabilityRoutingOptions.SectionName);
+
+        services.AddOptions<WebhookNotificationOptions>()
+            .BindConfiguration(WebhookNotificationOptions.SectionName);
+
+        services.AddOptions<EmailNotificationOptions>()
+            .BindConfiguration(EmailNotificationOptions.SectionName)
+            .ValidateDataAnnotations();
+
+        services.AddHttpClient("observability-webhook", (serviceProvider, client) =>
+        {
+            var options = serviceProvider.GetRequiredService<Microsoft.Extensions.Options.IOptions<WebhookNotificationOptions>>().Value;
+            if (!string.IsNullOrWhiteSpace(options.Url))
+            {
+                client.BaseAddress = new Uri(options.Url);
+            }
+            client.Timeout = TimeSpan.FromSeconds(5);
+        });
 
         services.AddDbContext<LogDbContext>((_, options) =>
         {

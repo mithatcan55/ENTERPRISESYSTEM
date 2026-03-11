@@ -1,5 +1,6 @@
 using Identity.Application.Contracts;
 using Identity.Application.Services;
+using Infrastructure.Observability;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
@@ -14,6 +15,7 @@ public sealed class AuthController(IAuthLifecycleService authLifecycleService) :
 {
     [AllowAnonymous]
     [HttpPost("login")]
+    [OperationLog("Auth.Login", "Authentication")]
     [ProducesResponseType(typeof(LoginResponseDto), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status403Forbidden)]
@@ -25,6 +27,7 @@ public sealed class AuthController(IAuthLifecycleService authLifecycleService) :
 
     [AllowAnonymous]
     [HttpPost("refresh")]
+    [OperationLog("Auth.RefreshToken", "Authentication")]
     [ProducesResponseType(typeof(RefreshTokenResponseDto), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status403Forbidden)]
@@ -35,6 +38,7 @@ public sealed class AuthController(IAuthLifecycleService authLifecycleService) :
     }
 
     [HttpPost("change-password")]
+    [OperationLog("Auth.ChangePassword", "Authentication")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status403Forbidden)]

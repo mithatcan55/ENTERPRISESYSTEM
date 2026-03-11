@@ -1,9 +1,9 @@
 using Application.Security;
 using Authorization.Application.Contracts;
 using Authorization.Application.Services;
+using Application.Observability;
 using Infrastructure.Observability;
 using Infrastructure.Persistence;
-using Infrastructure.Persistence.Entities;
 using Microsoft.EntityFrameworkCore;
 using System.Text.Json;
 
@@ -11,7 +11,7 @@ namespace Authorization.Infrastructure.Services;
 
 public sealed class TCodeAuthorizationService(
     AuthorizationDbContext authorizationDbContext,
-    ILogEventWriter logEventWriter,
+    IOperationalEventPublisher operationalEventPublisher,
     ICurrentUserContext currentUserContext,
     IHttpContextAccessor httpContextAccessor) : ITCodeAuthorizationService
 {
@@ -353,22 +353,31 @@ public sealed class TCodeAuthorizationService(
             Conditions = result.Conditions.Select(x => new { x.FieldName, x.Operator, x.ExpectedValue, x.ActualValue, x.IsSatisfied })
         });
 
-        var log = new SecurityEventLog
+        var operationalEvent = new OperationalEvent
         {
-            Timestamp = DateTimeOffset.UtcNow,
-            EventType = "TCodeAccess",
+            EventName = isSuccessful ? "TCodeAccessGranted" : "TCodeAccessDenied",
             Severity = isSuccessful ? "Information" : "Warning",
+            Category = "Authorization",
+            Source = nameof(TCodeAuthorizationService),
+            Message = $"TCode {result.TransactionCode} authorization {(isSuccessful ? "granted" : "denied")}",
+            IsSuccessful = isSuccessful,
+            FailureReason = failureReason,
             UserId = userIdentity,
             Username = username,
             IpAddress = httpContext?.Connection.RemoteIpAddress?.ToString(),
             UserAgent = httpContext?.Request.Headers.UserAgent.ToString(),
             Resource = result.TransactionCode,
             Action = "Authorize",
-            IsSuccessful = isSuccessful,
-            FailureReason = failureReason,
-            AdditionalData = payload
+            OperationName = "TCode.Authorize",
+            HttpMethod = httpContext?.Request.Method,
+            HttpPath = httpContext?.Request.Path,
+            HttpStatusCode = isSuccessful ? StatusCodes.Status200OK : StatusCodes.Status403Forbidden,
+            Properties = new Dictionary<string, object?>
+            {
+                ["payload"] = payload
+            }
         };
 
-        await logEventWriter.WriteSecurityAsync(log, cancellationToken);
+        await operationalEventPublisher.PublishAsync(operationalEvent, cancellationToken);
     }
 }
