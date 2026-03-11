@@ -49,6 +49,7 @@ public sealed class ExternalOutboxDispatcherService(
         // Her dongude sinirli sayida mesaj alip sistemin tek bir buyuk batch'e kilitlenmesini engelliyoruz.
         foreach (var message in candidates)
         {
+            // Processing durumu ikinci bir isleyicinin ayni mesaji tekrar ele alma riskini azaltir.
             message.Status = "Processing";
             message.AttemptCount += 1;
             await integrationsDbContext.SaveChangesAsync(cancellationToken);
@@ -59,6 +60,7 @@ public sealed class ExternalOutboxDispatcherService(
                 {
                     case OutboxEventTypes.MailNotification:
                     {
+                        // Ilgili event type kendi payload modeline deserialize edilip uygun delivery servisine yonlendirilir.
                         var payload = JsonSerializer.Deserialize<MailOutboxPayload>(message.PayloadJson)
                                       ?? throw new InvalidOperationException("Mail payload parse edilemedi.");
 
@@ -67,6 +69,7 @@ public sealed class ExternalOutboxDispatcherService(
                     }
                     case OutboxEventTypes.ExcelReport:
                     {
+                        // Excel akisinda once rapor olusur, sonra notifyEmail varsa dagitim yapilir.
                         var payload = JsonSerializer.Deserialize<ExcelOutboxPayload>(message.PayloadJson)
                                       ?? throw new InvalidOperationException("Excel payload parse edilemedi.");
 

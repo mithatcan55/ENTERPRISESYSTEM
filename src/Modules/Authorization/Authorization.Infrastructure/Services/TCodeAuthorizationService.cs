@@ -218,6 +218,8 @@ public sealed class TCodeAuthorizationService(
             return false;
         }
 
+        // Operator yorumlamasinda daha anlamli veri tipini once deniyoruz:
+        // decimal -> date -> bool -> string.
         var normalizedOperator = op.Trim().ToLowerInvariant();
 
         if (TryDecimal(actualValue, out var actualDecimal) && TryDecimal(expectedValue, out var expectedDecimal))
@@ -317,6 +319,7 @@ public sealed class TCodeAuthorizationService(
         List<TCodeConditionResult>? conditions = null,
         List<string>? missingContextFields = null)
     {
+        // Deny sonucu sadece false donmez; seviye ve sebep bilgisi de tasir.
         var denied = new TCodeAccessResult
         {
             TransactionCode = transactionCode,

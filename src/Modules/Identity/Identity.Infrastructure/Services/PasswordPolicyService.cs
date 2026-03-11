@@ -16,6 +16,7 @@ public sealed class PasswordPolicyService(
 
     public void ValidateComplexityOrThrow(string password, string? username, string? email)
     {
+        // Complexity kurallari konfigurasyondan beslenir; handler'lar policy detayini bilmek zorunda kalmaz.
         var errors = new List<string>();
 
         if (string.IsNullOrWhiteSpace(password) || password.Length < _options.MinLength)
@@ -70,6 +71,7 @@ public sealed class PasswordPolicyService(
 
     public async Task EnsureNotRecentlyUsedOrThrowAsync(int userId, string candidatePassword, CancellationToken cancellationToken)
     {
+        // Reuse kontrolu plaintext karsilastirmasi ile degil, hash verify mantigiyla yapilir.
         var recentHashes = await businessDbContext.UserPasswordHistories
             .AsNoTracking()
             .Where(x => x.UserId == userId && !x.IsDeleted)
@@ -92,6 +94,7 @@ public sealed class PasswordPolicyService(
 
     public async Task EnsureMinimumPasswordAgeOrThrowAsync(int userId, CancellationToken cancellationToken)
     {
+        // Minimum age kuralinin amaci sifreyi hizla degistirerek history kismini dolasma girisimini engellemektir.
         if (_options.MinimumPasswordAgeMinutes <= 0)
         {
             return;
@@ -124,6 +127,7 @@ public sealed class PasswordPolicyService(
 
     public async Task RecordPasswordHistoryAsync(int userId, string passwordHash, CancellationToken cancellationToken)
     {
+        // Gecmis hash'leri ayri tabloda tuttugumuz icin reuse kontrolleri mevcut sifreden bagimsiz calisabilir.
         businessDbContext.UserPasswordHistories.Add(new UserPasswordHistory
         {
             UserId = userId,
@@ -136,6 +140,7 @@ public sealed class PasswordPolicyService(
 
     public async Task EnforcePasswordChangePolicyOrThrowAsync(int userId, string username, string email, string currentPasswordHash, string candidatePassword, CancellationToken cancellationToken)
     {
+        // Bu metod sifre degisim akisinin tek policy kapisidir.
         ValidateComplexityOrThrow(candidatePassword, username, email);
 
         if (BCrypt.Net.BCrypt.Verify(candidatePassword, currentPasswordHash))

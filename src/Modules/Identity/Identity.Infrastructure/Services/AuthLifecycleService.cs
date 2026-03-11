@@ -27,6 +27,8 @@ public sealed class AuthLifecycleService(
 
     public async Task<LoginResponseDto> LoginAsync(LoginRequest request, CancellationToken cancellationToken)
     {
+        // Login akisi burada sadece sifre kontrolu degildir.
+        // Session acma, yetki ozetini toplama ve token uretme ayni operasyonun parcasi olarak ilerler.
         if (string.IsNullOrWhiteSpace(request.Identifier) || string.IsNullOrWhiteSpace(request.Password))
         {
             throw new ValidationAppException(
@@ -166,6 +168,8 @@ public sealed class AuthLifecycleService(
 
     public async Task<RefreshTokenResponseDto> RefreshAsync(RefreshTokenRequest request, CancellationToken cancellationToken)
     {
+        // Refresh akisinin ana ilkesi rotation'dir:
+        // eski token kullanilir, sonra hemen revoke edilip yerine yenisi acilir.
         if (string.IsNullOrWhiteSpace(request.RefreshToken))
         {
             throw new ValidationAppException(
@@ -289,6 +293,7 @@ public sealed class AuthLifecycleService(
 
     public async Task ChangePasswordAsync(ChangePasswordRequest request, CancellationToken cancellationToken)
     {
+        // "Sadece kendi hesabini degistirebilirsin" kurali burada servis seviyesinde enforce edilir.
         if (request.UserId <= 0 || string.IsNullOrWhiteSpace(request.CurrentPassword) || string.IsNullOrWhiteSpace(request.NewPassword))
         {
             throw new ValidationAppException(
@@ -374,6 +379,7 @@ public sealed class AuthLifecycleService(
 
     public async Task RevokeSessionAsync(int sessionId, string? reason, CancellationToken cancellationToken)
     {
+        // Session revoke davranisi self-service ve privileged actor senaryolarini ayni yerde toplar.
         var session = await businessDbContext.UserSessions
             .FirstOrDefaultAsync(x => x.Id == sessionId && !x.IsDeleted, cancellationToken);
 
@@ -436,6 +442,7 @@ public sealed class AuthLifecycleService(
 
     private async Task HandleRefreshTokenReuseAsync(UserRefreshToken refreshToken, CancellationToken cancellationToken)
     {
+        // Reuse tespiti savunmaci bir guvenlik olayidir; ayni session'a bagli aktif tokenlar topluca revoke edilir.
         refreshToken.ReuseDetectedAt = DateTime.UtcNow;
 
         var linkedSession = await businessDbContext.UserSessions
@@ -496,6 +503,7 @@ public sealed class AuthLifecycleService(
     {
         var payload = additional is null ? null : JsonSerializer.Serialize(additional);
 
+        // Auth tarafi loglari dogrudan tabloya yazmak yerine event backbone'a gonderir.
         var operationalEvent = new OperationalEvent
         {
             EventName = isSuccessful ? "AuthLifecycleCompleted" : "AuthLifecycleFailed",

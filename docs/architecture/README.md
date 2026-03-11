@@ -18,6 +18,7 @@ Bu klasor, projenin gorsel ve kavramsal mimari haritasini icerir.
 - `localization-training.md` -> Localization sistemi icin egitim odakli detayli teknik rehber
 - `error-policy-and-notification-training.md` -> Error policy, event routing ve notification omurgasi rehberi
 - `manual-api-learning-guide.md` -> Host.Api.http dosyasini egitim sirasiyla kullanma rehberi
+- `system-learning-path.md` -> Tum rehberleri ve kod okumayi siraya koyan ogrenme yolu
 
 ## Kullanim
 
@@ -28,6 +29,7 @@ Bu klasor, projenin gorsel ve kavramsal mimari haritasini icerir.
 5. Asenkron entegrasyon ve operasyon gorunurlugu icin `integrations-module-training.md` ve `operations-module-training.md` dosyalarini oku.
 6. Dil yonetimi ve hata/notification omurgasi icin `localization-training.md` ve `error-policy-and-notification-training.md` dosyalarini oku.
 7. Canli endpoint ogrenimi icin `manual-api-learning-guide.md` ve `src/Host.Api/Host.Api.http` dosyalarini birlikte kullan.
+8. Uzun vadeli, baglam kaybetmeyen tam okuma sirasi icin `system-learning-path.md` dosyasini takip et.
 
 ## Not
 
