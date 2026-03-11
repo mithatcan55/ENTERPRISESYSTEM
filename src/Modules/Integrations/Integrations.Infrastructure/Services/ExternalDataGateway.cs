@@ -2,6 +2,7 @@ using System.Diagnostics;
 using System.Net.Http.Json;
 using Application.Exceptions;
 using Application.Security;
+using Infrastructure.Observability;
 using Infrastructure.Persistence;
 using Infrastructure.Persistence.Entities;
 using Integrations.Application.Contracts;
@@ -11,7 +12,7 @@ namespace Integrations.Infrastructure.Services;
 
 public sealed class ExternalDataGateway(
     IHttpClientFactory httpClientFactory,
-    LogDbContext logDbContext,
+    ILogEventWriter logEventWriter,
     IHttpContextAccessor httpContextAccessor,
     ICurrentUserContext currentUserContext) : IExternalDataGateway
 {
@@ -111,8 +112,7 @@ public sealed class ExternalDataGateway(
             ThreadId = Environment.CurrentManagedThreadId
         };
 
-        logDbContext.SystemLogs.Add(log);
-        await logDbContext.SaveChangesAsync(cancellationToken);
+        await logEventWriter.WriteSystemAsync(log, cancellationToken);
     }
 
     private sealed record JsonPlaceholderUser(int Id, string? Name, string? Email);

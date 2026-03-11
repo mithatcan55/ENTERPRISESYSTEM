@@ -1,4 +1,5 @@
 using Infrastructure.Logging;
+using Infrastructure.Observability;
 using Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Diagnostics;
@@ -18,7 +19,9 @@ public static class InfrastructureServiceCollectionExtensions
     /// </summary>
     public static IServiceCollection AddInfrastructurePersistence(this IServiceCollection services, IConfiguration configuration)
     {
+        services.AddScoped<ILogEventWriter, LogEventWriter>();
         services.AddScoped<DatabaseCommandLoggingInterceptor>();
+        services.AddScoped<EntityChangeLoggingInterceptor>();
 
         services.AddDbContext<LogDbContext>((_, options) =>
         {
@@ -37,28 +40,36 @@ public static class InfrastructureServiceCollectionExtensions
                 npgsql.MigrationsHistoryTable("__EFMigrationsHistory", BusinessDbContext.AuthorizationSchema);
             });
 
-            options.AddInterceptors(sp.GetRequiredService<DatabaseCommandLoggingInterceptor>());
+            options.AddInterceptors(
+                sp.GetRequiredService<DatabaseCommandLoggingInterceptor>(),
+                sp.GetRequiredService<EntityChangeLoggingInterceptor>());
         });
 
         services.AddDbContext<AuthorizationDbContext>((sp, options) =>
         {
             var connectionString = configuration.GetConnectionString("BusinessDb");
             options.UseNpgsql(connectionString);
-            options.AddInterceptors(sp.GetRequiredService<DatabaseCommandLoggingInterceptor>());
+            options.AddInterceptors(
+                sp.GetRequiredService<DatabaseCommandLoggingInterceptor>(),
+                sp.GetRequiredService<EntityChangeLoggingInterceptor>());
         });
 
         services.AddDbContext<IdentityDbContext>((sp, options) =>
         {
             var connectionString = configuration.GetConnectionString("BusinessDb");
             options.UseNpgsql(connectionString);
-            options.AddInterceptors(sp.GetRequiredService<DatabaseCommandLoggingInterceptor>());
+            options.AddInterceptors(
+                sp.GetRequiredService<DatabaseCommandLoggingInterceptor>(),
+                sp.GetRequiredService<EntityChangeLoggingInterceptor>());
         });
 
         services.AddDbContext<IntegrationsDbContext>((sp, options) =>
         {
             var connectionString = configuration.GetConnectionString("BusinessDb");
             options.UseNpgsql(connectionString);
-            options.AddInterceptors(sp.GetRequiredService<DatabaseCommandLoggingInterceptor>());
+            options.AddInterceptors(
+                sp.GetRequiredService<DatabaseCommandLoggingInterceptor>(),
+                sp.GetRequiredService<EntityChangeLoggingInterceptor>());
         });
 
         return services;

@@ -1,7 +1,7 @@
 using Host.Api.Localization;
 using Host.Api.Middleware;
 using Application.Exceptions;
-using Infrastructure.Persistence;
+using Infrastructure.Observability;
 using Infrastructure.Persistence.Entities;
 using Microsoft.AspNetCore.Diagnostics;
 using Microsoft.AspNetCore.Mvc;
@@ -10,7 +10,7 @@ namespace Host.Api.Exceptions;
 
 public sealed class GlobalExceptionHandler(
     ILogger<GlobalExceptionHandler> logger,
-    IServiceScopeFactory serviceScopeFactory,
+    ILogEventWriter logEventWriter,
     IProblemDetailsService problemDetailsService,
     IHostEnvironment hostEnvironment,
     IApiTextLocalizer localizer) : IExceptionHandler
@@ -74,12 +74,7 @@ public sealed class GlobalExceptionHandler(
             ThreadId = Environment.CurrentManagedThreadId
         };
 
-        using (var scope = serviceScopeFactory.CreateScope())
-        {
-            var logDbContext = scope.ServiceProvider.GetRequiredService<LogDbContext>();
-            logDbContext.SystemLogs.Add(systemLog);
-            await logDbContext.SaveChangesAsync(cancellationToken);
-        }
+        await logEventWriter.WriteSystemAsync(systemLog, cancellationToken);
 
         httpContext.Response.StatusCode = statusCode;
 

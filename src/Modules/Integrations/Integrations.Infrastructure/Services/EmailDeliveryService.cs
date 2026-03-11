@@ -1,10 +1,10 @@
-using Infrastructure.Persistence;
+using Infrastructure.Observability;
 using Infrastructure.Persistence.Entities;
 using Integrations.Application.Services;
 
 namespace Integrations.Infrastructure.Services;
 
-public sealed class EmailDeliveryService(LogDbContext logDbContext) : IEmailDeliveryService
+public sealed class EmailDeliveryService(ILogEventWriter logEventWriter) : IEmailDeliveryService
 {
     public async Task SendAsync(string to, string subject, string body, string? attachmentPath, CancellationToken cancellationToken)
     {
@@ -27,7 +27,6 @@ public sealed class EmailDeliveryService(LogDbContext logDbContext) : IEmailDeli
             ThreadId = Environment.CurrentManagedThreadId
         };
 
-        logDbContext.SystemLogs.Add(systemLog);
-        await logDbContext.SaveChangesAsync(cancellationToken);
+        await logEventWriter.WriteSystemAsync(systemLog, cancellationToken);
     }
 }

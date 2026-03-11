@@ -3,6 +3,7 @@ using System.Diagnostics;
 using System.Text;
 using Host.Api.Observability;
 using Host.Api.Services;
+using Infrastructure.Observability;
 using Infrastructure.Persistence;
 using Infrastructure.Persistence.Entities;
 using Microsoft.AspNetCore.Http.Features;
@@ -13,7 +14,7 @@ public sealed class RequestLifecycleLoggingMiddleware(RequestDelegate next, ILog
 {
     public async Task Invoke(
         HttpContext context,
-        LogDbContext logDbContext,
+        ILogEventWriter logEventWriter,
         ICurrentUserContext currentUserContext,
         ISensitiveDataRedactor sensitiveDataRedactor)
     {
@@ -125,10 +126,56 @@ public sealed class RequestLifecycleLoggingMiddleware(RequestDelegate next, ILog
                 ProcessId = Environment.ProcessId,
                 ThreadId = Environment.CurrentManagedThreadId
             };
+            var performanceLog = new PerformanceLog
+            {
+                Timestamp = startedAt,
+                CorrelationId = correlationId,
+                UserId = userId,
+                OperationName = $"{context.Request.Method} {context.Request.Path}",
+                OperationType = "HTTP",
+                DurationMs = stopwatch.ElapsedMilliseconds,
+                MemoryBefore = 0,
+                MemoryAfter = GC.GetTotalMemory(false),
+                MemoryUsed = GC.GetTotalMemory(false),
+                IsSlowOperation = stopwatch.ElapsedMilliseconds >= 1000,
+                ThresholdMs = 1000,
+                AdditionalData = System.Text.Json.JsonSerializer.Serialize(new
+                {
+                    context.Response.StatusCode,
+                    context.TraceIdentifier,
+                    IsError = isError
+                })
+            };
 
-            logDbContext.HttpRequestLogs.Add(httpLog);
-            logDbContext.SystemLogs.Add(systemLog);
-            await logDbContext.SaveChangesAsync(context.RequestAborted);
+            await logEventWriter.WriteHttpAsync(httpLog, context.RequestAborted);
+            await logEventWriter.WriteSystemAsync(systemLog, context.RequestAborted);
+            await logEventWriter.WritePerformanceAsync(performanceLog, context.RequestAborted);
+
+            if (HttpMethods.IsGet(context.Request.Method) && context.Response.StatusCode < 400)
+            {
+                var pageVisitLog = new PageVisitLog
+                {
+                    Timestamp = startedAt,
+                    UserId = userId,
+                    Username = username,
+                    IpAddress = ipAddress,
+                    UserAgent = userAgent,
+                    PagePath = context.Request.Path,
+                    QueryString = context.Request.QueryString.HasValue ? context.Request.QueryString.Value : null,
+                    Referrer = context.Request.Headers.Referer.ToString(),
+                    SessionId = sessionId,
+                    CorrelationId = correlationId,
+                    VisitDurationMs = stopwatch.ElapsedMilliseconds,
+                    IsMobile = userAgent.Contains("Mobile", StringComparison.OrdinalIgnoreCase),
+                    AdditionalData = System.Text.Json.JsonSerializer.Serialize(new
+                    {
+                        context.Response.StatusCode,
+                        RouteValues = context.Request.RouteValues.ToDictionary(x => x.Key, x => x.Value?.ToString())
+                    })
+                };
+
+                await logEventWriter.WritePageVisitAsync(pageVisitLog, context.RequestAborted);
+            }
 
             logger.LogInformation("HTTP lifecycle logged. CorrelationId: {CorrelationId}", correlationId);
         }

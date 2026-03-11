@@ -2,12 +2,12 @@ using System.Data.Common;
 using System.Diagnostics;
 using System.Text.RegularExpressions;
 using System.Text.Json;
+using Infrastructure.Observability;
 using Infrastructure.Persistence;
 using Infrastructure.Persistence.Auditing;
 using Infrastructure.Persistence.Entities;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Diagnostics;
-using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 
 namespace Infrastructure.Logging;
@@ -17,7 +17,7 @@ namespace Infrastructure.Logging;
 /// in LogDb (database_query_logs) and application txt logs via ILogger.
 /// </summary>
 public sealed class DatabaseCommandLoggingInterceptor(
-    IServiceScopeFactory serviceScopeFactory,
+    ILogEventWriter logEventWriter,
     IAuditActorAccessor auditActorAccessor,
     ILogger<DatabaseCommandLoggingInterceptor> logger) : DbCommandInterceptor
 {
@@ -176,11 +176,8 @@ public sealed class DatabaseCommandLoggingInterceptor(
             ThreadId = Environment.CurrentManagedThreadId
         };
 
-        await using var scope = serviceScopeFactory.CreateAsyncScope();
-        var logDbContext = scope.ServiceProvider.GetRequiredService<LogDbContext>();
-        logDbContext.DatabaseQueryLogs.Add(logEntity);
-        logDbContext.SystemLogs.Add(systemLog);
-        await logDbContext.SaveChangesAsync(cancellationToken);
+        await logEventWriter.WriteDatabaseQueryAsync(logEntity, cancellationToken);
+        await logEventWriter.WriteSystemAsync(systemLog, cancellationToken);
 
         if (isError)
         {

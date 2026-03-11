@@ -1,6 +1,7 @@
 using Application.Security;
 using Authorization.Application.Contracts;
 using Authorization.Application.Services;
+using Infrastructure.Observability;
 using Infrastructure.Persistence;
 using Infrastructure.Persistence.Entities;
 using Microsoft.EntityFrameworkCore;
@@ -10,7 +11,7 @@ namespace Authorization.Infrastructure.Services;
 
 public sealed class TCodeAuthorizationService(
     AuthorizationDbContext authorizationDbContext,
-    LogDbContext logDbContext,
+    ILogEventWriter logEventWriter,
     ICurrentUserContext currentUserContext,
     IHttpContextAccessor httpContextAccessor) : ITCodeAuthorizationService
 {
@@ -368,7 +369,6 @@ public sealed class TCodeAuthorizationService(
             AdditionalData = payload
         };
 
-        logDbContext.SecurityEventLogs.Add(log);
-        await logDbContext.SaveChangesAsync(cancellationToken);
+        await logEventWriter.WriteSecurityAsync(log, cancellationToken);
     }
 }

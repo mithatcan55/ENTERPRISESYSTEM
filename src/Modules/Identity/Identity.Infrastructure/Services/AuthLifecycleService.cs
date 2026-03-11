@@ -5,6 +5,7 @@ using Application.Exceptions;
 using Identity.Application.Configuration;
 using Identity.Application.Contracts;
 using Identity.Application.Services;
+using Infrastructure.Observability;
 using Infrastructure.Persistence;
 using Infrastructure.Persistence.Entities;
 using Infrastructure.Persistence.Entities.Identity;
@@ -15,7 +16,7 @@ namespace Identity.Infrastructure.Services;
 
 public sealed class AuthLifecycleService(
     BusinessDbContext businessDbContext,
-    LogDbContext logDbContext,
+    ILogEventWriter logEventWriter,
     IIdentityRequestContext identityRequestContext,
     IPasswordPolicyService passwordPolicyService,
     IJwtAccessTokenService jwtAccessTokenService,
@@ -514,7 +515,6 @@ public sealed class AuthLifecycleService(
             })
         };
 
-        logDbContext.SecurityEventLogs.Add(log);
-        await logDbContext.SaveChangesAsync(cancellationToken);
+        await logEventWriter.WriteSecurityAsync(log, cancellationToken);
     }
 }
