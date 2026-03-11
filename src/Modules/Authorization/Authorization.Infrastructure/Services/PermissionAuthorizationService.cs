@@ -19,6 +19,8 @@ public sealed class PermissionAuthorizationService(
         var normalizedPermission = permissionCode.Trim().ToUpperInvariant();
         var principal = httpContextAccessor.HttpContext?.User;
 
+        // Ilk tercih claim uzerinden hizli izin cozumlemektir.
+        // Token icinde permission varsa gereksiz DB sorgusu calistirmayiz.
         var hasPermissionClaim = principal?.Claims
             .Where(x => string.Equals(x.Type, SecurityClaimTypes.Permission, StringComparison.OrdinalIgnoreCase))
             .Select(x => x.Value)
@@ -29,6 +31,8 @@ public sealed class PermissionAuthorizationService(
             return true;
         }
 
+        // Claim yoksa veritabani ikinci dogrulama kaynagi olur.
+        // Bu yaklasim hem performans hem guncel yetki verisi arasinda dengeli bir cozum sunar.
         return await authorizationDbContext.UserPageActionPermissions
             .AsNoTracking()
             .AnyAsync(

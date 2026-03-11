@@ -11,12 +11,15 @@ Bu klasor, projenin gorsel ve kavramsal mimari haritasini icerir.
 - `class-diagram-authz.puml` -> Yetki domain class diyagrami
 - `sequence-tcode-access.puml` -> T-Code erisim sequence diyagrami
 - `current-state-target-state-guide.md` -> Mevcut durum, hedef mimari, servis + CQRS, loglama, localization ve T-Code enforcement rehberi
+- `identity-module-training.md` -> Identity modulu icin egitim odakli detayli teknik rehber
+- `authorization-module-training.md` -> Authorization modulu icin egitim odakli detayli teknik rehber
 
 ## Kullanim
 
 1. Mermaid dosyalarini markdown icinde `mermaid` bloklarinda goruntule.
 2. PlantUML dosyalarini uygun editor eklentisi ile render et.
 3. `current-state-target-state-guide.md` dosyasini kodla birlikte paralel oku; bu dosya current-state ve target-state ayrimini anlatir.
+4. Modul bazli derin egitim icin `identity-module-training.md` ve `authorization-module-training.md` dosyalarini birlikte oku.
 
 ## Not
 

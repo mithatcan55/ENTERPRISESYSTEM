@@ -27,6 +27,9 @@ public sealed class TCodeController(
         CancellationToken cancellationToken,
         [FromQuery] bool denyOnUnsatisfiedConditions = true)
     {
+        // Bu endpoint iki amaca hizmet eder:
+        // 1. Operasyonel debug / denetim
+        // 2. UI'nin "bu kullanici bu T-Code'a girebilir mi?" sorusuna acik cevap vermek
         if (string.IsNullOrWhiteSpace(transactionCode))
         {
             return BadRequest("Transaction code bos olamaz.");
@@ -49,6 +52,7 @@ public sealed class TCodeController(
             return BadRequest("userId ve companyId query ile veya claim icinde saglanmalidir.");
         }
 
+        // Yetki servisine ozel parametreleri ayiklayip geri kalan query alanlarini condition context olarak tasiyoruz.
         var reservedKeys = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
         {
             "userId", "companyId", "transactionCode", "actionCode", "denyOnUnsatisfiedConditions"

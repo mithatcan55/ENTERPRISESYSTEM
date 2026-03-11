@@ -35,6 +35,8 @@ public sealed class TCodeAuthorizationHandler(ITCodeAuthorizationService tCodeAu
         var denyOnUnsatisfiedConditions = endpointAttribute?.DenyOnUnsatisfiedConditions
             ?? requirement.DenyOnUnsatisfiedConditions;
 
+        // Handler burada sadece HTTP tarafindan gelen veriyi toplar.
+        // Gercek yetki karari merkezi servis olan TCodeAuthorizationService'te verilir.
         var result = await tCodeAuthorizationService.AuthorizeAsync(
             requirement.TransactionCode,
             userId,
@@ -57,6 +59,7 @@ public sealed class TCodeAuthorizationHandler(ITCodeAuthorizationService tCodeAu
             return new Dictionary<string, string?>(StringComparer.OrdinalIgnoreCase);
         }
 
+        // Condition bazli yetki kontrolleri icin hem query hem route degerleri birlikte okunur.
         var values = new Dictionary<string, string?>(StringComparer.OrdinalIgnoreCase);
 
         foreach (var queryValue in httpContext.Request.Query)
@@ -82,6 +85,7 @@ public sealed class TCodeAuthorizationHandler(ITCodeAuthorizationService tCodeAu
             return null;
         }
 
+        // Attribute action code vermediyse HTTP semantiginden makul bir action uretmeye calisiyoruz.
         var method = httpContext.Request.Method.ToUpperInvariant();
         return method switch
         {

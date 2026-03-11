@@ -29,6 +29,9 @@ public sealed class TCodeAuthorizationService(
             ? null
             : requiredActionCode.Trim().ToUpperInvariant();
 
+        // T-Code modeli burada yukaridan asagiya cozulur:
+        // page -> submodule -> module.
+        // Boylece reddin hangi seviyede oldugu net bicimde raporlanabilir.
         var page = await authorizationDbContext.SubModulePages
             .AsNoTracking()
             .FirstOrDefaultAsync(x => x.TransactionCode == normalizedTCode && !x.IsDeleted, cancellationToken);
@@ -92,6 +95,9 @@ public sealed class TCodeAuthorizationService(
             return await DenyAsync(normalizedTCode, userId, 4, $"Kullanicinin companyId '{companyId}' icin sirket kapsam yetkisi yok. T-Code: '{normalizedTCode}'.", normalizedRequiredActionCode, cancellationToken);
         }
 
+        // Level 5 mantigi:
+        // Eger action permission hic tanimlanmadiysa geriye donuk uyumluluk icin engel cikarmiyoruz.
+        // Ama action kayitlari varsa artik istenen action acikca izinli olmak zorunda.
         var actionPermissions = await authorizationDbContext.UserPageActionPermissions
             .AsNoTracking()
             .Where(x => x.UserId == userId && x.SubModulePageId == page.Id && !x.IsDeleted)
@@ -111,10 +117,13 @@ public sealed class TCodeAuthorizationService(
                     5,
                     $"Kullanicinin T-Code '{normalizedTCode}' icin '{normalizedRequiredActionCode}' aksiyon yetkisi yok.",
                     normalizedRequiredActionCode,
-                    cancellationToken);
+                cancellationToken);
             }
         }
 
+        // Level 6 mantigi:
+        // Condition kayitlari varsa request context icindeki alanlarla karsilastirilir.
+        // Eksik alanlari ayrica donduruyoruz; boylece UI veya istemci neden deny aldigini anlayabilir.
         var conditionPermissions = await authorizationDbContext.UserPageConditionPermissions
             .AsNoTracking()
             .Where(x => x.UserId == userId && x.SubModulePageId == page.Id && x.IsActive && !x.IsDeleted)
@@ -353,6 +362,8 @@ public sealed class TCodeAuthorizationService(
             Conditions = result.Conditions.Select(x => new { x.FieldName, x.Operator, x.ExpectedValue, x.ActualValue, x.IsSatisfied })
         });
 
+        // Yetki sonucu her durumda event olarak cikar.
+        // Boylece deny olaylari hem log hem alert hem denetim akislarinda ayni veriyle izlenebilir.
         var operationalEvent = new OperationalEvent
         {
             EventName = isSuccessful ? "TCodeAccessGranted" : "TCodeAccessDenied",

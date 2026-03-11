@@ -16,6 +16,12 @@ Yeni yön:
 - Standart loglama: bir kere yaz, her yerde kullan
 - Localization: TR / EN / DE ortak altyapı
 
+Bu dokuman genel mimari resmi anlatir.
+Modul bazli egitim notlari icin ayrica:
+
+- `docs/architecture/identity-module-training.md`
+- `docs/architecture/authorization-module-training.md`
+
 ## Bu Turda Uygulananlar
 
 - `Authorization` modulu fiziksel olarak `Application / Infrastructure / Presentation` olarak ayrildi.
