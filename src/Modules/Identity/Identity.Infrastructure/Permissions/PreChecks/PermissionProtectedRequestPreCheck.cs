@@ -16,6 +16,7 @@ public sealed class PermissionProtectedRequestPreCheck<TRequest>(
 {
     public async Task CheckAsync(TRequest request, CancellationToken cancellationToken)
     {
+        // Permission kontrolu T-Code'dan farkli bir yetki modeli oldugu icin ayri bir marker ve ayri bir pre-check ile yonetiliyor.
         if (!currentUserContext.TryGetUserId(out var userId))
         {
             throw new ForbiddenAppException("Kimligi dogrulanmis kullanici baglami cozumlenemedi.");
@@ -28,6 +29,7 @@ public sealed class PermissionProtectedRequestPreCheck<TRequest>(
 
         if (!isAllowed)
         {
+            // Sabit error code kullanimi audit ve operasyon raporlarinda ayni hatayi kolay filtrelemeyi saglar.
             throw new ForbiddenAppException(
                 $"Permission yetki kontrolu basarisiz. permissionCode={request.PermissionCode}",
                 errorCode: "permission_request_precheck_failed");

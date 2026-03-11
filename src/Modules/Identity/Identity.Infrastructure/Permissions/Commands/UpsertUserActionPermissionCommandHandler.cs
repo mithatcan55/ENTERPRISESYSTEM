@@ -11,6 +11,7 @@ public sealed class UpsertUserActionPermissionCommandHandler(BusinessDbContext b
 {
     public async Task<UserActionPermissionDto> HandleAsync(UpsertUserActionPermissionRequest request, CancellationToken cancellationToken)
     {
+        // Upsert kullanmamizin sebebi ayni endpoint ile hem olusturma hem guncelleme yapabilmek.
         if (request.UserId <= 0)
         {
             throw new ValidationAppException(
@@ -43,6 +44,8 @@ public sealed class UpsertUserActionPermissionCommandHandler(BusinessDbContext b
         var page = await ResolvePageAsync(request.SubModulePageId, request.TransactionCode, cancellationToken);
         var normalizedActionCode = request.ActionCode.Trim().ToUpperInvariant();
 
+        // Eski kayit varsa guncellenir, yoksa yeni kayit acilir.
+        // Soft-delete edilmis bir kayit varsa tekrar aktif hale de getirilebilir.
         var permission = await businessDbContext.UserPageActionPermissions
             .FirstOrDefaultAsync(
                 x => x.UserId == request.UserId
@@ -85,6 +88,8 @@ public sealed class UpsertUserActionPermissionCommandHandler(BusinessDbContext b
 
     private async Task<SubModulePage> ResolvePageAsync(int? subModulePageId, string? transactionCode, CancellationToken cancellationToken)
     {
+        // API esnekligi icin cagirani tek bir anahtara zorlamiyoruz.
+        // UI ister page id ile, ister T-Code ile ayni sayfayi hedefleyebilir.
         if (subModulePageId.HasValue)
         {
             var pageById = await businessDbContext.SubModulePages

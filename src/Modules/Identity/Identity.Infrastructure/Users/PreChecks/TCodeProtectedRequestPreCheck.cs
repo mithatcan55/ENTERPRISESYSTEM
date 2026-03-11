@@ -17,11 +17,15 @@ public sealed class TCodeProtectedRequestPreCheck<TRequest>(
 {
     public async Task CheckAsync(TRequest request, CancellationToken cancellationToken)
     {
+        // Request modeli sadece niyeti tasir: hangi T-Code ve hangi action gerekli?
+        // Gercek kullanici ve company baglami runtime'da current user context'ten okunur.
         if (!currentUserContext.TryGetUserId(out var userId) || !currentUserContext.TryGetCompanyId(out var companyId))
         {
             throw new ForbiddenAppException("Kimligi dogrulanmis kullanici veya sirket baglami cozumlenemedi.");
         }
 
+        // Bu check controller attribute'una alternatif degil, ikinci savunma hattidir.
+        // Ayni request baska bir giris noktasindan cagirildiginda da yetki korunmus olur.
         var authorizationResult = await tCodeAuthorizationService.AuthorizeAsync(
             request.TransactionCode,
             userId,

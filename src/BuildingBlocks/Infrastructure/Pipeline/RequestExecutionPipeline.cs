@@ -61,6 +61,9 @@ public sealed class RequestExecutionPipeline(
         var startedTicks = Environment.TickCount64;
         var resolvedOperationName = operationName ?? typeof(TRequest).Name;
 
+        // Pipeline burada bilincli bir sirayla calisir.
+        // Once request'in girdi dogrulamasi yapilir, sonra yetki/on-kosul kontrolleri calisir.
+        // Ancak bunlar gectikten sonra asil handler'a izin verilir.
         await RunValidationAsync(request, cancellationToken);
         await RunPreChecksAsync(request, cancellationToken);
 
@@ -115,6 +118,8 @@ public sealed class RequestExecutionPipeline(
         var validators = serviceProvider.GetServices<IRequestValidator<TRequest>>().ToList();
         foreach (var validator in validators)
         {
+            // Ayni request icin birden fazla validator tanimlanabilir.
+            // Hepsi sirayla calisir; bir validator hata verirse islem burada durur.
             await validator.ValidateAsync(request, cancellationToken);
         }
     }
@@ -130,6 +135,8 @@ public sealed class RequestExecutionPipeline(
         var preChecks = serviceProvider.GetServices<IRequestPreCheck<TRequest>>().ToList();
         foreach (var preCheck in preChecks)
         {
+            // Pre-check katmani "bu request su an calistirilabilir mi?" sorusunu cevaplar.
+            // T-Code, permission, company scope gibi kontroller burada toplanir.
             await preCheck.CheckAsync(request, cancellationToken);
         }
     }
@@ -150,6 +157,8 @@ public sealed class RequestExecutionPipeline(
         var userId = currentUserContext.TryGetActorIdentity(out var actorIdentity) ? actorIdentity : null;
         var username = currentUserContext.TryGetUsername(out var resolvedUsername) ? resolvedUsername : userId;
 
+        // Pipeline ortak event sozlesmesi urettigi icin handler'lar log sistemini tanimak zorunda kalmaz.
+        // Observability katmani sadece bu event'i dinleyerek log/notification uretebilir.
         await operationalEventPublisher.PublishAsync(new OperationalEvent
         {
             EventName = eventName,

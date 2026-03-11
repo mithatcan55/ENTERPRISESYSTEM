@@ -16,6 +16,7 @@ public sealed class CreateUserCommandHandler(
 {
     public async Task<CreatedUserDto> HandleAsync(CreateUserRequest request, CancellationToken cancellationToken)
     {
+        // Buradaki kontroller request formatindan cok kullanici olusturma senaryosunun is kurallarina odaklanir.
         var validationErrors = new Dictionary<string, string[]>();
 
         if (string.IsNullOrWhiteSpace(request.UserCode))
@@ -43,6 +44,7 @@ public sealed class CreateUserCommandHandler(
         var normalizedUsername = request.Username.Trim();
         var normalizedEmail = request.Email.Trim().ToLowerInvariant();
 
+        // Sifre karmasikligi teknik bir input kontrolu degil, merkezi policy kuralidir.
         passwordPolicyService.ValidateComplexityOrThrow(request.Password, normalizedUsername, normalizedEmail);
 
         var duplicateExists = await businessDbContext.Users
@@ -70,6 +72,8 @@ public sealed class CreateUserCommandHandler(
         if (systemModule is null)
             throw new NotFoundAppException("Varsayilan SYS modulu bulunamadi.");
 
+        // Kullanici acildiginda birden fazla tabloya yaziyoruz.
+        // Bu yuzden islem tek transaction icinde tutuluyor.
         await using var transaction = await businessDbContext.Database.BeginTransactionAsync(cancellationToken);
         try
         {
@@ -109,6 +113,8 @@ public sealed class CreateUserCommandHandler(
 
             if (request.NotifyAdminByMail)
             {
+                // Bildirim ana transaction'dan sonra cagriliyor.
+                // Boylece mail problemi veri kaydini geri sardirmiyor.
                 await identityNotificationService.QueueAdminMailAsync(
                     request.AdminEmail!.Trim(),
                     $"Yeni kullanici olusturuldu: {user.UserCode}",

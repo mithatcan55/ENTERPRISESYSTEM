@@ -11,6 +11,8 @@ public sealed class CreateRoleCommandHandler(BusinessDbContext businessDbContext
 {
     public async Task<RoleListItemDto> HandleAsync(CreateRoleRequest request, CancellationToken cancellationToken)
     {
+        // Role olusturma akisini yalın tutuyoruz:
+        // request kontrolu, benzersizlik kontrolu, kaydetme.
         if (string.IsNullOrWhiteSpace(request.Code) || string.IsNullOrWhiteSpace(request.Name))
         {
             throw new ValidationAppException(
@@ -25,6 +27,7 @@ public sealed class CreateRoleCommandHandler(BusinessDbContext businessDbContext
         var code = request.Code.Trim().ToUpperInvariant();
         var name = request.Name.Trim();
 
+        // Role'ler hem kodla hem adla kullanildigi icin iki alan da benzersiz kabul ediliyor.
         var exists = await businessDbContext.Roles
             .AsNoTracking()
             .AnyAsync(x => !x.IsDeleted && (x.Code == code || x.Name == name), cancellationToken);
@@ -50,6 +53,7 @@ public sealed class CreateRoleCommandHandler(BusinessDbContext businessDbContext
         businessDbContext.Roles.Add(role);
         await businessDbContext.SaveChangesAsync(cancellationToken);
 
+        // DTO donmemizin nedeni presentation katmanini EF entity detaylarindan bagimsiz tutmak.
         return new RoleListItemDto(role.Id, role.Code, role.Name, role.Description, role.IsSystemRole, role.CreatedAt);
     }
 }
