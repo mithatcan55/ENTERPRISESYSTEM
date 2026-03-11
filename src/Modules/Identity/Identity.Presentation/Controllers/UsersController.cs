@@ -12,7 +12,7 @@ namespace Identity.Presentation.Controllers;
 public sealed class UsersController(IUserManagementService userManagementService) : ControllerBase
 {
     [HttpGet]
-    [TCodeAuthorize("SYS03")]
+    [TCodeAuthorize("SYS03", "READ")]
     [ProducesResponseType(typeof(IReadOnlyList<UserListItemDto>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status401Unauthorized)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status403Forbidden)]
@@ -23,7 +23,7 @@ public sealed class UsersController(IUserManagementService userManagementService
     }
 
     [HttpPost]
-    [TCodeAuthorize("SYS01")]
+    [TCodeAuthorize("SYS01", "CREATE")]
     [ProducesResponseType(typeof(CreatedUserDto), StatusCodes.Status201Created)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status401Unauthorized)]
@@ -35,7 +35,7 @@ public sealed class UsersController(IUserManagementService userManagementService
     }
 
     [HttpPut("{userId:int}")]
-    [TCodeAuthorize("SYS01")]
+    [TCodeAuthorize("SYS01", "UPDATE")]
     [ProducesResponseType(typeof(UserListItemDto), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status401Unauthorized)]
@@ -48,7 +48,7 @@ public sealed class UsersController(IUserManagementService userManagementService
     }
 
     [HttpPost("{userId:int}/deactivate")]
-    [TCodeAuthorize("SYS01")]
+    [TCodeAuthorize("SYS01", "DEACTIVATE")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status401Unauthorized)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status403Forbidden)]
@@ -60,7 +60,7 @@ public sealed class UsersController(IUserManagementService userManagementService
     }
 
     [HttpPost("{userId:int}/reactivate")]
-    [TCodeAuthorize("SYS01")]
+    [TCodeAuthorize("SYS01", "REACTIVATE")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status401Unauthorized)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status403Forbidden)]
@@ -72,7 +72,7 @@ public sealed class UsersController(IUserManagementService userManagementService
     }
 
     [HttpDelete("{userId:int}")]
-    [TCodeAuthorize("SYS01")]
+    [TCodeAuthorize("SYS01", "DELETE")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status401Unauthorized)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status403Forbidden)]

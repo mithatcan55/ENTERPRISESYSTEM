@@ -9,5 +9,7 @@ public interface ITCodeAuthorizationService
         int userId,
         int companyId,
         IReadOnlyDictionary<string, string?> contextValues,
+        string? requiredActionCode,
+        bool denyOnUnsatisfiedConditions,
         CancellationToken cancellationToken);
 }

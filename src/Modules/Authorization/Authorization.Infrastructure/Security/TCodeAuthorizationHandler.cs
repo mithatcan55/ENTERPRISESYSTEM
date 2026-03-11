@@ -25,18 +25,93 @@ public sealed class TCodeAuthorizationHandler(ITCodeAuthorizationService tCodeAu
             return;
         }
 
-        var cancellationToken = (context.Resource as HttpContext)?.RequestAborted ?? CancellationToken.None;
+        var httpContext = context.Resource as HttpContext;
+        var endpointAttribute = httpContext?.GetEndpoint()?.Metadata.GetMetadata<TCodeAuthorizeAttribute>();
+        var cancellationToken = httpContext?.RequestAborted ?? CancellationToken.None;
+        var contextValues = ResolveContextValues(httpContext);
+        var requiredActionCode = requirement.RequiredActionCode
+            ?? endpointAttribute?.ActionCode
+            ?? InferActionCode(httpContext);
+        var denyOnUnsatisfiedConditions = endpointAttribute?.DenyOnUnsatisfiedConditions
+            ?? requirement.DenyOnUnsatisfiedConditions;
 
         var result = await tCodeAuthorizationService.AuthorizeAsync(
             requirement.TransactionCode,
             userId,
             companyId,
-            new Dictionary<string, string?>(StringComparer.OrdinalIgnoreCase),
+            contextValues,
+            requiredActionCode,
+            denyOnUnsatisfiedConditions,
             cancellationToken);
 
         if (result.IsAllowed)
         {
             context.Succeed(requirement);
         }
+    }
+
+    private static IReadOnlyDictionary<string, string?> ResolveContextValues(HttpContext? httpContext)
+    {
+        if (httpContext is null)
+        {
+            return new Dictionary<string, string?>(StringComparer.OrdinalIgnoreCase);
+        }
+
+        var values = new Dictionary<string, string?>(StringComparer.OrdinalIgnoreCase);
+
+        foreach (var queryValue in httpContext.Request.Query)
+        {
+            values[queryValue.Key] = queryValue.Value.ToString();
+        }
+
+        foreach (var routeValue in httpContext.Request.RouteValues)
+        {
+            if (routeValue.Value is not null)
+            {
+                values[routeValue.Key] = routeValue.Value.ToString();
+            }
+        }
+
+        return values;
+    }
+
+    private static string? InferActionCode(HttpContext? httpContext)
+    {
+        if (httpContext is null)
+        {
+            return null;
+        }
+
+        var method = httpContext.Request.Method.ToUpperInvariant();
+        return method switch
+        {
+            "GET" => "READ",
+            "POST" => InferPostActionFromRoute(httpContext),
+            "PUT" or "PATCH" => "UPDATE",
+            "DELETE" => "DELETE",
+            _ => null
+        };
+    }
+
+    private static string InferPostActionFromRoute(HttpContext httpContext)
+    {
+        var segments = httpContext.Request.Path.Value?
+            .Split('/', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+            ?? [];
+
+        var lastSegment = segments.LastOrDefault();
+        if (string.IsNullOrWhiteSpace(lastSegment))
+        {
+            return "CREATE";
+        }
+
+        return lastSegment.ToUpperInvariant() switch
+        {
+            "DEACTIVATE" => "DEACTIVATE",
+            "REACTIVATE" => "REACTIVATE",
+            "REVOKE" => "REVOKE",
+            "ASSIGN" => "ASSIGN",
+            _ => "CREATE"
+        };
     }
 }

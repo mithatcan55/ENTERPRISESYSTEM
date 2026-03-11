@@ -10,9 +10,11 @@ public sealed class TCodeAccessResult
     public bool IsAllowed { get; set; }
     public short? DeniedAtLevel { get; set; }
     public string? DeniedReason { get; set; }
+    public string? RequiredActionCode { get; set; }
     public bool? AmountVisible { get; set; }
     public Dictionary<string, bool> Actions { get; set; } = new();
     public List<TCodeConditionResult> Conditions { get; set; } = new();
+    public List<string> MissingContextFields { get; set; } = new();
 }
 
 public sealed class TCodeConditionResult

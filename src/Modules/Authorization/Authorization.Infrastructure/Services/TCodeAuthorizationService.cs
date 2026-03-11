@@ -19,9 +19,14 @@ public sealed class TCodeAuthorizationService(
         int userId,
         int companyId,
         IReadOnlyDictionary<string, string?> contextValues,
+        string? requiredActionCode,
+        bool denyOnUnsatisfiedConditions,
         CancellationToken cancellationToken)
     {
         var normalizedTCode = transactionCode.Trim().ToUpperInvariant();
+        var normalizedRequiredActionCode = string.IsNullOrWhiteSpace(requiredActionCode)
+            ? null
+            : requiredActionCode.Trim().ToUpperInvariant();
 
         var page = await authorizationDbContext.SubModulePages
             .AsNoTracking()
@@ -29,7 +34,7 @@ public sealed class TCodeAuthorizationService(
 
         if (page is null)
         {
-            return await DenyAsync(normalizedTCode, userId, 3, $"T-Code '{normalizedTCode}' icin eslesen sayfa bulunamadi.", cancellationToken);
+            return await DenyAsync(normalizedTCode, userId, 3, $"T-Code '{normalizedTCode}' icin eslesen sayfa bulunamadi.", normalizedRequiredActionCode, cancellationToken);
         }
 
         var subModule = await authorizationDbContext.SubModules
@@ -38,7 +43,7 @@ public sealed class TCodeAuthorizationService(
 
         if (subModule is null)
         {
-            return await DenyAsync(normalizedTCode, userId, 2, $"T-Code '{normalizedTCode}' icin alt modul bilgisi bulunamadi.", cancellationToken);
+            return await DenyAsync(normalizedTCode, userId, 2, $"T-Code '{normalizedTCode}' icin alt modul bilgisi bulunamadi.", normalizedRequiredActionCode, cancellationToken);
         }
 
         var module = await authorizationDbContext.Modules
@@ -47,7 +52,7 @@ public sealed class TCodeAuthorizationService(
 
         if (module is null)
         {
-            return await DenyAsync(normalizedTCode, userId, 1, $"T-Code '{normalizedTCode}' icin modul bilgisi bulunamadi.", cancellationToken);
+            return await DenyAsync(normalizedTCode, userId, 1, $"T-Code '{normalizedTCode}' icin modul bilgisi bulunamadi.", normalizedRequiredActionCode, cancellationToken);
         }
 
         var level1Allowed = await authorizationDbContext.UserModulePermissions
@@ -56,7 +61,7 @@ public sealed class TCodeAuthorizationService(
 
         if (!level1Allowed)
         {
-            return await DenyAsync(normalizedTCode, userId, 1, $"Kullanicinin T-Code '{normalizedTCode}' icin modul erisim yetkisi yok.", cancellationToken);
+            return await DenyAsync(normalizedTCode, userId, 1, $"Kullanicinin T-Code '{normalizedTCode}' icin modul erisim yetkisi yok.", normalizedRequiredActionCode, cancellationToken);
         }
 
         var level2Allowed = await authorizationDbContext.UserSubModulePermissions
@@ -65,7 +70,7 @@ public sealed class TCodeAuthorizationService(
 
         if (!level2Allowed)
         {
-            return await DenyAsync(normalizedTCode, userId, 2, $"Kullanicinin T-Code '{normalizedTCode}' icin alt modul erisim yetkisi yok.", cancellationToken);
+            return await DenyAsync(normalizedTCode, userId, 2, $"Kullanicinin T-Code '{normalizedTCode}' icin alt modul erisim yetkisi yok.", normalizedRequiredActionCode, cancellationToken);
         }
 
         var level3Allowed = await authorizationDbContext.UserPagePermissions
@@ -74,7 +79,7 @@ public sealed class TCodeAuthorizationService(
 
         if (!level3Allowed)
         {
-            return await DenyAsync(normalizedTCode, userId, 3, $"Kullanicinin T-Code '{normalizedTCode}' icin sayfa erisim yetkisi yok.", cancellationToken);
+            return await DenyAsync(normalizedTCode, userId, 3, $"Kullanicinin T-Code '{normalizedTCode}' icin sayfa erisim yetkisi yok.", normalizedRequiredActionCode, cancellationToken);
         }
 
         var level4Allowed = await authorizationDbContext.UserCompanyPermissions
@@ -83,7 +88,7 @@ public sealed class TCodeAuthorizationService(
 
         if (!level4Allowed)
         {
-            return await DenyAsync(normalizedTCode, userId, 4, $"Kullanicinin companyId '{companyId}' icin sirket kapsam yetkisi yok. T-Code: '{normalizedTCode}'.", cancellationToken);
+            return await DenyAsync(normalizedTCode, userId, 4, $"Kullanicinin companyId '{companyId}' icin sirket kapsam yetkisi yok. T-Code: '{normalizedTCode}'.", normalizedRequiredActionCode, cancellationToken);
         }
 
         var actionPermissions = await authorizationDbContext.UserPageActionPermissions
@@ -94,6 +99,20 @@ public sealed class TCodeAuthorizationService(
         var actions = actionPermissions
             .GroupBy(x => x.ActionCode, StringComparer.OrdinalIgnoreCase)
             .ToDictionary(g => g.Key, g => g.Any(x => x.IsAllowed), StringComparer.OrdinalIgnoreCase);
+
+        if (normalizedRequiredActionCode is not null && actionPermissions.Count > 0)
+        {
+            if (!actions.TryGetValue(normalizedRequiredActionCode, out var actionAllowed) || !actionAllowed)
+            {
+                return await DenyAsync(
+                    normalizedTCode,
+                    userId,
+                    5,
+                    $"Kullanicinin T-Code '{normalizedTCode}' icin '{normalizedRequiredActionCode}' aksiyon yetkisi yok.",
+                    normalizedRequiredActionCode,
+                    cancellationToken);
+            }
+        }
 
         var conditionPermissions = await authorizationDbContext.UserPageConditionPermissions
             .AsNoTracking()
@@ -110,6 +129,31 @@ public sealed class TCodeAuthorizationService(
                 IsSatisfied = EvaluateCondition(ResolveActualValue(contextValues, x.FieldName), x.Operator, x.Value)
             })
             .ToList();
+
+        var missingContextFields = conditionResults
+            .Where(x => x.ActualValue is null)
+            .Select(x => x.FieldName)
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .ToList();
+
+        var failedConditions = conditionResults
+            .Where(x => x.ActualValue is not null && !x.IsSatisfied)
+            .ToList();
+
+        if (denyOnUnsatisfiedConditions && failedConditions.Count > 0)
+        {
+            var firstFailedCondition = failedConditions[0];
+
+            return await DenyAsync(
+                normalizedTCode,
+                userId,
+                6,
+                $"Kullanicinin T-Code '{normalizedTCode}' icin kosul yetkisi saglanamadi. Alan: '{firstFailedCondition.FieldName}', operator: '{firstFailedCondition.Operator}', beklenen: '{firstFailedCondition.ExpectedValue}', gelen: '{firstFailedCondition.ActualValue}'.",
+                normalizedRequiredActionCode,
+                cancellationToken,
+                conditionResults,
+                missingContextFields);
+        }
 
         bool? amountVisible = null;
         var amountConditions = conditionResults
@@ -130,8 +174,10 @@ public sealed class TCodeAuthorizationService(
             PageCode = page.Code,
             RouteLink = page.RouteLink,
             IsAllowed = true,
+            RequiredActionCode = normalizedRequiredActionCode,
             Actions = actions,
             Conditions = conditionResults,
+            MissingContextFields = missingContextFields,
             AmountVisible = amountVisible
         };
 
@@ -251,14 +297,25 @@ public sealed class TCodeAuthorizationService(
         return false;
     }
 
-    private async Task<TCodeAccessResult> DenyAsync(string transactionCode, int userId, short level, string reason, CancellationToken cancellationToken)
+    private async Task<TCodeAccessResult> DenyAsync(
+        string transactionCode,
+        int userId,
+        short level,
+        string reason,
+        string? requiredActionCode,
+        CancellationToken cancellationToken,
+        List<TCodeConditionResult>? conditions = null,
+        List<string>? missingContextFields = null)
     {
         var denied = new TCodeAccessResult
         {
             TransactionCode = transactionCode,
             IsAllowed = false,
             DeniedAtLevel = level,
-            DeniedReason = reason
+            DeniedReason = reason,
+            RequiredActionCode = requiredActionCode,
+            Conditions = conditions ?? [],
+            MissingContextFields = missingContextFields ?? []
         };
 
         await LogSecurityEventAsync(denied, userId, false, reason, cancellationToken);
@@ -288,8 +345,10 @@ public sealed class TCodeAuthorizationService(
             result.SubModuleCode,
             result.PageCode,
             result.RouteLink,
+            result.RequiredActionCode,
             result.Actions,
             result.AmountVisible,
+            result.MissingContextFields,
             Conditions = result.Conditions.Select(x => new { x.FieldName, x.Operator, x.ExpectedValue, x.ActualValue, x.IsSatisfied })
         });
 

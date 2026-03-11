@@ -22,7 +22,9 @@ public sealed class TCodeController(
         string transactionCode,
         [FromQuery] int? userId,
         [FromQuery] int? companyId,
+        [FromQuery] string? actionCode,
         [FromQuery] decimal? amount,
+        [FromQuery] bool denyOnUnsatisfiedConditions = true,
         CancellationToken cancellationToken)
     {
         if (string.IsNullOrWhiteSpace(transactionCode))
@@ -49,7 +51,7 @@ public sealed class TCodeController(
 
         var reservedKeys = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
         {
-            "userId", "companyId", "transactionCode"
+            "userId", "companyId", "transactionCode", "actionCode", "denyOnUnsatisfiedConditions"
         };
 
         var contextValues = Request.Query
@@ -66,6 +68,8 @@ public sealed class TCodeController(
             resolvedUserId.Value,
             resolvedCompanyId.Value,
             contextValues,
+            actionCode,
+            denyOnUnsatisfiedConditions,
             cancellationToken);
 
         if (!result.IsAllowed)
