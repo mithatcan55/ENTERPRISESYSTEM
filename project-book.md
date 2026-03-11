@@ -1,989 +1,618 @@
-# EnterpriseSystem — Ana Proje Dosyası (Canlı Kitap)
+# EnterpriseSystem Ana Proje Kitabi
 
-Bu dosya projenin ana teknik kaynağıdır.
+Bu dosya projenin ana teknik rehberidir.
 
-Amaç:
-- Baştan bugüne yapılanları kaybetmemek
-- Sınıf ilişkilerini görünür tutmak
-- Neyi neden yaptığımızı açık bırakmak
-- Yeni değişikliklerde aynı şablonla ilerlemek
+Amaci:
+
+- bugunku gercek mimariyi kayda gecirmek
+- neden bu yapiya geldigimizi aciklamak
+- yeni gelisen bir kisinin sistemi tek basina okuyup ilerleyebilmesini saglamak
+- moduller, katmanlar, guvenlik, loglama ve egitim dokumanlarini tek merkezden baglamak
 
 Kural:
-- Mimariye dokunan her değişiklikte bu dosya güncellenir.
-- Bu dosya değişmeden mimari commit tamamlanmış sayılmaz.
+
+- mimariye dokunan her buyuk degisiklikte bu dosya guncellenir
+- bu dosya guncellenmeden mimari is "tamam" sayilmaz
 
 ---
 
-## Cilt 1 — Mimari Çerçeve
+## 1. Cekirdek Karar Ozetleri
 
-### 1.1 Hedef Mimari
-- Teknoloji: .NET 9, ASP.NET Core API, EF Core, PostgreSQL
-- Mimari: Clean + Vertical Slice + Modular Monolith
-- Loglama: Dosya + ayrı LogDb
-- Yetki: Role + Permission + Condition + T-Code
-- Denetim: Ara tablolar dahil kim/ne/zaman izi
+### 1.1 Mimari Karar
 
-### 1.2 Neden Modular Monolith
-- Tek deploy kolaylığı
-- Modül bazlı büyüme
-- Mikroservise geçişte hazır ayrışma
-- Test ve bakım maliyetini düşürme
+Proje bugun su kararlarla ilerler:
 
-### 1.3 Kırmızı Çizgiler
-- Tablolar/kolonlar İngilizce
-- Kod açıklamaları Türkçe
-- Log tabloları immutable
-- Yetki modeli 6 seviyeden aşağı düşmez
+- teknoloji: `.NET 9`, `ASP.NET Core`, `EF Core`, `PostgreSQL`
+- dagitim modeli: `modular monolith`
+- uygulama stili: `service + CQRS`
+- host rolu: sadece startup, middleware, auth host config, module composition
+- cross-cutting alanlar: `BuildingBlocks`
 
----
+### 1.2 Bilincli Olarak Terk Edilenler
 
-## Cilt 2 — Repo ve Katman Haritası
+Bu proje icin bilincli olarak terk edilenler:
 
-### 2.1 Dizinler
-- src/Host.Api
-- src/BuildingBlocks/SharedKernel
-- src/BuildingBlocks/Application
-- src/BuildingBlocks/Infrastructure
-- src/Modules/Identity
-- tests
+- vertical slice agirlikli dosya organizasyonu
+- host icinde daginik business service tutma
+- her serviste manuel log yazma aliskanligi
+- tek `BusinessDbContext` icinde tum bounded context'leri eritme yaklasimi
 
-### 2.2 Katman Görevleri
+### 1.3 Bilincli Olarak Benimsenenler
 
-**Host.Api**
-- Composition root
-- Middleware zinciri
-- OpenAPI + Scalar
-- DI wiring
-
-**SharedKernel**
-- Ortak kontratlar (audit/soft delete)
-
-**Infrastructure**
-- DbContext'ler
-- Entity mapping
-- Migrations
-- Audit actor abstraction
-
-**Modules/Identity**
-- Şu an iskelet
-- User FK bağları için bir sonraki adım
-
-### 2.3 Proje Referans Mantığı
-- Host.Api -> Infrastructure + Module Infra/Presentation
-- Infrastructure -> Application + SharedKernel
-- Identity.Infrastructure -> Identity.Application + Identity.Domain + Infrastructure
+- moduller: `Identity`, `Authorization`, `Operations`, `Integrations`
+- her modulde `Application / Infrastructure / Presentation`
+- command/query pipeline
+- ikinci savunma hatti olarak request pre-check'leri
+- event-driven observability + notification backbone
+- Turkce egitim dokumanlari ve kod ici aciklama standardi
 
 ---
 
-## Cilt 3 — Baştan Bugüne Teknik Akış
+## 2. Cozumun Bugunku Haritasi
 
-### Aşama A — Skeleton
-- Solution ve proje yapısı kuruldu
-- Host API başlangıcı hazırlandı
+### 2.1 Ana Klasorler
 
-### Aşama B — Shared Audit Temeli
-- IAuditableEntity / ISoftDeletable ile temel izlilik sözleşmeleri
+- `src/Host.Api`
+- `src/BuildingBlocks/SharedKernel`
+- `src/BuildingBlocks/Application`
+- `src/BuildingBlocks/Infrastructure`
+- `src/Modules/Identity`
+- `src/Modules/Authorization`
+- `src/Modules/Operations`
+- `src/Modules/Integrations`
+- `tests`
+- `docs/architecture`
 
-### Aşama C — Log Modeli
-- LogDbContext oluşturuldu
-- 7 log tablosu EF modeli tanımlandı
+### 2.2 Host.Api'nin Bugunku Gercek Rolü
 
-### Aşama D — Request Yaşam Döngüsü Loglama
-- CorrelationId middleware
-- RequestLifecycleLogging middleware
-- File + DB log birlikte
+`Host.Api` artik business mantik tasimak icin degil, sistemi birlestirmek icin vardir.
 
-### Aşama E — Immutable Log
-- LogDb migration ile UPDATE/DELETE bloklandı
-- Trigger tabanlı güvenlik aktif edildi
+Gorevleri:
 
-### Aşama F — 6 Seviye Yetki + T-Code
-- BusinessDbContext kuruldu
-- İngilizce tablo/kolon standardına geçildi
-- SYS01/SYS02/SYS03/SYS04 seed eklendi
-- Ara tablolar dahil audit abstraction zorunlu kılındı
+- `Program.cs`
+- middleware zinciri
+- authentication / authorization host configuration
+- exception handling registration
+- MVC assembly discovery
+- module registration
 
-### Aşama G — Dokümantasyon Standardı
-- project-map.md özet harita
-- project-book.md ana kitap
-- learning-log.md oturum şablonu
+`Host.Api` icinde kalmasi kabul edilmeyen seyler:
 
----
+- modül business service'leri
+- modül controller'lari
+- yetki karar motoru
+- operasyon sorgu servisleri
+- integration orchestration servisleri
 
-## Cilt 4 — Runtime Akışı (Uçtan Uca)
+### 2.3 BuildingBlocks Katmanlari
 
-### 4.1 API İsteği Akışı
-1. Request gelir
-2. CorrelationId atanır/taşınır
-3. Serilog request pipeline işler
-4. RequestLifecycle middleware request/response bilgisi toplar
-5. LogDb'ye yazar
-6. Yanıt döner
+#### SharedKernel
 
-### 4.2 Audit Akışı
-1. DbContext SaveChanges çağrılır
-2. ApplyAuditRules çalışır
-3. Added -> CreatedBy/CreatedAt
-4. Modified -> ModifiedBy/ModifiedAt
-5. Deleted -> soft delete + DeletedBy/DeletedAt
+Ortak domain ve audit tabani:
 
-### 4.3 Yetki Akışı (Hedeflenen)
-1. T-Code çözülür (SYS01 -> page)
-2. Level 1-2-3 erişim doğrulanır
-3. Level 4 company scope uygulanır
-4. Level 5 action permission uygulanır
-5. Level 6 condition permission query’ye yansıtılır
+- entity tabani
+- domain event kontratlari
+- audit / soft-delete kontratlari
 
----
+#### Application
 
-## Cilt 5 — Sınıf Haritası (Ana ve Yardımcı)
+Ortak uygulama sozlesmeleri:
 
-## 5.1 Ana Sınıflar
+- exception tipleri
+- security kontratlari
+- observability event kontratlari
+- pipeline arayuzleri
 
-### Program
-Görev:
-- Tüm bileşenleri ayağa kaldırma
+#### Infrastructure
 
-Neden:
-- Composition root tek olmalı
+Ortak teknik omurga:
 
-Hizmet ettiği konu:
-- Uygulama başlatma, middleware sıralaması
-
-### LogDbContext
-Görev:
-- Log şemasını map etmek
-
-Neden:
-- Log tabloları tek context altında yönetilsin
-
-Hizmet ettiği konu:
-- İzlenebilirlik, olay analizi
-
-### BusinessDbContext
-Görev:
-- Yetki modelini map etmek
-- Seed üretmek
-- Audit kurallarını otomatik uygulamak
-
-Neden:
-- Yetki + denetim tek yerde tutarlı yönetilsin
-
-Hizmet ettiği konu:
-- ERP benzeri erişim kontrolü
-
-## 5.2 Yardımcı Sınıflar
-
-### IAuditActorAccessor
-Görev:
-- Aktör bilgisini soyutlamak
-
-Neden:
-- Persistence katmanı HTTP’ye direkt bağımlı olmasın
-
-### HttpContextAuditActorAccessor
-Görev:
-- HTTP user’dan aktör bilgisini almak
-
-Neden:
-- CreatedBy/ModifiedBy güvenilir dolsun
-
-### AuditableIntEntity
-Görev:
-- Tüm entity'lerde ortak audit alanları
-
-Neden:
-- Ara tablolar dahil iz kaçmasın
-
-### CorrelationIdMiddleware
-Görev:
-- Correlation zinciri kurmak
-
-Neden:
-- Dağınık log yerine tek işlem izi
-
-### RequestLifecycleLoggingMiddleware
-Görev:
-- Request/response detaylarını loglamak
-
-Neden:
-- Denetleyici ve operasyonel takip güvenliği
+- `DbContext` altyapisi
+- interceptor'lar
+- merkezi log event writer
+- operational event publisher
+- notification routing
+- request execution pipeline implementasyonu
 
 ---
 
-## Cilt 6 — 6 Seviye Yetkilendirme Modeli
+## 3. Moduller
 
-### Level 1: Module
-- Table: Modules
-- Amaç: Üst modül erişimi
+### 3.1 Identity
 
-### Level 2: SubModule
-- Table: SubModules
-- Amaç: Alt modül erişimi
+Sorumluluklar:
 
-### Level 3: SubModulePage
-- Table: SubModulePages
-- Amaç: Ekran erişimi
-- Kritik alan: TransactionCode
+- auth lifecycle
+- user CRUD
+- role CRUD
+- role assignment
+- permission management
+- password policy
+- session lifecycle
 
-### Level 4: UserCompanyPermission
-- Table: UserCompanyPermissions
-- Amaç: Şirket kapsamı
+Detayli egitim rehberi:
 
-### Level 5: UserPageActionPermission
-- Table: UserPageActionPermissions
-- Amaç: Buton/kolon/işlem kontrolü
+- `docs/architecture/identity-module-training.md`
 
-### Level 6: UserPageConditionPermission
-- Table: UserPageConditionPermissions
-- Amaç: Veri filtresi (örn price <= 10000)
+### 3.2 Authorization
 
-Destek eşleme tabloları:
-- UserModulePermissions
-- UserSubModulePermissions
-- UserPagePermissions
+Sorumluluklar:
 
----
+- T-Code evaluation
+- permission authorization
+- action/condition enforcement
+- security policy bridge
 
-## Cilt 7 — T-Code Haritası
+Detayli egitim rehberi:
 
-Başlangıç seed:
-- SYS01 -> Create User
-- SYS02 -> Update User
-- SYS03 -> View User
-- SYS04 -> User Report
+- `docs/architecture/authorization-module-training.md`
 
-Bu harita BusinessDbContext seed içinde tanımlıdır.
+### 3.3 Operations
 
----
+Sorumluluklar:
 
-## Cilt 8 — Loglama ve Denetim Güvenliği
+- log query servisleri
+- audit dashboard
+- export endpoint'leri
+- session admin sorgulari
 
-### 8.1 Log Tabloları
-- database_query_logs
-- entity_change_logs
-- http_request_logs
-- page_visit_logs
-- performance_logs
-- security_event_logs
-- system_logs
+Detayli egitim rehberi:
 
-### 8.2 İmmutability
-- Update/Delete trigger ile engellenir
+- `docs/architecture/operations-module-training.md`
 
-### 8.3 Denetim İlkeleri
-- CorrelationId zorunlu
-- Error mesaj + stack saklanır
-- Actor bilgisi her kritik tabloda tutulur
+### 3.4 Integrations
+
+Sorumluluklar:
+
+- outbox
+- dispatcher
+- email/excel entegrasyon akislari
+- external gateway
+- notification channel entegrasyonlari
+
+Detayli egitim rehberi:
+
+- `docs/architecture/integrations-module-training.md`
 
 ---
 
-## Cilt 9 — İlişki Matrisi
+## 4. Service + CQRS Modeli Bu Projede Nasil Kullaniliyor
 
-1. Module (1) -> (N) SubModule
-2. SubModule (1) -> (N) SubModulePage
-3. User -> UserModulePermission -> Module
-4. User -> UserSubModulePermission -> SubModule
-5. User -> UserPagePermission -> SubModulePage
-6. User -> UserCompanyPermission -> Company scope
-7. User -> UserPageActionPermission -> action rights
-8. User -> UserPageConditionPermission -> data filter rights
+Bu projede CQRS bir slogan olarak degil, sorumluluk ayirici arac olarak kullaniliyor.
 
-Not:
-- User entity FK bağları Identity modülüne sonraki adımda taşınacak.
+### 4.1 Temel Kural
 
----
+- basit ve tek amacli operasyonlar: ayri command/query handler
+- tekrar eden ortak davranislar: pipeline
+- teknik altyapi: BuildingBlocks
 
-## Cilt 10 — Kod Ekleri (Çekirdek Dosyalar)
+### 4.2 Neden Boylesi Secildi
 
-Aşağıdaki dosyalar bu projede ana teknik omurgadır:
-- src/Host.Api/Program.cs
-- src/Host.Api/Middleware/CorrelationIdMiddleware.cs
-- src/Host.Api/Middleware/RequestLifecycleLoggingMiddleware.cs
-- src/Host.Api/Services/HttpContextAuditActorAccessor.cs
-- src/BuildingBlocks/Infrastructure/Persistence/LogDbContext.cs
-- src/BuildingBlocks/Infrastructure/Persistence/BusinessDbContext.cs
+Eskiden buyuk servisler birden fazla sorumluluk tasiyordu:
 
-Not:
-- Kaynak kod tek doğru referanstır; bu bölüm yönlendirme amaçlıdır.
+- list
+- create
+- update
+- deactivate
+- reactivate
+- delete
 
----
+Bu sorunlari doguruyordu:
 
-## Cilt 11 — Değişiklik Kayıt Formatı (Zorunlu)
+- servis sisligi
+- test zorlugu
+- bir degisikligin baska akislari etkilemesi
 
-Her mimari değişiklikten sonra aşağıdaki başlıklar doldurulur.
+Su anki ayrim:
 
-### 11.1 Change Record
-- Tarih:
-- Başlık:
-- Neyi değiştirdik:
-- Neden:
-- Etkilenen dosyalar:
-- Migration:
-- Build sonucu:
-- Risk:
+- `Users` akisi handler bazli
+- `Roles` akisi handler bazli
+- `Permissions` akisi handler bazli
 
-### 11.2 Architecture Delta
-- Yeni ana sınıf:
-- Yeni yardımcı sınıf:
-- Değişen ilişki:
-- Kaldırılan yapı:
-- Geri uyumluluk notu:
+Ama yine de bu bir `Vertical Slice` degil.
 
-### 11.3 Security Delta
-- Audit alanları etkisi:
-- Log güvenliği etkisi:
-- Yetki seviyeleri etkisi:
+Sebep:
+
+- modul siniri korunuyor
+- feature feature daginik mini proje yok
+- modul icinde command/query ayrimi var
+
+### 4.3 Pipeline'in Rolü
+
+Ortak `IRequestExecutionPipeline` su davranislari tek yerde toplar:
+
+- validation
+- pre-check
+- event uretimi
+- standart hata akislarini koruma
+
+Detay:
+
+- `docs/architecture/command-query-pipeline-training.md`
 
 ---
 
-## Cilt 12 — Bu Şablon Nasıl Güncellenecek?
+## 5. Guvenlik Omurgasi
 
-Kural zinciri:
-1. Kod değişikliği
-2. Build
-3. Migration (gerekirse)
-4. project-map güncelleme
-5. project-book güncelleme
-6. learning-log güncelleme
-7. commit
+### 5.1 Kimlik Dogrulama
 
-Eğer araya yeni bir aşama girerse:
-- Bu dosyada yeni Cilt açılır
-- Önceki Ciltte referans verilir
-- Değişen akış açıkça yazılır
+Sistem session-aware auth kullanir.
+
+Ana noktalar:
+
+- token valid mi?
+- session aktif mi?
+- user aktif mi?
+- gerekli claim'ler var mi?
+
+### 5.2 Yetkilendirme
+
+Iki ayri model beraber yasar:
+
+- role/policy bazli
+- T-Code / permission bazli
+
+### 5.3 Ikinci Savunma Hatti
+
+Controller attribute tek basina yeterli kabul edilmez.
+
+Bu nedenle request modelleri:
+
+- `ITCodeProtectedRequest`
+- `IPermissionProtectedRequest`
+
+arayuzlerini uygulayabilir.
+
+Pipeline'da calisan pre-check'ler:
+
+- `TCodeProtectedRequestPreCheck`
+- `PermissionProtectedRequestPreCheck`
+
+Bu sayede ayni command ileride farkli bir transport katmanindan cagrilsa bile guvenlik davranisi korunur.
+
+### 5.4 T-Code 6 Seviye Modeli
+
+1. module
+2. submodule
+3. page
+4. company scope
+5. action
+6. condition
+
+Bu model bugun deny seviyesini ve nedenini acik sekilde raporlayacak olgunluga getirilmis durumda.
+
+Action mantigi:
+
+- action kaydi yoksa geriye donuk uyumluluk korunur
+- action kaydi varsa istenen action acikca izinli olmalidir
+
+Condition mantigi:
+
+- request context ile veritabanindaki kosullar karsilastirilir
+- tatmin olmayan kosullar deny uretebilir
 
 ---
 
-## Cilt 13 — Mevcut Commit Akışı
+## 6. Veritabani Tasarimi
 
-- chore: initialize clean modular monolith skeleton
-- feat: add shared kernel entity, domain event, and auditing contracts
-- feat: add EF log schema and request lifecycle logging
-- feat: enforce immutable log tables and update db credentials
-- feat: add 6-level authorization model with audit abstraction and project map
-- docs: add live project book and map synchronization guide
+### 6.1 Eski Problem
+
+Eskiden tek `BusinessDbContext` cok fazla domain tasiyordu.
+
+Bu bounded context sinirlarini bozuyordu.
+
+### 6.2 Bugunku Durum
+
+Context ayrisma yonu acildi:
+
+- `IdentityDbContext`
+- `AuthorizationDbContext`
+- `IntegrationsDbContext`
+- `LogDbContext`
+
+Bu ayrim simdiden moduller arasi sahipligi netlestiriyor.
+
+### 6.3 Genel Sema
+
+#### Identity tarafi
+
+- `Users`
+- `Roles`
+- `UserRoles`
+- `UserSessions`
+- `UserPasswordHistories`
+- `UserRefreshTokens`
+
+#### Authorization tarafi
+
+- `Modules`
+- `SubModules`
+- `SubModulePages`
+- `UserModulePermissions`
+- `UserSubModulePermissions`
+- `UserPagePermissions`
+- `UserCompanyPermissions`
+- `UserPageActionPermissions`
+- `UserPageConditionPermissions`
+
+#### Integrations tarafi
+
+- `ExternalOutboxMessages`
+
+#### Log tarafi
+
+- `database_query_logs`
+- `entity_change_logs`
+- `http_request_logs`
+- `page_visit_logs`
+- `performance_logs`
+- `security_event_logs`
+- `system_logs`
 
 ---
 
-## Cilt 14 — Sonraki Yol Haritası
+## 7. Loglama, Hata ve Notification Omurgasi
 
-1. Identity modülü ile gerçek User FK bağlantısı
-2. Outbox + notification ile audit olay senkronizasyonu
-3. Condition parser sonucu query filter projection katmanına yansıtma
+### 7.1 Amaç
 
-Not: T-Code Resolver + authorization engine ilk sürümü tamamlandı.
-Not: Claim fallback + security_event_logs allow/deny kayıtları tamamlandı.
-Not: Condition Parser v2 tamamlandı (number/date/string operator desteği).
+Hedef su:
 
-Aktif endpoint:
-- GET /api/tcode/{transactionCode}?amount={decimal}
-- Opsiyonel query: userId, companyId
-- userId/companyId query verilmezse claim'den çözülür.
+- geliştirici her serviste "su logu da yazayim" diye dusunmesin
+- hata, log ve notification ayni olay omurgasindan aksin
+
+### 7.2 Bugunku Yapı
+
+Eklenen omurga:
+
+- `OperationalEvent`
+- `IOperationalEventPublisher`
+- `INotificationChannel`
+- routing options
+- merkezi log writer
+- request log middleware
+- entity change interceptor
+- operation logging filter
+
+### 7.3 Neler Otomatik
+
+- HTTP request log
+- performance log
+- page visit log
+- entity change log
+- SQL query log
+- command/query basari ve hata eventleri
+- global exception eventleri
+
+### 7.4 Notification Altyapisi
+
+Notification kanallari omurgasi acildi.
+
+Su an:
+
+- email
+- webhook
+
+kanallari mevcut.
+
+Bu tasarim yeni kanallara aciktir:
+
+- teams
+- slack
+- sms
+- in-app
+
+### 7.5 Hassas Veri Koruma
+
+Request log tarafinda merkezi redaction vardir.
+
+Maskelenen tipik alanlar:
+
+- `Authorization`
+- `Cookie`
+- `Set-Cookie`
+- `password`
+- `refreshToken`
+- `token`
+- `secret`
+
+Amaç:
+
+- denetim izi olsun
+- ama hassas veri sizmasin
 
 ---
 
-## Cilt 15 — Kısa Operasyon Rehberi
+## 8. Localization
+
+Localization hedef dilleri:
+
+- `tr-TR`
+- `en-US`
+- `de-DE`
+
+Bugunku uygulama:
+
+- JSON resource tabanli text localizer
+
+Temel hedef:
+
+- API mesajlarini standardize etmek
+- error code -> localized text akisini desteklemek
+- frontend ile ortak anahtar diline gecmek
+
+---
+
+## 9. Egitim ve Dokumantasyon Sistemi
+
+Bu proje sadece kodu degil, kodun anlatimini da ciddiye alir.
+
+### 9.1 Katmanlar
+
+#### Ust Seviye Haritalar
+
+- `project-map.md`
+- `project-book.md`
+
+#### Mimari Set
+
+- `docs/architecture/README.md`
+- `docs/architecture/current-state-target-state-guide.md`
+- diyagram dosyalari
+
+#### Modul Bazli Rehberler
+
+- `identity-module-training.md`
+- `authorization-module-training.md`
+- `operations-module-training.md`
+- `integrations-module-training.md`
+
+#### Ozel Konu Rehberleri
+
+- `command-query-pipeline-training.md`
+
+### 9.2 Kod Ici Aciklama Kuralı
+
+Her satir yorumlanmaz.
+
+Yorum eklenecek yerler:
+
+- kritik karar noktasi
+- akisin neden o sirayla kuruldugu
+- ikinci savunma hatti gibi niyet aciklayan alanlar
+- transaction ve retry gibi yan etki riski tasiyan kisimlar
+
+Amaç:
+
+- kodu gürültüyle doldurmamak
+- kritik karar mantigini gizlememek
+
+---
+
+## 10. Runtime Akislari
+
+### 10.1 Users.Create
+
+```text
+UsersController
+  -> CreateUserCommand
+  -> RequestExecutionPipeline
+    -> validator
+    -> TCode pre-check
+    -> CreateUserCommandHandler
+      -> Identity / Authorization tablolari
+    -> OperationalEventPublisher
+```
+
+### 10.2 T-Code Yetki Karari
+
+```text
+TCodeAuthorizationHandler
+  -> route/query/action bilgisi toplar
+  -> TCodeAuthorizationService
+    -> page/submodule/module cozer
+    -> level 1-6 kontrol eder
+    -> deny reason ve level uretir
+    -> security event publish eder
+```
+
+### 10.3 Outbox
+
+```text
+OutboxController
+  -> ExternalOutboxService
+    -> ExternalOutboxMessage kaydi
+  -> Background Dispatcher
+    -> dis servis
+    -> retry / dead-letter
+```
+
+### 10.4 Operations Dashboard
+
+```text
+Operations controller
+  -> query service
+    -> LogDb
+    -> IdentityDb
+  -> paged result / csv / dashboard summary
+```
+
+---
+
+## 11. Guncel Teknik Kazanimlar
+
+Bugune kadar tamamlanan ana kazanimlar:
+
+- host icinden modullere tasima
+- identity presentation gerceklestirme
+- authorization module extraction
+- operations module extraction
+- integrations module extraction
+- context ayrisma yonu
+- action + condition enforcement
+- merkezi observability backbone
+- notification backbone
+- common request execution pipeline
+- users / roles / permissions CQRS ayrimi
+- request pre-check ikinci savunma hatti
+- Turkce egitim dokumanlari ve kod ici aciklamalar
+
+---
+
+## 12. Halen Bilincli Olarak Acik Birakilan Noktalar
+
+Bu proje olgunlasti ama bitmedi.
+
+Acik noktalar:
+
+- daha fazla request validator standardizasyonu
+- daha fazla pre-check kullanimi
+- project-book ve project-map'in soru-cevap / diyagram seviyesini daha da buyutmek
+- localization ile exception mesajlari arasindaki tam bag
+- T-Code condition tarafinda filter/deny ayriminin daha da zenginlestirilmesi
+- outbox operasyonlari icin daha ileri notification policy'leri
+
+---
+
+## 13. Bir Sonraki Mantikli Adimlar
+
+1. `project-map.md` dosyasini yeni yapinin kisa ama gorsel ust seviye haritasina donusturmek
+2. localization egitim rehberi cikarmak
+3. error policy engine davranisini daha acik dokumante etmek
+4. yeni gelecek moduller icin standart onboarding sablonu cikarmak
+
+---
+
+## 14. Operasyonel Komutlar
 
 ### Build
-- dotnet build EnterpriseSystem.sln
 
-### BusinessDb Migration
-- dotnet ef migrations add <Name> --project src/BuildingBlocks/Infrastructure/Infrastructure.csproj --startup-project src/Host.Api/Host.Api.csproj --context Infrastructure.Persistence.BusinessDbContext --output-dir Persistence/Migrations/BusinessDb
-- dotnet ef database update --project src/BuildingBlocks/Infrastructure/Infrastructure.csproj --startup-project src/Host.Api/Host.Api.csproj --context Infrastructure.Persistence.BusinessDbContext
+- `dotnet build`
 
-### LogDb Migration
-- dotnet ef migrations add <Name> --project src/BuildingBlocks/Infrastructure/Infrastructure.csproj --startup-project src/Host.Api/Host.Api.csproj --context Infrastructure.Persistence.LogDbContext --output-dir Persistence/Migrations/LogDb
-- dotnet ef database update --project src/BuildingBlocks/Infrastructure/Infrastructure.csproj --startup-project src/Host.Api/Host.Api.csproj --context Infrastructure.Persistence.LogDbContext
+### Git Akisi
 
----
+Bu ortamda pratik karar:
 
-## Cilt 16 — Görsel Mimari Dosyaları
+1. kod degisikligi
+2. `dotnet build`
+3. `git add .`
+4. `git commit -m "..."`
+5. `git push`
 
-Bu proje artık görsel harita dosyaları da içerir:
+### Migration Yonu
 
-- docs/architecture/solution-tree.md
-- docs/architecture/solution-dependency.mmd
-- docs/architecture/request-log-flow.mmd
-- docs/architecture/authorization-6-level.mmd
-- docs/architecture/class-diagram-authz.puml
-- docs/architecture/sequence-tcode-access.puml
-
-Not:
-- Mermaid dosyaları akış/bağımlılık görselleri içindir.
-- PlantUML dosyaları sınıf ve sequence diyagramları içindir.
-- Yeni modül eklendiğinde önce bu dosyalar güncellenir, sonra proje-map/project-book güncellenir.
+Context bazli migration komutlari ilgili context'e gore calistirilir.
+Yeni context ayrisimi nedeniyle her migration'in sahibi modül/context bazli dusunulmelidir.
 
 ---
 
-Bu dosya canlıdır. Değişiklik oldukça revize edilir.
+## 15. Son Soz
 
----
+Bu kitap tek basina "dosya listesi" olmak icin yazilmadi.
+Amaci su:
 
-## Cilt 17 — Core Standartları (Modül Tak-Çalıştır)
+- sistemi bugunku haliyle dogru anlatmak
+- yarin buyurken ayni dili korumak
+- yeni giren gelistiricinin projeyi ayakta tutabilecek kadar baglam kazanmasini saglamak
 
-Bu ciltin amacı, yeni modül eklerken karar yükünü azaltmaktır.
-
-- Global hata yönetimi aktif: `GlobalExceptionHandler` + `ProblemDetails`
-- Request loglama aktif ve merkezi: `RequestLifecycleLoggingMiddleware`
-- Actor identity çözümü merkezi: `CurrentUserContext`
-- Audit actor merkezi: `HttpContextAuditActorAccessor`
-- Yetki kontrolü merkezi: `TCodeAuthorizationService`
-
-Modül ekleme adımları için referans:
-- docs/module-onboarding-playbook.md
-
----
-
-## Cilt 18 — Öncelik Sırası ve Hata Sözleşmesi
-
-Konu bütünlüğü için zorunlu öncelik sırası:
-
-1. DI yapısı (extension + Scrutor)
-2. Global exception handling
-3. Validation response standardı
-4. Modül geliştirme
-
-Bu aşamada tamamlananlar:
-- Known exception tipleri eklendi (AppException tabanı)
-- GlobalExceptionHandler status/errorCode bazlı standard response üretir
-- Model validation 400 yanıtları aynı sözleşmeye hizalandı
-
-Amaç:
-- Modül yazarken hata formatını tekrar tekrar düşünmemek
-- Frontend tarafında tek tip hata sözleşmesi ile ilerlemek
-
----
-
-## Cilt 19 — Kurumsal Omurga Master Planı
-
-Projenin "önce ne, sonra ne" akışı aşağıdaki dosyada faz bazlı tanımlıdır:
-
-- docs/enterprise-backbone-master-plan.md
-
-Bu plan şunları tek yerde toplar:
-- Roller/yetkiler/kullanıcılar güncel durum tablosu
-- Scalar test takvimi
-- Session, şifre politikası, rate limit ve operasyon yönetimi fazları
-- Denetim kapıları (audit/compliance gates)
-
----
-
-## Cilt 20 — Auth Lifecycle (Faz-3 Başlangıcı)
-
-Bu fazda aşağıdaki çekirdek parçalar eklendi:
-
-- `UserSessions` tablosu (oturum izleme)
-- Login endpoint (`/api/auth/login`)
-- Şifre değişim endpoint (`/api/auth/change-password`)
-- Session listeleme endpoint (`/api/sessions`)
-- Session revoke endpoint (`/api/sessions/{sessionId}/revoke`)
-
-Güvenlik notu:
-- Login ve session lifecycle olayları `security_event_logs` tablosuna kaydedilir.
-- Şifre politikası başlangıcı olarak 90 gün expiration + `MustChangePassword` akışı uygulanır.
-
----
-
-## Cilt 21 — Rate Limit + Operasyonel Log Sorgu Katmanı
-
-Bu fazda eklenenler:
-
-- Global rate limit policy
-- Auth endpointleri için sıkı rate limit policy (`auth-strict`)
-- 429 yanıtları için standard payload (`errorCode=rate_limited`)
-- Operasyon log sorgu endpointleri:
-	- `/api/ops/logs/system`
-	- `/api/ops/logs/security`
-	- `/api/ops/logs/http`
-
-Amaç:
-- API kötüye kullanımını sınırlamak
-- Yönetim arayüzünden log/denetim kayıtlarını filtrelenebilir şekilde izlemek
-
----
-
-## Cilt 22 — Dış Servis Entegrasyon Omurgası
-
-Bu fazda eklenenler:
-
-- External service options (`ExternalServices:ReferenceApi`)
-- Named HttpClient (`reference-api`)
-- Resilience politikaları:
-	- Retry
-	- Circuit Breaker
-	- Timeout
-- Outbound çağrıların `system_logs` tablosuna yazılması
-- Test endpoint:
-	- `/api/integrations/reference/company/{externalId}`
-
-Amaç:
-- Dış sistemlerden veri çekerken dayanıklılık ve izlenebilirlik sağlamak
-- Yönetim odaklı operasyonlarda dış servis hatalarını merkezi izleyebilmek
-
----
-
-## Cilt 23 — Audit ve Session Admin Operasyonları
-
-Bu fazda yönetim odaklı sorgu katmanına aşağıdaki endpointler eklendi:
-
-- `/api/ops/logs/entity-changes`
-- `/api/ops/logs/entity-changes/export` (CSV)
-- `/api/ops/logs/sessions`
-
-Kazanım:
-- Entity değişim kayıtlarını UI'dan filtreleyerek izleme
-- Denetim için CSV export alma
-- Session kayıtlarını admin perspektifinden listeleme
-
----
-
-## Cilt 24 — Session Token Authentication Pipeline
-
-Bu fazda eklendi:
-
-- `SessionBearer` authentication handler
-- `UseAuthentication` + `UseAuthorization` pipeline aktivasyonu
-- Controller bazlı `[Authorize]` koruması
-- Login endpoint için `[AllowAnonymous]`
-- Change-password akışında "sadece kendi hesabını değiştir" kontrolü
-
-Amaç:
-- Role/permission enforcement öncesi gerçek kimlik doğrulama musluğunu açmak
-- Revoke/expiry durumlarında erişimi request anında kesebilmek
-
----
-
-## Cilt 25 — Role/Permission Policy Enforcement Bridge
-
-Bu fazda eklendi:
-
-- Dinamik `TCode:*` policy sağlayan `TCodeAuthorizationPolicyProvider`
-- Policy requirement modeli `TCodeRequirement`
-- Kullanım attribute'u `[TCodeAuthorize("...")]`
-- Policy engine ile mevcut T-Code servis köprüsü `TCodeAuthorizationHandler`
-
-Uygulanan korumalar:
-
-- `UsersController.List` -> `SYS03`
-- `UsersController.Create` -> `SYS01`
-- `RolesController` -> sadece `SYS_ADMIN`
-- `OperationsLogsController` -> `SYS_ADMIN` veya `SYS_OPERATOR`
-
-Amaç:
-- Authentication sonrası authorization katmanını işlem kodu + rol düzeyinde zorlamak
-- Yönetim API'lerinde minimum yetki ilkesini uygulamak
-
----
-
-## Cilt 26 — Authorization Hardening (Claim Standardization)
-
-Bu fazda eklendi:
-
-- `SecurityClaimTypes` ile claim anahtarları merkezileştirildi.
-- `SessionAuthenticationHandler` claim üretimi bu sabitlere taşındı.
-- `TCodeAuthorizationHandler` içinde claim okuma sabitlere taşındı.
-- Authorization karar çağrısında `RequestAborted` kullanımı eklendi (cancel-aware).
-- `TCodeAuthorize` attribute boş/null transaction code için fail-fast doğrulama alıyor.
-
-Amaç:
-- Sessiz claim drift riskini kapatmak
-- Uzun isteklerde iptal zincirini authorization katmanına kadar taşımak
-
----
-
-## Cilt 27 — Endpoint Authorization Policy Matrix
-
-Bu fazda eklendi:
-
-- Tüm API endpoint'leri için tek kaynak yetki matrisi:
-	- `docs/authorization-policy-matrix.md`
-- Matrise authentication, role ve T-Code kuralları ayrı sütunlarla işlendi.
-- Anonymous istisna endpoint'leri (login) açıkça işaretlendi.
-
-Amaç:
-- Yeni endpoint eklendiğinde yetki boşluğu bırakmamak
-- Kod inceleme ve denetimlerde “hangi endpoint hangi kuralla korunuyor” sorusunu tek dosyadan yanıtlamak
-
----
-
-## Cilt 28 — CI Security Guard (Zero-Leak Mode)
-
-Bu fazda eklendi:
-
-- `tests/UnitTests` test projesi çözüme dahil edildi.
-- Reflection tabanlı guard testi yazıldı:
-	- `tests/UnitTests/AuthorizationGuardTests.cs`
-- Guard kuralları:
-	- `[AllowAnonymous]` sadece allow-list endpoint'lerde serbest
-	- Endpoint'lerde `[Authorize]` zorunlu
-	- Mutating endpoint'lerde role veya T-Code enforcement zorunlu
-	- Self-service istisnaları açık allow-list ile tanımlı
-
-Servis katmanı sertleştirmesi:
-
-- `AuthLifecycleService.ChangePasswordAsync` artık authenticated user id çözülmeden devam etmez.
-- `AuthLifecycleService.RevokeSessionAsync` artık:
-	- kullanıcı kendi session'ını revoke edebilir,
-	- `SYS_ADMIN` / `SYS_OPERATOR` başka kullanıcının session'ını revoke edebilir,
-	- yetkisiz denemeyi security event olarak loglar ve `Forbidden` döner.
-
-Amaç:
-- Kod review kaçırsa bile CI aşamasında güvenlik boşluğunu merge öncesi durdurmak
-- Yetki ihlali denemelerini hem engellemek hem de denetlenebilir log izi bırakmak
-
----
-
-## Cilt 29 — Pipeline Enforcement (GitHub Actions)
-
-Bu fazda eklendi:
-
-- GitHub Actions workflow dosyası:
-	- `.github/workflows/ci.yml`
-- Pipeline adımları:
-	- `dotnet restore EnterpriseSystem.sln`
-	- `dotnet build EnterpriseSystem.sln --configuration Release --no-restore`
-	- `dotnet test EnterpriseSystem.sln --configuration Release --no-build`
-
-Amaç:
-- Authorization guard testini lokal zorunluluktan çıkarıp PR/push aşamasında otomatik güvenlik kapısı haline getirmek
-- Build + test geçmeden merge edilmesini engellemek
-
----
-
-## Cilt 30 — Authorization OR Modeli (T-Code / Role / Permission)
-
-Bu fazda eklendi:
-
-- Permission tabanlı dinamik policy attribute:
-	- `PermissionAuthorizeAttribute` (`Permission:*`)
-- Permission requirement/handler:
-	- `PermissionRequirement`
-	- `PermissionAuthorizationHandler`
-- Dynamic policy provider genişletmesi:
-	- `TCodeAuthorizationPolicyProvider` artık `Permission:*` policy adlarını da çözümler.
-- CI guard güncellemesi:
-	- Mutating endpoint enforcement artık `Role OR T-Code OR Permission` olarak doğrulanır.
-
-Amaç:
-- Endpoint güvenliğini tek tipe bağlamadan (yalnızca T-Code gibi) kurumsal esneklik sağlamak
-- Farklı işlem türlerinde en uygun enforcement tipini seçebilmek
-
----
-
-## Cilt 31 — Permission Management API (Admin)
-
-Bu fazda eklendi:
-
-- Admin tarafından user action permission yönetimi için endpoint:
-	- `GET /api/permissions/actions`
-	- `POST /api/permissions/actions`
-- Uygulama servisi:
-	- `IUserPermissionService`
-	- `UserPermissionService`
-- Contract seti:
-	- `UpsertUserActionPermissionRequest`
-	- `UserActionPermissionQueryRequest`
-	- `UserActionPermissionDto`
-
-Kurallar:
-
-- Endpointler `SYS_ADMIN` role koruması ile çalışır.
-- Upsert işlemi `subModulePageId` veya `transactionCode` ile sayfa çözümleyebilir.
-- `ActionCode` normalize edilerek (`UPPER`) saklanır.
-
-Amaç:
-- PermissionAuthorize altyapısını işletilebilir hale getirmek
-- Role/T-Code dışında permission tabanlı endpoint yetkilerini yönetim API’si ile sürdürülebilir yapmak
-
----
-
-## Cilt 32 — Permission Claim Acceleration
-
-Bu fazda eklendi:
-
-- Session authentication aşamasında kullanıcı action permission kayıtları claim'e yazılıyor (`permission`).
-- `PermissionAuthorizationHandler` akışı optimize edildi:
-	- Önce claim üzerinden hızlı doğrulama
-	- Claim yoksa DB fallback kontrolü
-
-Amaç:
-- Permission policy kararlarında gereksiz DB erişimini azaltmak
-- Claim ve kalıcı izin kaydı arasında güvenli fallback ile tutarlılığı korumak
-
----
-
-## Cilt 33 — Login Effective Authorization Summary
-
-Bu fazda eklendi:
-
-- Login response modeli genişletildi:
-	- `EffectiveAuthorizationSummary`
-	- Alanlar: `Roles`, `TransactionCodes`, `Permissions`
-- `AuthLifecycleService.LoginAsync` artık girişte bu üç listeyi hesaplayıp response içine yazar.
-- Aynı özet security event payload'ına dahil edilir.
-
-Amaç:
-- UI tarafının menü/ekran/buton kararını tek login çağrısı ile alabilmesi
-- Session açılışında kullanıcının efektif yetki görünümünü standartlaştırmak
-
----
-
-## Cilt 34 — Auth OpenAPI Contract Visibility
-
-Bu fazda eklendi:
-
-- `AuthController` endpoint'leri OpenAPI için typed response metadata ile güçlendirildi.
-- `POST /api/auth/login`:
-	- `ActionResult<LoginResponse>` imzası
-	- `ProducesResponseType` ile 200/400/403 sözleşmesi
-- `POST /api/auth/change-password`:
-	- `ProducesResponseType` ile 204/400/403/404 sözleşmesi
-	- endpoint özetleri (XML summary) eklendi
-
-Amaç:
-- Scalar/OpenAPI ekranında login response modelini (effective authorization dahil) açık ve tıklanabilir hale getirmek
-- Tüketici tarafların response/exception sözleşmesini net görmesini sağlamak
-
----
-
-## Cilt 35 — Sessions & Permissions OpenAPI Standardization
-
-Bu fazda eklendi:
-
-- `SessionsController` için typed response ve response metadata:
-	- `GET /api/sessions` -> `ActionResult<IReadOnlyList<SessionListItemDto>>`
-	- `POST /api/sessions/{sessionId}/revoke` -> 204 + problem response sözleşmeleri
-- `PermissionsController` için typed response ve response metadata:
-	- `GET /api/permissions/actions` -> `ActionResult<IReadOnlyList<UserActionPermissionDto>>`
-	- `POST /api/permissions/actions` -> `ActionResult<UserActionPermissionDto>`
-- Her endpoint'e kısa XML summary açıklamaları eklendi.
-
-Amaç:
-- Auth dışındaki yönetim endpoint’lerinde de OpenAPI sözleşme görünürlüğünü aynı standarda getirmek
-- UI/entegrasyon ekiplerinin response tiplerini ve hata kodlarını doğrudan dokümandan görebilmesini sağlamak
-
----
-
-## Cilt 36 — Operations & Integrations OpenAPI Standardization
-
-Bu fazda eklendi:
-
-- `OperationsLogsController` endpoint’leri typed response + `ProducesResponseType` ile standartlaştırıldı.
-	- System/Security/Http/EntityChanges/Sessions -> `PagedResult<...>` sözleşmeleri
-	- EntityChanges export -> dosya response metadata
-- `IntegrationsController` endpoint’i typed response ve hata sözleşmeleri ile güncellendi.
-	- `GET /api/integrations/reference/company/{externalId}` -> `ReferenceCompanyDto`
-
-Amaç:
-- Operasyon ve entegrasyon endpoint’lerinde OpenAPI görünürlüğünü auth/sessions/permissions ile aynı seviyeye getirmek
-- Tüketici ekiplerin response tiplerini ve beklenen hata durumlarını tek doküman üzerinden net görmesini sağlamak
-
----
-
-## Cilt 37 — Users / Roles / TCode OpenAPI Completion Sweep
-
-Bu fazda eklendi:
-
-- `UsersController` typed response + response metadata standardizasyonu
-	- `GET /api/users` -> `IReadOnlyList<UserListItemDto>`
-	- `POST /api/users` -> `CreatedUserDto`
-- `RolesController` typed response + response metadata standardizasyonu
-	- list/create/assign/list-user-roles endpoint'lerinde açık sözleşme
-- `TCodeController` typed response + response metadata standardizasyonu
-	- `GET /api/tcode/{transactionCode}` -> `TCodeAccessResult`
-	- 200/403/400/401 sözleşmeleri
-
-Amaç:
-- Controller yüzeyinin tamamında OpenAPI sözleşme tutarlılığını bitirmek
-- UI ve entegrasyon tüketicilerinin endpoint bazında başarı/hata tiplerini tek standartta görmesini sağlamak
-
----
-
-## Cilt 38 — Password Policy Hardening (History + Complexity + Reuse Lock)
-
-Bu fazda eklendi:
-
-- Yeni kalıcı model:
-	- `UserPasswordHistory` (kullanıcı şifre geçmiş hash kayıtları)
-- Yeni policy servis katmanı:
-	- `IPasswordPolicyService`
-	- `PasswordPolicyService`
-- Konfigürasyon:
-	- `PasswordPolicy` bölümü (`MinLength`, `RequireUppercase`, `RequireLowercase`, `RequireDigit`, `RequireSpecialCharacter`, `HistoryCount`, `MinimumPasswordAgeMinutes`)
-
-Enforcement noktaları:
-
-- `UserManagementService.CreateAsync`
-	- Şifre complexity kontrolü
-	- Kullanıcı oluşturulduktan sonra ilk hash'in history tablosuna yazılması
-- `AuthLifecycleService.ChangePasswordAsync`
-	- Complexity + recent history reuse kontrolü
-	- Minimum password age kontrolü (reuse lock)
-	- Başarılı değişimde yeni hash'in history tablosuna yazılması
-	- Policy ihlalinin security event olarak loglanması
-
-Amaç:
-- Zayıf şifre kullanımını engellemek
-- Son N şifre tekrarını bloke etmek
-- Kısa sürede peş peşe şifre döndürerek policy atlatma girişimlerini azaltmak
-
----
-
-## Cilt 39 — Password Policy Ops Endpoint
-
-Bu fazda eklendi:
-
-- `GET /api/ops/security/password-policy` endpoint'i
-	- Sadece `SYS_ADMIN`
-	- Aktif policy değerlerini snapshot olarak döner
-- Yeni DTO:
-	- `PasswordPolicySnapshotDto`
-
-Amaç:
-- Operasyon ekibinin canlı policy değerlerini (min length, history, min age vb.) API üzerinden doğrulayabilmesi
-- Konfigürasyon drift riskini azaltmak
-
----
-
-## Cilt 40 — Password Policy Preview Simulation
-
-Bu fazda eklendi:
-
-- `PUT /api/ops/security/password-policy` preview endpoint'i
-	- Runtime config update yapmaz
-	- Önerilen policy değerlerini doğrular
-	- Örnek şifre listesi üzerinde compliance simülasyonu üretir
-- Dönen çıktı:
-	- `IsValidConfiguration`
-	- `ValidationErrors`
-	- `Warnings`
-	- `SampleEvaluations`
-
-Amaç:
-- Policy değişikliği öncesi etki analizi yapmak
-- Canlıya riskli konfigürasyon taşımadan önce güvenli dry-run mekanizması sağlamak
-
----
-
-## Cilt 41 — Host.Api.http Operational Templates
-
-Bu fazda eklendi:
-
-- `Host.Api.http` dosyası operasyon kullanımına uygun örneklerle genişletildi:
-	- `POST /api/auth/login`
-	- `GET /api/ops/security/password-policy`
-	- `PUT /api/ops/security/password-policy` (preview simulation)
-	- `GET /api/sessions`
-- `SessionToken` değişkeni üzerinden yetkili endpoint çağrıları standardize edildi.
-
-Amaç:
-- Operasyon ve geliştirme ekiplerinin yeni security endpoint’lerini hızlı test edebilmesini sağlamak
-- Preview/snapshot akışlarının manuel doğrulamasını kolaylaştırmak
-
----
-
-## Cilt 42 — Security E2E HTTP Templates Completion
-
-Bu fazda eklendi:
-
-- `Host.Api.http` dosyasına aşağıdaki güvenlik akışları eklendi:
-	- `GET /api/users` (T-Code protected)
-	- `POST /api/permissions/actions` (permission upsert)
-	- `GET /api/permissions/actions` (permission list)
-	- `GET /api/tcode/{transactionCode}` (authorization resolve simulation)
-
-Amaç:
-- Security omurgasının (role + t-code + permission + preview) uçtan uca manuel test setini tek dosyada tamamlamak
-- Operasyon/demo/debug süreçlerinde endpoint keşif ve doğrulama süresini düşürmek
-
----
-
-## Cilt 43 — Negative Security HTTP Templates
-
-Bu fazda eklendi:
-
-- `Host.Api.http` dosyasına negatif test senaryoları eklendi:
-	- Unauthorized snapshot (`401`)
-	- Non-admin token ile forbidden snapshot (`403`)
-	- Geçersiz preview config (response içinde `IsValidConfiguration=false`)
-	- Eksik query ile T-Code resolve bad request (`400`)
-
-Amaç:
-- Operasyon ekibinin yalnızca başarılı değil, başarısız güvenlik senaryolarını da hızlı doğrulayabilmesi
-- Yetki/policy regressions durumunda beklenen hata davranışını standart şekilde test edebilmek
-
----
-
-## Cilt 44 — Audit Dashboard API Aggregation
-
-Bu fazda eklendi:
-
-- `GET /api/ops/audit/dashboard/summary` endpoint'i
-- `IAuditDashboardService` + `AuditDashboardService`
-- Toplanan KPI seti:
-	- Son pencere `SystemErrorCount`
-	- `FailedLoginCount`
-	- Saatlik `FailedLoginTrend`
-	- `SessionRevokeRatePercent`
-	- `TopCriticalEvents` (ilk 10)
-
-Amaç:
-- Dashboard ekranının tek çağrıda özet KPI verisi alması
-- Log endpoint'lerini UI tarafında dağınık çağırma ihtiyacını azaltmak
-
----
-
-## Cilt 45 — External Integration Outbox + Mail/Excel Services
-
-Bu fazda eklendi:
-
-- Outbox kalıcı modeli:
-	- `ExternalOutboxMessage`
-- Queue servis katmanı:
-	- `IExternalOutboxService` + `ExternalOutboxService`
-- Dispatcher worker:
-	- `ExternalOutboxDispatcherService` (`BackgroundService`)
-	- retry/backoff/dead-letter davranışı
-- İşleyici servisler:
-	- `IEmailDeliveryService` + `EmailDeliveryService` (log-only dispatch)
-	- `IExcelReportComposerService` + `ExcelReportComposerService` (CSV üretimi)
-- Operasyon endpoint'leri:
-	- `POST /api/ops/outbox/mail`
-	- `POST /api/ops/outbox/excel`
-- Kullanıcı oluşturma akışında opsiyonel admin mail kuyruğu:
-	- `CreateUserRequest.NotifyAdminByMail`
-	- `CreateUserRequest.AdminEmail`
-
-Amaç:
-- Dış entegrasyon çağrılarını transaction-safe kuyruk desenine taşımak
-- Mail ve rapor süreçlerini dayanıklı, retry edilebilir akışa almak
-
----
-
-## Cilt 46 — Hata Dili Standardı (Türkçe)
-
-Bu fazda eklendi:
-
-- Global exception handler log metinleri Türkçeleştirildi.
-- ProblemDetails başlık eşlemeleri genişletildi:
-	- `401` -> "Kimlik doğrulaması gerekli."
-	- `429` -> "Çok fazla istek gönderildi."
-
-Amaç:
-- API hata dili ve operasyon loglarının kurumsal Türkçe standardıyla tutarlı olması
-
----
-
-## Cilt 47 — Outbox Monitoring Endpoint
-
-Bu fazda eklendi:
-
-- `GET /api/ops/outbox/messages` endpoint'i
-	- status/eventType/search filtreleri
-	- sayfalı sonuç (`OutboxPagedResult`)
-- Outbox servis katmanında mesaj listeleme yeteneği eklendi.
-
-Amaç:
-- Pending/Failed/DeadLetter mesajlarını operasyon ekibinin API üzerinden anlık izleyebilmesi
-- Outbox retry/dead-letter davranışını şeffaf hale getirmek
+Bu dosya canlidir.
+Kod degistikce bu kitap da degisir.
