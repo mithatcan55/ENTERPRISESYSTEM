@@ -24,8 +24,8 @@ public sealed class TCodeController(
         [FromQuery] int? companyId,
         [FromQuery] string? actionCode,
         [FromQuery] decimal? amount,
-        [FromQuery] bool denyOnUnsatisfiedConditions = true,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken,
+        [FromQuery] bool denyOnUnsatisfiedConditions = true)
     {
         if (string.IsNullOrWhiteSpace(transactionCode))
         {
