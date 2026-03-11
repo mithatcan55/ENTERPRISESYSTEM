@@ -1,7 +1,8 @@
 using Infrastructure.Persistence;
 using Infrastructure.Persistence.Entities;
+using Integrations.Application.Services;
 
-namespace Host.Api.Integrations.Services;
+namespace Integrations.Infrastructure.Services;
 
 public sealed class EmailDeliveryService(LogDbContext logDbContext) : IEmailDeliveryService
 {

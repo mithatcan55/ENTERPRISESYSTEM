@@ -1,7 +1,8 @@
-using Host.Api.Integrations.Contracts;
 using Identity.Application.Services;
+using Integrations.Application.Contracts;
+using Integrations.Application.Services;
 
-namespace Host.Api.Integrations.Services;
+namespace Integrations.Infrastructure.Services;
 
 public sealed class IdentityNotificationService(IExternalOutboxService externalOutboxService) : IIdentityNotificationService
 {

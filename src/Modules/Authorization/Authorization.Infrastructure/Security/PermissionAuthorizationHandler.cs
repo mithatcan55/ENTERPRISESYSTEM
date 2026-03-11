@@ -7,7 +7,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Authorization.Infrastructure.Security;
 
-public sealed class PermissionAuthorizationHandler(BusinessDbContext businessDbContext)
+public sealed class PermissionAuthorizationHandler(AuthorizationDbContext authorizationDbContext)
     : AuthorizationHandler<PermissionRequirement>
 {
     protected override async Task HandleRequirementAsync(AuthorizationHandlerContext context, PermissionRequirement requirement)
@@ -39,7 +39,7 @@ public sealed class PermissionAuthorizationHandler(BusinessDbContext businessDbC
             return;
         }
 
-        var isAllowed = await businessDbContext.UserPageActionPermissions
+        var isAllowed = await authorizationDbContext.UserPageActionPermissions
             .AsNoTracking()
             .AnyAsync(
                 x => x.UserId == userId

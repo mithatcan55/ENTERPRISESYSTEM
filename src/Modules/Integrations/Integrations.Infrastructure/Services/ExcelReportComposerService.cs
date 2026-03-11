@@ -1,7 +1,8 @@
 using System.Text;
-using Host.Api.Integrations.Contracts;
+using Integrations.Application.Contracts;
+using Integrations.Application.Services;
 
-namespace Host.Api.Integrations.Services;
+namespace Integrations.Infrastructure.Services;
 
 public sealed class ExcelReportComposerService : IExcelReportComposerService
 {

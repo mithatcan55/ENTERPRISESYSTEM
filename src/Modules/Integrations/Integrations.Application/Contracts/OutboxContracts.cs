@@ -1,4 +1,4 @@
-namespace Host.Api.Integrations.Contracts;
+namespace Integrations.Application.Contracts;
 
 public static class OutboxEventTypes
 {

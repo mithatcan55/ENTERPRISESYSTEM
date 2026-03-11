@@ -2,8 +2,6 @@ using Application.Exceptions;
 using Application.Security;
 using Host.Api.Configuration;
 using Host.Api.Exceptions;
-using Host.Api.Integrations.Configuration;
-using Host.Api.Integrations.Services;
 using Host.Api.Localization;
 using Host.Api.Middleware;
 using Host.Api.Observability;
@@ -17,10 +15,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
-using Polly;
-using Polly.Extensions.Http;
 using System.Text;
 using System.Text.Json;
 using System.Threading.RateLimiting;
@@ -194,7 +189,7 @@ public static class HostServiceCollectionExtensions
         services.Scan(scan => scan
             .FromAssemblyOf<HostAssemblyMarker>()
             .AddClasses(classes => classes
-                .InNamespaces("Host.Api.Services", "Host.Api.Integrations.Services", "Host.Api.Security")
+                .InNamespaces("Host.Api.Services", "Host.Api.Security")
                 .Where(type => type.Name.EndsWith("Service", StringComparison.Ordinal)
                             || type.Name.EndsWith("Accessor", StringComparison.Ordinal)
                             || type.Name.EndsWith("Context", StringComparison.Ordinal)
@@ -202,10 +197,6 @@ public static class HostServiceCollectionExtensions
                 .Where(type => !typeof(IHostedService).IsAssignableFrom(type)))
             .AsImplementedInterfaces()
             .WithScopedLifetime());
-
-        services.AddOptions<ExternalServicesOptions>()
-            .BindConfiguration("ExternalServices")
-            .ValidateDataAnnotations();
 
         services.AddOptions<PasswordPolicyOptions>()
             .BindConfiguration(PasswordPolicyOptions.SectionName)
@@ -217,22 +208,7 @@ public static class HostServiceCollectionExtensions
                 "Jwt:SigningKey en az 32 karakter olmalıdır.")
             .ValidateDataAnnotations();
 
-        services.AddHttpClient("reference-api", (serviceProvider, client) =>
-            {
-                var options = serviceProvider.GetRequiredService<IOptions<ExternalServicesOptions>>().Value;
-                client.BaseAddress = new Uri(options.ReferenceApi.BaseUrl);
-                client.Timeout = TimeSpan.FromSeconds(options.ReferenceApi.TimeoutSeconds <= 0 ? 5 : options.ReferenceApi.TimeoutSeconds);
-            })
-            .AddPolicyHandler(HttpPolicyExtensions
-                .HandleTransientHttpError()
-                .WaitAndRetryAsync(3, retryAttempt => TimeSpan.FromMilliseconds(200 * retryAttempt)))
-            .AddPolicyHandler(HttpPolicyExtensions
-                .HandleTransientHttpError()
-                .CircuitBreakerAsync(5, TimeSpan.FromSeconds(30)))
-            .AddPolicyHandler(Policy.TimeoutAsync<HttpResponseMessage>(TimeSpan.FromSeconds(6)));
-
         services.AddHostedService<CoreBootstrapHostedService>();
-        services.AddHostedService<ExternalOutboxDispatcherService>();
 
         return services;
     }

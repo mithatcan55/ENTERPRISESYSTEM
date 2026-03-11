@@ -4,6 +4,8 @@ using Host.Api.DependencyInjection;
 using Identity.Presentation.DependencyInjection;
 using Identity.Infrastructure.DependencyInjection;
 using Infrastructure.DependencyInjection;
+using Integrations.Infrastructure.DependencyInjection;
+using Integrations.Presentation.DependencyInjection;
 using Host.Api.Middleware;
 using Operations.Infrastructure.DependencyInjection;
 using Operations.Presentation.DependencyInjection;
@@ -43,9 +45,11 @@ builder.Services.AddInfrastructurePersistence(builder.Configuration);
 mvcBuilder.AddIdentityPresentationModule();
 mvcBuilder.AddAuthorizationPresentationModule();
 mvcBuilder.AddOperationsPresentationModule();
+mvcBuilder.AddIntegrationsPresentationModule();
 builder.Services.AddIdentityInfrastructureModule();
 builder.Services.AddAuthorizationInfrastructureModule();
 builder.Services.AddOperationsInfrastructureModule();
+builder.Services.AddIntegrationsInfrastructureModule(builder.Configuration);
 
 var app = builder.Build();
 

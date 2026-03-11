@@ -1,18 +1,15 @@
-using Host.Api.Integrations.Services;
-using Host.Api.Integrations.Contracts;
+using Integrations.Application.Contracts;
+using Integrations.Application.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
-namespace Host.Api.Controllers;
+namespace Integrations.Presentation.Controllers;
 
 [ApiController]
 [Route("api/integrations/reference")]
 [Authorize]
 public sealed class IntegrationsController(IExternalDataGateway externalDataGateway) : ControllerBase
 {
-    /// <summary>
-    /// Harici referans servisinden şirket bilgisini getirir.
-    /// </summary>
     [HttpGet("company/{externalId:int}")]
     [ProducesResponseType(typeof(ReferenceCompanyDto), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status401Unauthorized)]

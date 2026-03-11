@@ -27,6 +27,8 @@
     <ProjectReference Include="..\Modules\Authorization\Authorization.Infrastructure\Authorization.Infrastructure.csproj" />
     <ProjectReference Include="..\Modules\Identity\Identity.Presentation\Identity.Presentation.csproj" />
     <ProjectReference Include="..\Modules\Identity\Identity.Infrastructure\Identity.Infrastructure.csproj" />
+    <ProjectReference Include="..\Modules\Integrations\Integrations.Presentation\Integrations.Presentation.csproj" />
+    <ProjectReference Include="..\Modules\Integrations\Integrations.Infrastructure\Integrations.Infrastructure.csproj" />
     <ProjectReference Include="..\Modules\Operations\Operations.Presentation\Operations.Presentation.csproj" />
     <ProjectReference Include="..\Modules\Operations\Operations.Infrastructure\Operations.Infrastructure.csproj" />
     <ProjectReference Include="..\BuildingBlocks\Infrastructure\Infrastructure.csproj" />

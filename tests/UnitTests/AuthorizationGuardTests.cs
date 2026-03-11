@@ -2,6 +2,7 @@ using System.Reflection;
 using Authorization.Application.Security;
 using Authorization.Presentation.Controllers;
 using Identity.Presentation.Controllers;
+using Integrations.Presentation.Controllers;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Routing;
@@ -29,7 +30,7 @@ public sealed class AuthorizationGuardTests
         {
             typeof(AuthController).Assembly,
             typeof(TCodeController).Assembly,
-            typeof(Host.Api.Controllers.OutboxController).Assembly
+            typeof(OutboxController).Assembly
         };
 
         var controllerTypes = controllerAssemblies

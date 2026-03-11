@@ -1,6 +1,6 @@
 using Application.Exceptions;
-using Host.Api.Integrations.Contracts;
-using Host.Api.Integrations.Services;
+using Integrations.Application.Contracts;
+using Integrations.Infrastructure.Services;
 
 namespace UnitTests;
 

@@ -7,7 +7,7 @@ namespace Operations.Infrastructure.Services;
 
 public sealed class AuditDashboardService(
     LogDbContext logDbContext,
-    BusinessDbContext businessDbContext) : IAuditDashboardService
+    IdentityDbContext identityDbContext) : IAuditDashboardService
 {
     public async Task<AuditDashboardSummaryDto> GetSummaryAsync(int windowHours, CancellationToken cancellationToken)
     {
@@ -38,11 +38,11 @@ public sealed class AuditDashboardService(
             .Select(g => new HourlyMetricDto(g.Key, g.Count()))
             .ToList();
 
-        var startedSessions = await businessDbContext.UserSessions
+        var startedSessions = await identityDbContext.UserSessions
             .AsNoTracking()
             .CountAsync(x => !x.IsDeleted && x.StartedAt >= start.UtcDateTime, cancellationToken);
 
-        var revokedSessions = await businessDbContext.UserSessions
+        var revokedSessions = await identityDbContext.UserSessions
             .AsNoTracking()
             .CountAsync(x => !x.IsDeleted && x.StartedAt >= start.UtcDateTime && x.IsRevoked, cancellationToken);
 

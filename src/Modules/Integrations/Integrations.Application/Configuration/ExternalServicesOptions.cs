@@ -1,4 +1,4 @@
-namespace Host.Api.Integrations.Configuration;
+namespace Integrations.Application.Configuration;
 
 public sealed class ExternalServicesOptions
 {

@@ -9,7 +9,7 @@ using System.Text.Json;
 namespace Authorization.Infrastructure.Services;
 
 public sealed class TCodeAuthorizationService(
-    BusinessDbContext businessDbContext,
+    AuthorizationDbContext authorizationDbContext,
     LogDbContext logDbContext,
     ICurrentUserContext currentUserContext,
     IHttpContextAccessor httpContextAccessor) : ITCodeAuthorizationService
@@ -23,7 +23,7 @@ public sealed class TCodeAuthorizationService(
     {
         var normalizedTCode = transactionCode.Trim().ToUpperInvariant();
 
-        var page = await businessDbContext.SubModulePages
+        var page = await authorizationDbContext.SubModulePages
             .AsNoTracking()
             .FirstOrDefaultAsync(x => x.TransactionCode == normalizedTCode && !x.IsDeleted, cancellationToken);
 
@@ -32,7 +32,7 @@ public sealed class TCodeAuthorizationService(
             return await DenyAsync(normalizedTCode, userId, 3, $"T-Code '{normalizedTCode}' icin eslesen sayfa bulunamadi.", cancellationToken);
         }
 
-        var subModule = await businessDbContext.SubModules
+        var subModule = await authorizationDbContext.SubModules
             .AsNoTracking()
             .FirstOrDefaultAsync(x => x.Id == page.SubModuleId && !x.IsDeleted, cancellationToken);
 
@@ -41,7 +41,7 @@ public sealed class TCodeAuthorizationService(
             return await DenyAsync(normalizedTCode, userId, 2, $"T-Code '{normalizedTCode}' icin alt modul bilgisi bulunamadi.", cancellationToken);
         }
 
-        var module = await businessDbContext.Modules
+        var module = await authorizationDbContext.Modules
             .AsNoTracking()
             .FirstOrDefaultAsync(x => x.Id == subModule.ModuleId && !x.IsDeleted, cancellationToken);
 
@@ -50,7 +50,7 @@ public sealed class TCodeAuthorizationService(
             return await DenyAsync(normalizedTCode, userId, 1, $"T-Code '{normalizedTCode}' icin modul bilgisi bulunamadi.", cancellationToken);
         }
 
-        var level1Allowed = await businessDbContext.UserModulePermissions
+        var level1Allowed = await authorizationDbContext.UserModulePermissions
             .AsNoTracking()
             .AnyAsync(x => x.UserId == userId && x.ModuleId == module.Id && !x.IsDeleted, cancellationToken);
 
@@ -59,7 +59,7 @@ public sealed class TCodeAuthorizationService(
             return await DenyAsync(normalizedTCode, userId, 1, $"Kullanicinin T-Code '{normalizedTCode}' icin modul erisim yetkisi yok.", cancellationToken);
         }
 
-        var level2Allowed = await businessDbContext.UserSubModulePermissions
+        var level2Allowed = await authorizationDbContext.UserSubModulePermissions
             .AsNoTracking()
             .AnyAsync(x => x.UserId == userId && x.SubModuleId == subModule.Id && !x.IsDeleted, cancellationToken);
 
@@ -68,7 +68,7 @@ public sealed class TCodeAuthorizationService(
             return await DenyAsync(normalizedTCode, userId, 2, $"Kullanicinin T-Code '{normalizedTCode}' icin alt modul erisim yetkisi yok.", cancellationToken);
         }
 
-        var level3Allowed = await businessDbContext.UserPagePermissions
+        var level3Allowed = await authorizationDbContext.UserPagePermissions
             .AsNoTracking()
             .AnyAsync(x => x.UserId == userId && x.SubModulePageId == page.Id && !x.IsDeleted, cancellationToken);
 
@@ -77,7 +77,7 @@ public sealed class TCodeAuthorizationService(
             return await DenyAsync(normalizedTCode, userId, 3, $"Kullanicinin T-Code '{normalizedTCode}' icin sayfa erisim yetkisi yok.", cancellationToken);
         }
 
-        var level4Allowed = await businessDbContext.UserCompanyPermissions
+        var level4Allowed = await authorizationDbContext.UserCompanyPermissions
             .AsNoTracking()
             .AnyAsync(x => x.UserId == userId && x.CompanyId == companyId && !x.IsDeleted, cancellationToken);
 
@@ -86,7 +86,7 @@ public sealed class TCodeAuthorizationService(
             return await DenyAsync(normalizedTCode, userId, 4, $"Kullanicinin companyId '{companyId}' icin sirket kapsam yetkisi yok. T-Code: '{normalizedTCode}'.", cancellationToken);
         }
 
-        var actionPermissions = await businessDbContext.UserPageActionPermissions
+        var actionPermissions = await authorizationDbContext.UserPageActionPermissions
             .AsNoTracking()
             .Where(x => x.UserId == userId && x.SubModulePageId == page.Id && !x.IsDeleted)
             .ToListAsync(cancellationToken);
@@ -95,7 +95,7 @@ public sealed class TCodeAuthorizationService(
             .GroupBy(x => x.ActionCode, StringComparer.OrdinalIgnoreCase)
             .ToDictionary(g => g.Key, g => g.Any(x => x.IsAllowed), StringComparer.OrdinalIgnoreCase);
 
-        var conditionPermissions = await businessDbContext.UserPageConditionPermissions
+        var conditionPermissions = await authorizationDbContext.UserPageConditionPermissions
             .AsNoTracking()
             .Where(x => x.UserId == userId && x.SubModulePageId == page.Id && x.IsActive && !x.IsDeleted)
             .ToListAsync(cancellationToken);

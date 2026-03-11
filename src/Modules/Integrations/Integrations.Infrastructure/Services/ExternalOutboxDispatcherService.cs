@@ -1,9 +1,10 @@
 using System.Text.Json;
-using Host.Api.Integrations.Contracts;
 using Infrastructure.Persistence;
+using Integrations.Application.Contracts;
+using Integrations.Application.Services;
 using Microsoft.EntityFrameworkCore;
 
-namespace Host.Api.Integrations.Services;
+namespace Integrations.Infrastructure.Services;
 
 public sealed class ExternalOutboxDispatcherService(
     IServiceScopeFactory serviceScopeFactory,
@@ -19,7 +20,7 @@ public sealed class ExternalOutboxDispatcherService(
             }
             catch (Exception ex)
             {
-                logger.LogError(ex, "Outbox dispatcher döngüsünde hata oluştu.");
+                logger.LogError(ex, "Outbox dispatcher dongusunde hata olustu.");
             }
 
             await Task.Delay(TimeSpan.FromSeconds(5), stoppingToken);
@@ -29,13 +30,13 @@ public sealed class ExternalOutboxDispatcherService(
     private async Task DispatchBatchAsync(CancellationToken cancellationToken)
     {
         using var scope = serviceScopeFactory.CreateScope();
-        var businessDbContext = scope.ServiceProvider.GetRequiredService<BusinessDbContext>();
+        var integrationsDbContext = scope.ServiceProvider.GetRequiredService<IntegrationsDbContext>();
         var emailDeliveryService = scope.ServiceProvider.GetRequiredService<IEmailDeliveryService>();
         var excelReportComposerService = scope.ServiceProvider.GetRequiredService<IExcelReportComposerService>();
 
         var now = DateTime.UtcNow;
 
-        var candidates = await businessDbContext.ExternalOutboxMessages
+        var candidates = await integrationsDbContext.ExternalOutboxMessages
             .Where(x => (x.Status == "Pending" || x.Status == "Failed")
                         && x.NextAttemptAt <= now
                         && x.AttemptCount < x.MaxAttempts)
@@ -47,37 +48,37 @@ public sealed class ExternalOutboxDispatcherService(
         {
             message.Status = "Processing";
             message.AttemptCount += 1;
-            await businessDbContext.SaveChangesAsync(cancellationToken);
+            await integrationsDbContext.SaveChangesAsync(cancellationToken);
 
             try
             {
                 switch (message.EventType)
                 {
                     case OutboxEventTypes.MailNotification:
-                        {
-                            var payload = JsonSerializer.Deserialize<MailOutboxPayload>(message.PayloadJson)
-                                          ?? throw new InvalidOperationException("Mail payload parse edilemedi.");
+                    {
+                        var payload = JsonSerializer.Deserialize<MailOutboxPayload>(message.PayloadJson)
+                                      ?? throw new InvalidOperationException("Mail payload parse edilemedi.");
 
-                            await emailDeliveryService.SendAsync(payload.To, payload.Subject, payload.Body, null, cancellationToken);
-                            break;
-                        }
+                        await emailDeliveryService.SendAsync(payload.To, payload.Subject, payload.Body, null, cancellationToken);
+                        break;
+                    }
                     case OutboxEventTypes.ExcelReport:
-                        {
-                            var payload = JsonSerializer.Deserialize<ExcelOutboxPayload>(message.PayloadJson)
-                                          ?? throw new InvalidOperationException("Excel payload parse edilemedi.");
+                    {
+                        var payload = JsonSerializer.Deserialize<ExcelOutboxPayload>(message.PayloadJson)
+                                      ?? throw new InvalidOperationException("Excel payload parse edilemedi.");
 
-                            var generatedPath = await excelReportComposerService.ComposeCsvAsync(payload, cancellationToken);
-                            if (!string.IsNullOrWhiteSpace(payload.NotifyEmail))
-                            {
-                                await emailDeliveryService.SendAsync(
-                                    payload.NotifyEmail,
-                                    $"Excel raporu hazır: {payload.ReportName}",
-                                    "Rapor oluşturuldu ve ektedir.",
-                                    generatedPath,
-                                    cancellationToken);
-                            }
-                            break;
+                        var generatedPath = await excelReportComposerService.ComposeCsvAsync(payload, cancellationToken);
+                        if (!string.IsNullOrWhiteSpace(payload.NotifyEmail))
+                        {
+                            await emailDeliveryService.SendAsync(
+                                payload.NotifyEmail,
+                                $"Excel raporu hazir: {payload.ReportName}",
+                                "Rapor olusturuldu ve ektedir.",
+                                generatedPath,
+                                cancellationToken);
                         }
+                        break;
+                    }
                     default:
                         throw new InvalidOperationException($"Bilinmeyen outbox event type: {message.EventType}");
                 }
@@ -93,10 +94,10 @@ public sealed class ExternalOutboxDispatcherService(
                 message.LastError = ex.Message.Length > 3500 ? ex.Message[..3500] : ex.Message;
                 var delaySeconds = Math.Min(300, (int)Math.Pow(2, message.AttemptCount));
                 message.NextAttemptAt = DateTime.UtcNow.AddSeconds(delaySeconds);
-                logger.LogWarning(ex, "Outbox mesajı işlenemedi. Id={MessageId}, EventType={EventType}", message.Id, message.EventType);
+                logger.LogWarning(ex, "Outbox mesaji islenemedi. Id={MessageId}, EventType={EventType}", message.Id, message.EventType);
             }
 
-            await businessDbContext.SaveChangesAsync(cancellationToken);
+            await integrationsDbContext.SaveChangesAsync(cancellationToken);
         }
     }
 }

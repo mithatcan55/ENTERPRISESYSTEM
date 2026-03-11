@@ -8,7 +8,7 @@ namespace Operations.Infrastructure.Services;
 
 public sealed class OperationsLogQueryService(
     LogDbContext logDbContext,
-    BusinessDbContext businessDbContext) : IOperationsLogQueryService
+    IdentityDbContext identityDbContext) : IOperationsLogQueryService
 {
     public async Task<PagedResult<SystemLogListItemDto>> QuerySystemLogsAsync(LogQueryRequest request, CancellationToken cancellationToken)
     {
@@ -262,8 +262,8 @@ public sealed class OperationsLogQueryService(
         var (page, pageSize) = NormalizePaging(request.Page, request.PageSize);
 
         var query =
-            from session in businessDbContext.UserSessions.AsNoTracking()
-            join user in businessDbContext.Users.AsNoTracking() on session.UserId equals user.Id
+            from session in identityDbContext.UserSessions.AsNoTracking()
+            join user in identityDbContext.Users.AsNoTracking() on session.UserId equals user.Id
             where !session.IsDeleted && !user.IsDeleted
             select new { session, user };
 

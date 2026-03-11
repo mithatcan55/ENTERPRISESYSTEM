@@ -1,15 +1,15 @@
 using System.Text.Json;
 using Application.Exceptions;
-using Host.Api.Integrations.Contracts;
-using Host.Api.Middleware;
 using Infrastructure.Persistence;
 using Infrastructure.Persistence.Entities.Integration;
+using Integrations.Application.Contracts;
+using Integrations.Application.Services;
 using Microsoft.EntityFrameworkCore;
 
-namespace Host.Api.Integrations.Services;
+namespace Integrations.Infrastructure.Services;
 
 public sealed class ExternalOutboxService(
-    BusinessDbContext businessDbContext,
+    IntegrationsDbContext integrationsDbContext,
     IHttpContextAccessor httpContextAccessor) : IExternalOutboxService
 {
     public async Task<OutboxPagedResult<OutboxMessageListItemDto>> ListMessagesAsync(OutboxMessageQueryRequest request, CancellationToken cancellationToken)
@@ -17,7 +17,7 @@ public sealed class ExternalOutboxService(
         var page = request.Page <= 0 ? 1 : request.Page;
         var pageSize = request.PageSize <= 0 ? 50 : Math.Min(request.PageSize, 200);
 
-        var query = businessDbContext.ExternalOutboxMessages
+        var query = integrationsDbContext.ExternalOutboxMessages
             .AsNoTracking()
             .AsQueryable();
 
@@ -71,7 +71,7 @@ public sealed class ExternalOutboxService(
         if (string.IsNullOrWhiteSpace(request.To) || string.IsNullOrWhiteSpace(request.Subject) || string.IsNullOrWhiteSpace(request.Body))
         {
             throw new ValidationAppException(
-                "Mail kuyruk doğrulaması başarısız.",
+                "Mail kuyruk dogrulamasi basarisiz.",
                 new Dictionary<string, string[]>
                 {
                     ["request"] = ["to, subject ve body zorunludur."]
@@ -93,7 +93,7 @@ public sealed class ExternalOutboxService(
         if (string.IsNullOrWhiteSpace(request.ReportName))
         {
             throw new ValidationAppException(
-                "Excel kuyruk doğrulaması başarısız.",
+                "Excel kuyruk dogrulamasi basarisiz.",
                 new Dictionary<string, string[]>
                 {
                     ["reportName"] = ["reportName zorunludur."]
@@ -113,7 +113,7 @@ public sealed class ExternalOutboxService(
 
     private async Task<OutboxMessageQueuedDto> EnqueueAsync<TPayload>(string eventType, TPayload payload, CancellationToken cancellationToken)
     {
-        var correlationId = httpContextAccessor.HttpContext?.Items[CorrelationIdMiddleware.CorrelationItemKey]?.ToString()
+        var correlationId = httpContextAccessor.HttpContext?.Items["CorrelationId"]?.ToString()
                             ?? httpContextAccessor.HttpContext?.TraceIdentifier;
 
         var message = new ExternalOutboxMessage
@@ -128,8 +128,8 @@ public sealed class ExternalOutboxService(
             DeduplicationKey = Guid.NewGuid().ToString("N")
         };
 
-        businessDbContext.ExternalOutboxMessages.Add(message);
-        await businessDbContext.SaveChangesAsync(cancellationToken);
+        integrationsDbContext.ExternalOutboxMessages.Add(message);
+        await integrationsDbContext.SaveChangesAsync(cancellationToken);
 
         return new OutboxMessageQueuedDto(message.Id, message.EventType, message.Status, message.CreatedAt);
     }

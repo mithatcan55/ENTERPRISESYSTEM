@@ -1,4 +1,4 @@
-namespace Host.Api.Integrations.Contracts;
+namespace Integrations.Application.Contracts;
 
 public sealed record ReferenceCompanyDto(
     int ExternalId,

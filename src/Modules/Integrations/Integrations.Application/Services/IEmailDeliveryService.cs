@@ -1,4 +1,4 @@
-namespace Host.Api.Integrations.Services;
+namespace Integrations.Application.Services;
 
 public interface IEmailDeliveryService
 {

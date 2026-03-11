@@ -40,6 +40,27 @@ public static class InfrastructureServiceCollectionExtensions
             options.AddInterceptors(sp.GetRequiredService<DatabaseCommandLoggingInterceptor>());
         });
 
+        services.AddDbContext<AuthorizationDbContext>((sp, options) =>
+        {
+            var connectionString = configuration.GetConnectionString("BusinessDb");
+            options.UseNpgsql(connectionString);
+            options.AddInterceptors(sp.GetRequiredService<DatabaseCommandLoggingInterceptor>());
+        });
+
+        services.AddDbContext<IdentityDbContext>((sp, options) =>
+        {
+            var connectionString = configuration.GetConnectionString("BusinessDb");
+            options.UseNpgsql(connectionString);
+            options.AddInterceptors(sp.GetRequiredService<DatabaseCommandLoggingInterceptor>());
+        });
+
+        services.AddDbContext<IntegrationsDbContext>((sp, options) =>
+        {
+            var connectionString = configuration.GetConnectionString("BusinessDb");
+            options.UseNpgsql(connectionString);
+            options.AddInterceptors(sp.GetRequiredService<DatabaseCommandLoggingInterceptor>());
+        });
+
         return services;
     }
 }

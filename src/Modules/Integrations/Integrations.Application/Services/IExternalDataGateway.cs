@@ -1,6 +1,6 @@
-using Host.Api.Integrations.Contracts;
+using Integrations.Application.Contracts;
 
-namespace Host.Api.Integrations.Services;
+namespace Integrations.Application.Services;
 
 public interface IExternalDataGateway
 {
