@@ -64,6 +64,8 @@ public sealed class TCodeController(
 
         if (amount.HasValue)
         {
+            // amount burada ornek bir condition alanidir.
+            // Ayni endpoint baska alanlarla da condition testine imkan verir.
             contextValues["amount"] = amount.Value.ToString(System.Globalization.CultureInfo.InvariantCulture);
         }
 
@@ -78,6 +80,8 @@ public sealed class TCodeController(
 
         if (!result.IsAllowed)
         {
+            // Bu endpoint deny durumunda da detayli sonuc dondurur.
+            // Boylece istemci neden reddedildigini seviyeli olarak gorebilir.
             return StatusCode(StatusCodes.Status403Forbidden, result);
         }
 

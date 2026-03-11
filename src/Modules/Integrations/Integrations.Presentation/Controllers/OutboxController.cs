@@ -44,6 +44,7 @@ public sealed class OutboxController(IExternalOutboxService externalOutboxServic
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status403Forbidden)]
     public async Task<ActionResult<OutboxMessageQueuedDto>> QueueExcel([FromBody] QueueExcelReportRequest request, CancellationToken cancellationToken)
     {
+        // Excel raporu da dogrudan uretilmez; once kuyruga girer, sonra dispatcher isler.
         var queued = await externalOutboxService.QueueExcelReportAsync(request, cancellationToken);
         return Accepted(queued);
     }

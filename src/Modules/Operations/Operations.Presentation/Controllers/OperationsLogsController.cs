@@ -27,6 +27,7 @@ public sealed class OperationsLogsController(IOperationsLogQueryService operatio
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status403Forbidden)]
     public async Task<ActionResult<PagedResult<SecurityEventListItemDto>>> SecurityLogs([FromQuery] LogQueryRequest request, CancellationToken cancellationToken)
     {
+        // Security loglari denetim ve ihlal analizi icin ayrica sorgulanir.
         var result = await operationsLogQueryService.QuerySecurityEventsAsync(request, cancellationToken);
         return Ok(result);
     }
@@ -37,6 +38,7 @@ public sealed class OperationsLogsController(IOperationsLogQueryService operatio
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status403Forbidden)]
     public async Task<ActionResult<PagedResult<HttpRequestLogListItemDto>>> HttpLogs([FromQuery] LogQueryRequest request, CancellationToken cancellationToken)
     {
+        // HTTP loglari performans ve hata korelasyonu icin ayri bir akis olarak tutulur.
         var result = await operationsLogQueryService.QueryHttpRequestLogsAsync(request, cancellationToken);
         return Ok(result);
     }
@@ -68,6 +70,7 @@ public sealed class OperationsLogsController(IOperationsLogQueryService operatio
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status403Forbidden)]
     public async Task<ActionResult<PagedResult<SessionAdminListItemDto>>> Sessions([FromQuery] SessionAdminQueryRequest request, CancellationToken cancellationToken)
     {
+        // Bu endpoint log degil, operasyonel admin gorunumu dondurur.
         var result = await operationsLogQueryService.QuerySessionsAdminAsync(request, cancellationToken);
         return Ok(result);
     }

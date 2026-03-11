@@ -22,6 +22,8 @@ public sealed class SessionsController(
         [FromQuery] bool onlyActive = true,
         CancellationToken cancellationToken = default)
     {
+        // Query parametresi verilmezse claim fallback devreye girer.
+        // Bu sayede kullanici genelde kendi session'larini ekstra bilgi vermeden gorebilir.
         var resolvedUserId = userId;
         if (!resolvedUserId.HasValue && currentUserContext.TryGetUserId(out var claimUserId))
         {
@@ -47,6 +49,7 @@ public sealed class SessionsController(
         [FromBody] RevokeSessionRequest? request,
         CancellationToken cancellationToken)
     {
+        // Revoke gerekcesi opsiyoneldir ama denetim izi icin degerlidir.
         await authLifecycleService.RevokeSessionAsync(sessionId, request?.Reason, cancellationToken);
         return NoContent();
     }

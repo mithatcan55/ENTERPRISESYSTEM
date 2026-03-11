@@ -17,6 +17,8 @@ public sealed class PasswordPolicyController(IOptions<PasswordPolicyOptions> pas
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status403Forbidden)]
     public ActionResult<PasswordPolicySnapshotDto> Get()
     {
+        // Snapshot endpoint'i runtime config'i degistirmez.
+        // Amaci o an sistemin hangi policy ile calistigini gostermektir.
         var options = passwordPolicyOptions.Value;
 
         var snapshot = new PasswordPolicySnapshotDto(
@@ -38,6 +40,8 @@ public sealed class PasswordPolicyController(IOptions<PasswordPolicyOptions> pas
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status403Forbidden)]
     public ActionResult<PasswordPolicyPreviewResultDto> Preview([FromBody] PasswordPolicyPreviewRequest request)
     {
+        // Preview endpoint'i "config yazar" endpoint degildir.
+        // Yalnizca yeni policy onerisi verilirse nasil davranacagini simule eder.
         var validationErrors = ValidateConfiguration(request);
         var warnings = BuildWarnings(request);
 
@@ -115,6 +119,8 @@ public sealed class PasswordPolicyController(IOptions<PasswordPolicyOptions> pas
 
     private static List<string> EvaluateSample(PasswordPolicyPreviewRequest request, PasswordPolicyPreviewSampleDto sample)
     {
+        // Bu metod hash tabanli gecmis karsilastirmasi yapmaz.
+        // Sadece policy'nin ornek sifreler uzerindeki davranisini gosterir.
         var errors = new List<string>();
         var password = sample.Password ?? string.Empty;
 

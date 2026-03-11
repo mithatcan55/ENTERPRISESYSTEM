@@ -17,6 +17,7 @@ Bu klasor, projenin gorsel ve kavramsal mimari haritasini icerir.
 - `operations-module-training.md` -> Operations modulu icin egitim odakli detayli teknik rehber
 - `localization-training.md` -> Localization sistemi icin egitim odakli detayli teknik rehber
 - `error-policy-and-notification-training.md` -> Error policy, event routing ve notification omurgasi rehberi
+- `manual-api-learning-guide.md` -> Host.Api.http dosyasini egitim sirasiyla kullanma rehberi
 
 ## Kullanim
 
@@ -26,6 +27,7 @@ Bu klasor, projenin gorsel ve kavramsal mimari haritasini icerir.
 4. Modul bazli derin egitim icin `identity-module-training.md` ve `authorization-module-training.md` dosyalarini birlikte oku.
 5. Asenkron entegrasyon ve operasyon gorunurlugu icin `integrations-module-training.md` ve `operations-module-training.md` dosyalarini oku.
 6. Dil yonetimi ve hata/notification omurgasi icin `localization-training.md` ve `error-policy-and-notification-training.md` dosyalarini oku.
+7. Canli endpoint ogrenimi icin `manual-api-learning-guide.md` ve `src/Host.Api/Host.Api.http` dosyalarini birlikte kullan.
 
 ## Not
 
