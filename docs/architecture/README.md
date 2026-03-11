@@ -13,6 +13,8 @@ Bu klasor, projenin gorsel ve kavramsal mimari haritasini icerir.
 - `current-state-target-state-guide.md` -> Mevcut durum, hedef mimari, servis + CQRS, loglama, localization ve T-Code enforcement rehberi
 - `identity-module-training.md` -> Identity modulu icin egitim odakli detayli teknik rehber
 - `authorization-module-training.md` -> Authorization modulu icin egitim odakli detayli teknik rehber
+- `integrations-module-training.md` -> Integrations modulu icin egitim odakli detayli teknik rehber
+- `operations-module-training.md` -> Operations modulu icin egitim odakli detayli teknik rehber
 
 ## Kullanim
 
@@ -20,6 +22,7 @@ Bu klasor, projenin gorsel ve kavramsal mimari haritasini icerir.
 2. PlantUML dosyalarini uygun editor eklentisi ile render et.
 3. `current-state-target-state-guide.md` dosyasini kodla birlikte paralel oku; bu dosya current-state ve target-state ayrimini anlatir.
 4. Modul bazli derin egitim icin `identity-module-training.md` ve `authorization-module-training.md` dosyalarini birlikte oku.
+5. Asenkron entegrasyon ve operasyon gorunurlugu icin `integrations-module-training.md` ve `operations-module-training.md` dosyalarini oku.
 
 ## Not
 

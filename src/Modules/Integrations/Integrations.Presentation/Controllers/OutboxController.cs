@@ -18,6 +18,7 @@ public sealed class OutboxController(IExternalOutboxService externalOutboxServic
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status403Forbidden)]
     public async Task<ActionResult<OutboxPagedResult<OutboxMessageListItemDto>>> ListMessages([FromQuery] OutboxMessageQueryRequest request, CancellationToken cancellationToken)
     {
+        // Bu endpoint operasyon ekiplerinin kuyruk durumunu izlemesi icindir.
         var result = await externalOutboxService.ListMessagesAsync(request, cancellationToken);
         return Ok(result);
     }
@@ -30,6 +31,7 @@ public sealed class OutboxController(IExternalOutboxService externalOutboxServic
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status403Forbidden)]
     public async Task<ActionResult<OutboxMessageQueuedDto>> QueueMail([FromBody] QueueMailRequest request, CancellationToken cancellationToken)
     {
+        // 202 Accepted donmemizin nedeni istegin hemen islenmemesi, once kuyruga alinmasidir.
         var queued = await externalOutboxService.QueueMailAsync(request, cancellationToken);
         return Accepted(queued);
     }

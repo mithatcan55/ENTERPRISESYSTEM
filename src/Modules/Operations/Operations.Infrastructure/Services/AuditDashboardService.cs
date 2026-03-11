@@ -11,6 +11,8 @@ public sealed class AuditDashboardService(
 {
     public async Task<AuditDashboardSummaryDto> GetSummaryAsync(int windowHours, CancellationToken cancellationToken)
     {
+        // Dashboard ozeti tek bir metriğe degil, birden fazla kaynaga bakar:
+        // system errors, failed login trendi ve session revoke oranı birlikte okunur.
         var normalizedHours = windowHours <= 0 ? 24 : Math.Min(windowHours, 24 * 14);
         var now = DateTimeOffset.UtcNow;
         var start = now.AddHours(-normalizedHours);
@@ -38,6 +40,7 @@ public sealed class AuditDashboardService(
             .Select(g => new HourlyMetricDto(g.Key, g.Count()))
             .ToList();
 
+        // Session revoke rate gibi turetilmis metrikler dashboard'un "yorumlanabilir" olmasini saglar.
         var startedSessions = await identityDbContext.UserSessions
             .AsNoTracking()
             .CountAsync(x => !x.IsDeleted && x.StartedAt >= start.UtcDateTime, cancellationToken);

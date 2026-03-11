@@ -16,6 +16,7 @@ public sealed class OperationsLogsController(IOperationsLogQueryService operatio
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status403Forbidden)]
     public async Task<ActionResult<PagedResult<SystemLogListItemDto>>> SystemLogs([FromQuery] LogQueryRequest request, CancellationToken cancellationToken)
     {
+        // Bu controller business logic yazmaz; sadece operasyonel sorgu servisini HTTP'ye acar.
         var result = await operationsLogQueryService.QuerySystemLogsAsync(request, cancellationToken);
         return Ok(result);
     }
@@ -56,6 +57,7 @@ public sealed class OperationsLogsController(IOperationsLogQueryService operatio
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status403Forbidden)]
     public async Task<IActionResult> ExportEntityChanges([FromQuery] LogQueryRequest request, CancellationToken cancellationToken)
     {
+        // Export endpoint'i ayni query mantigini kullanir, sadece sonuc formatini CSV'ye cevirir.
         var csv = await operationsLogQueryService.ExportEntityChangeLogsCsvAsync(request, cancellationToken);
         return File(System.Text.Encoding.UTF8.GetBytes(csv), "text/csv", "entity-change-logs.csv");
     }

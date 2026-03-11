@@ -68,6 +68,8 @@ public sealed class ExternalOutboxService(
 
     public async Task<OutboxMessageQueuedDto> QueueMailAsync(QueueMailRequest request, CancellationToken cancellationToken)
     {
+        // Outbox mantiginda dogrudan mail gondermiyoruz.
+        // Once dayanıklı kuyruk kaydi olusturuyor, sonra dispatcher bu kaydi isliyor.
         if (string.IsNullOrWhiteSpace(request.To) || string.IsNullOrWhiteSpace(request.Subject) || string.IsNullOrWhiteSpace(request.Body))
         {
             throw new ValidationAppException(
@@ -90,6 +92,8 @@ public sealed class ExternalOutboxService(
 
     public async Task<OutboxMessageQueuedDto> QueueExcelReportAsync(QueueExcelReportRequest request, CancellationToken cancellationToken)
     {
+        // Excel raporlarinda da ayni desen korunuyor:
+        // istek alinir, payload serialize edilir, sonra dispatcher uygun kanala iletir.
         if (string.IsNullOrWhiteSpace(request.ReportName))
         {
             throw new ValidationAppException(
@@ -116,6 +120,8 @@ public sealed class ExternalOutboxService(
         var correlationId = httpContextAccessor.HttpContext?.Items["CorrelationId"]?.ToString()
                             ?? httpContextAccessor.HttpContext?.TraceIdentifier;
 
+        // CorrelationId'yi outbox mesajina yazmak kritik.
+        // Boylece asenkron islenen bir mesaji ilk HTTP istegiyle baglayabiliriz.
         var message = new ExternalOutboxMessage
         {
             EventType = eventType,

@@ -12,6 +12,8 @@ public sealed class ExternalOutboxDispatcherService(
 {
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
+        // Dispatcher kucuk araliklarla calisan sonsuz bir is dongusudur.
+        // Burada amac uygulama ayakta kaldigi surece uygun outbox mesajlarini partiler halinde islemektir.
         while (!stoppingToken.IsCancellationRequested)
         {
             try
@@ -44,6 +46,7 @@ public sealed class ExternalOutboxDispatcherService(
             .Take(20)
             .ToListAsync(cancellationToken);
 
+        // Her dongude sinirli sayida mesaj alip sistemin tek bir buyuk batch'e kilitlenmesini engelliyoruz.
         foreach (var message in candidates)
         {
             message.Status = "Processing";
@@ -89,6 +92,8 @@ public sealed class ExternalOutboxDispatcherService(
             }
             catch (Exception ex)
             {
+                // Retry stratejisi exponential backoff mantigi ile kuruldu.
+                // Tekrarlanabilir gecici hatalarda sistemi sakin tutmak icin bekleme suresi giderek artar.
                 var hasRemainingAttempts = message.AttemptCount < message.MaxAttempts;
                 message.Status = hasRemainingAttempts ? "Failed" : "DeadLetter";
                 message.LastError = ex.Message.Length > 3500 ? ex.Message[..3500] : ex.Message;

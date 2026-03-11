@@ -12,6 +12,8 @@ public sealed class OperationsLogQueryService(
 {
     public async Task<PagedResult<SystemLogListItemDto>> QuerySystemLogsAsync(LogQueryRequest request, CancellationToken cancellationToken)
     {
+        // Tum log sorgularinda ortak davranis ayni:
+        // filtreleri uygula, sayfalama normalizasyonu yap, DTO projection ile disari cikar.
         var (page, pageSize) = NormalizePaging(request.Page, request.PageSize);
 
         var query = logDbContext.SystemLogs.AsNoTracking().AsQueryable();
@@ -223,6 +225,8 @@ public sealed class OperationsLogQueryService(
 
     public async Task<string> ExportEntityChangeLogsCsvAsync(LogQueryRequest request, CancellationToken cancellationToken)
     {
+        // Export icin sinirli bir batch aliyoruz.
+        // Bu ilk surumde operasyonel kullanim icin yeterli; buyudukce streaming export dusunulebilir.
         var exportRequest = new LogQueryRequest
         {
             Page = 1,
@@ -261,6 +265,7 @@ public sealed class OperationsLogQueryService(
     {
         var (page, pageSize) = NormalizePaging(request.Page, request.PageSize);
 
+        // Session loglari sadece log db'den degil, identity tarafindaki aktif oturum verilerinden de beslenir.
         var query =
             from session in identityDbContext.UserSessions.AsNoTracking()
             join user in identityDbContext.Users.AsNoTracking() on session.UserId equals user.Id
