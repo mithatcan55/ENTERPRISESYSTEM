@@ -1,3 +1,4 @@
+using Application.Pipeline;
 using Identity.Application.Contracts;
 using Identity.Application.Roles.Commands;
 using Identity.Application.Roles.Queries;
@@ -10,6 +11,7 @@ namespace Identity.Presentation.Controllers;
 [Route("api/roles")]
 [Authorize(Roles = "SYS_ADMIN")]
 public sealed class RolesController(
+    IRequestExecutionPipeline requestExecutionPipeline,
     IListRolesQueryHandler listRolesQueryHandler,
     ICreateRoleCommandHandler createRoleCommandHandler,
     IAssignRoleCommandHandler assignRoleCommandHandler,
@@ -23,7 +25,11 @@ public sealed class RolesController(
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status403Forbidden)]
     public async Task<ActionResult<IReadOnlyList<RoleListItemDto>>> List(CancellationToken cancellationToken)
     {
-        var roles = await listRolesQueryHandler.HandleAsync(cancellationToken);
+        var roles = await requestExecutionPipeline.ExecuteQueryAsync(
+            new ListRolesQuery(),
+            _ => listRolesQueryHandler.HandleAsync(cancellationToken),
+            cancellationToken,
+            "Roles.List");
         return Ok(roles);
     }
 
@@ -34,7 +40,11 @@ public sealed class RolesController(
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status403Forbidden)]
     public async Task<ActionResult<RoleListItemDto>> Create([FromBody] CreateRoleRequest request, CancellationToken cancellationToken)
     {
-        var role = await createRoleCommandHandler.HandleAsync(request, cancellationToken);
+        var role = await requestExecutionPipeline.ExecuteCommandAsync(
+            new CreateRoleCommand(request),
+            _ => createRoleCommandHandler.HandleAsync(request, cancellationToken),
+            cancellationToken,
+            "Roles.Create");
         return Created($"/api/roles/{role.Id}", role);
     }
 
@@ -45,7 +55,11 @@ public sealed class RolesController(
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
     public async Task<IActionResult> Assign(int roleId, int userId, CancellationToken cancellationToken)
     {
-        await assignRoleCommandHandler.HandleAsync(userId, roleId, cancellationToken);
+        await requestExecutionPipeline.ExecuteCommandAsync(
+            new AssignRoleCommand(userId, roleId),
+            _ => assignRoleCommandHandler.HandleAsync(userId, roleId, cancellationToken),
+            cancellationToken,
+            "Roles.Assign");
         return NoContent();
     }
 
@@ -56,7 +70,11 @@ public sealed class RolesController(
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
     public async Task<IActionResult> Unassign(int roleId, int userId, CancellationToken cancellationToken)
     {
-        await unassignRoleCommandHandler.HandleAsync(userId, roleId, cancellationToken);
+        await requestExecutionPipeline.ExecuteCommandAsync(
+            new UnassignRoleCommand(userId, roleId),
+            _ => unassignRoleCommandHandler.HandleAsync(userId, roleId, cancellationToken),
+            cancellationToken,
+            "Roles.Unassign");
         return NoContent();
     }
 
@@ -66,7 +84,11 @@ public sealed class RolesController(
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status403Forbidden)]
     public async Task<ActionResult<IReadOnlyList<UserRoleItemDto>>> ListUserRoles(int userId, CancellationToken cancellationToken)
     {
-        var roles = await listUserRolesQueryHandler.HandleAsync(userId, cancellationToken);
+        var roles = await requestExecutionPipeline.ExecuteQueryAsync(
+            new ListUserRolesQuery(userId),
+            _ => listUserRolesQueryHandler.HandleAsync(userId, cancellationToken),
+            cancellationToken,
+            "Roles.ListUserRoles");
         return Ok(roles);
     }
 
@@ -77,7 +99,11 @@ public sealed class RolesController(
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
     public async Task<IActionResult> DeleteRole(int roleId, CancellationToken cancellationToken)
     {
-        await deleteRoleCommandHandler.HandleAsync(roleId, cancellationToken);
+        await requestExecutionPipeline.ExecuteCommandAsync(
+            new DeleteRoleCommand(roleId),
+            _ => deleteRoleCommandHandler.HandleAsync(roleId, cancellationToken),
+            cancellationToken,
+            "Roles.Delete");
         return NoContent();
     }
 }

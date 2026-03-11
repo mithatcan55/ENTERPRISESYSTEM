@@ -1,3 +1,4 @@
+using Application.Pipeline;
 using Identity.Application.Contracts;
 using Identity.Application.Permissions.Commands;
 using Identity.Application.Permissions.Queries;
@@ -10,6 +11,7 @@ namespace Authorization.Presentation.Controllers;
 [Route("api/permissions/actions")]
 [Authorize(Roles = "SYS_ADMIN")]
 public sealed class PermissionsController(
+    IRequestExecutionPipeline requestExecutionPipeline,
     IListUserActionPermissionsQueryHandler listUserActionPermissionsQueryHandler,
     IUpsertUserActionPermissionCommandHandler upsertUserActionPermissionCommandHandler,
     IDeleteUserActionPermissionCommandHandler deleteUserActionPermissionCommandHandler) : ControllerBase
@@ -21,7 +23,11 @@ public sealed class PermissionsController(
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status403Forbidden)]
     public async Task<ActionResult<IReadOnlyList<UserActionPermissionDto>>> List([FromQuery] UserActionPermissionQueryRequest request, CancellationToken cancellationToken)
     {
-        var permissions = await listUserActionPermissionsQueryHandler.HandleAsync(request, cancellationToken);
+        var permissions = await requestExecutionPipeline.ExecuteQueryAsync(
+            new ListUserActionPermissionsQuery(request),
+            _ => listUserActionPermissionsQueryHandler.HandleAsync(request, cancellationToken),
+            cancellationToken,
+            "Permissions.ListActionPermissions");
         return Ok(permissions);
     }
 
@@ -33,7 +39,11 @@ public sealed class PermissionsController(
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
     public async Task<ActionResult<UserActionPermissionDto>> Upsert([FromBody] UpsertUserActionPermissionRequest request, CancellationToken cancellationToken)
     {
-        var permission = await upsertUserActionPermissionCommandHandler.HandleAsync(request, cancellationToken);
+        var permission = await requestExecutionPipeline.ExecuteCommandAsync(
+            new UpsertUserActionPermissionCommand(request),
+            _ => upsertUserActionPermissionCommandHandler.HandleAsync(request, cancellationToken),
+            cancellationToken,
+            "Permissions.UpsertActionPermission");
         return Ok(permission);
     }
 
@@ -44,7 +54,11 @@ public sealed class PermissionsController(
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
     public async Task<IActionResult> Delete(int permissionId, CancellationToken cancellationToken)
     {
-        await deleteUserActionPermissionCommandHandler.HandleAsync(permissionId, cancellationToken);
+        await requestExecutionPipeline.ExecuteCommandAsync(
+            new DeleteUserActionPermissionCommand(permissionId),
+            _ => deleteUserActionPermissionCommandHandler.HandleAsync(permissionId, cancellationToken),
+            cancellationToken,
+            "Permissions.DeleteActionPermission");
         return NoContent();
     }
 }

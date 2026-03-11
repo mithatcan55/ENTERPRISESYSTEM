@@ -1,4 +1,5 @@
 using Authorization.Application.Security;
+using Application.Pipeline;
 using Identity.Application.Contracts;
 using Identity.Application.Users.Commands;
 using Identity.Application.Users.Queries;
@@ -11,6 +12,7 @@ namespace Identity.Presentation.Controllers;
 [Route("api/users")]
 [Authorize]
 public sealed class UsersController(
+    IRequestExecutionPipeline requestExecutionPipeline,
     IListUsersQueryHandler listUsersQueryHandler,
     ICreateUserCommandHandler createUserCommandHandler,
     IUpdateUserCommandHandler updateUserCommandHandler,
@@ -25,7 +27,11 @@ public sealed class UsersController(
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status403Forbidden)]
     public async Task<ActionResult<IReadOnlyList<UserListItemDto>>> List(CancellationToken cancellationToken)
     {
-        var users = await listUsersQueryHandler.HandleAsync(cancellationToken);
+        var users = await requestExecutionPipeline.ExecuteQueryAsync(
+            new ListUsersQuery(),
+            _ => listUsersQueryHandler.HandleAsync(cancellationToken),
+            cancellationToken,
+            "Users.List");
         return Ok(users);
     }
 
@@ -37,7 +43,11 @@ public sealed class UsersController(
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status403Forbidden)]
     public async Task<ActionResult<CreatedUserDto>> Create([FromBody] CreateUserRequest request, CancellationToken cancellationToken)
     {
-        var created = await createUserCommandHandler.HandleAsync(request, cancellationToken);
+        var created = await requestExecutionPipeline.ExecuteCommandAsync(
+            new CreateUserCommand(request),
+            _ => createUserCommandHandler.HandleAsync(request, cancellationToken),
+            cancellationToken,
+            "Users.Create");
         return Created($"/api/users/{created.Id}", created);
     }
 
@@ -50,7 +60,11 @@ public sealed class UsersController(
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
     public async Task<ActionResult<UserListItemDto>> Update(int userId, [FromBody] UpdateUserRequest request, CancellationToken cancellationToken)
     {
-        var updated = await updateUserCommandHandler.HandleAsync(userId, request, cancellationToken);
+        var updated = await requestExecutionPipeline.ExecuteCommandAsync(
+            new UpdateUserCommand(userId, request),
+            _ => updateUserCommandHandler.HandleAsync(userId, request, cancellationToken),
+            cancellationToken,
+            "Users.Update");
         return Ok(updated);
     }
 
@@ -62,7 +76,11 @@ public sealed class UsersController(
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
     public async Task<IActionResult> Deactivate(int userId, CancellationToken cancellationToken)
     {
-        await deactivateUserCommandHandler.HandleAsync(userId, cancellationToken);
+        await requestExecutionPipeline.ExecuteCommandAsync(
+            new DeactivateUserCommand(userId),
+            _ => deactivateUserCommandHandler.HandleAsync(userId, cancellationToken),
+            cancellationToken,
+            "Users.Deactivate");
         return NoContent();
     }
 
@@ -74,7 +92,11 @@ public sealed class UsersController(
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
     public async Task<IActionResult> Reactivate(int userId, CancellationToken cancellationToken)
     {
-        await reactivateUserCommandHandler.HandleAsync(userId, cancellationToken);
+        await requestExecutionPipeline.ExecuteCommandAsync(
+            new ReactivateUserCommand(userId),
+            _ => reactivateUserCommandHandler.HandleAsync(userId, cancellationToken),
+            cancellationToken,
+            "Users.Reactivate");
         return NoContent();
     }
 
@@ -86,7 +108,11 @@ public sealed class UsersController(
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
     public async Task<IActionResult> Delete(int userId, CancellationToken cancellationToken)
     {
-        await deleteUserCommandHandler.HandleAsync(userId, cancellationToken);
+        await requestExecutionPipeline.ExecuteCommandAsync(
+            new DeleteUserCommand(userId),
+            _ => deleteUserCommandHandler.HandleAsync(userId, cancellationToken),
+            cancellationToken,
+            "Users.Delete");
         return NoContent();
     }
 }

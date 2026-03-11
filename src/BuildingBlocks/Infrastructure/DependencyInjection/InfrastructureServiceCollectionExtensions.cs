@@ -1,5 +1,6 @@
 using Infrastructure.Logging;
 using Infrastructure.Observability;
+using Infrastructure.Pipeline;
 using Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Diagnostics;
@@ -21,6 +22,7 @@ public static class InfrastructureServiceCollectionExtensions
     {
         services.AddScoped<ILogEventWriter, LogEventWriter>();
         services.AddScoped<Application.Observability.IOperationalEventPublisher, OperationalEventPublisher>();
+        services.AddScoped<Application.Pipeline.IRequestExecutionPipeline, RequestExecutionPipeline>();
         services.AddScoped<Application.Observability.INotificationChannel, WebhookNotificationChannel>();
         services.AddScoped<DatabaseCommandLoggingInterceptor>();
         services.AddScoped<EntityChangeLoggingInterceptor>();

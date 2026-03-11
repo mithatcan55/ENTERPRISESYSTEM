@@ -91,4 +91,19 @@ public sealed class CurrentUserContext(IHttpContextAccessor httpContextAccessor)
 
         return false;
     }
+
+    public bool IsInRole(string roleCode)
+    {
+        if (string.IsNullOrWhiteSpace(roleCode))
+        {
+            return false;
+        }
+
+        var user = httpContextAccessor.HttpContext?.User;
+        return user?.IsInRole(roleCode) == true
+               || user?.Claims.Any(x =>
+                   (string.Equals(x.Type, SecurityClaimTypes.Role, StringComparison.OrdinalIgnoreCase)
+                    || string.Equals(x.Type, SecurityClaimTypes.RoleClaim, StringComparison.OrdinalIgnoreCase))
+                   && string.Equals(x.Value, roleCode, StringComparison.OrdinalIgnoreCase)) == true;
+    }
 }

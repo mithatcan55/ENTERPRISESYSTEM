@@ -12,6 +12,7 @@ using Identity.Infrastructure.Roles.Queries;
 using Identity.Infrastructure.Services;
 using Identity.Infrastructure.Users.Commands;
 using Identity.Infrastructure.Users.Queries;
+using Application.Pipeline;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace Identity.Infrastructure.DependencyInjection;
@@ -36,6 +37,10 @@ public static class IdentityInfrastructureServiceCollectionExtensions
         services.AddScoped<IListUserActionPermissionsQueryHandler, ListUserActionPermissionsQueryHandler>();
         services.AddScoped<IUpsertUserActionPermissionCommandHandler, UpsertUserActionPermissionCommandHandler>();
         services.AddScoped<IDeleteUserActionPermissionCommandHandler, DeleteUserActionPermissionCommandHandler>();
+        services.AddScoped<IRequestValidator<CreateUserCommand>, CreateUserCommandValidator>();
+        services.AddScoped<IRequestValidator<UpdateUserCommand>, UpdateUserCommandValidator>();
+        services.AddScoped<IRequestValidator<CreateRoleCommand>, CreateRoleCommandValidator>();
+        services.AddScoped<IRequestValidator<UpsertUserActionPermissionCommand>, UpsertUserActionPermissionCommandValidator>();
         services.AddScoped<IPasswordPolicyService, PasswordPolicyService>();
 
         return services;
