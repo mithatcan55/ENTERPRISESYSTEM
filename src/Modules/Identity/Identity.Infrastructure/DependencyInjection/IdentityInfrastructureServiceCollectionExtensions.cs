@@ -11,6 +11,7 @@ using Identity.Infrastructure.Roles.Commands;
 using Identity.Infrastructure.Roles.Queries;
 using Identity.Infrastructure.Services;
 using Identity.Infrastructure.Users.Commands;
+using Identity.Infrastructure.Users.PreChecks;
 using Identity.Infrastructure.Users.Queries;
 using Application.Pipeline;
 using Microsoft.Extensions.DependencyInjection;
@@ -41,6 +42,12 @@ public static class IdentityInfrastructureServiceCollectionExtensions
         services.AddScoped<IRequestValidator<UpdateUserCommand>, UpdateUserCommandValidator>();
         services.AddScoped<IRequestValidator<CreateRoleCommand>, CreateRoleCommandValidator>();
         services.AddScoped<IRequestValidator<UpsertUserActionPermissionCommand>, UpsertUserActionPermissionCommandValidator>();
+        services.AddScoped<IRequestPreCheck<ListUsersQuery>, TCodeProtectedRequestPreCheck<ListUsersQuery>>();
+        services.AddScoped<IRequestPreCheck<CreateUserCommand>, TCodeProtectedRequestPreCheck<CreateUserCommand>>();
+        services.AddScoped<IRequestPreCheck<UpdateUserCommand>, TCodeProtectedRequestPreCheck<UpdateUserCommand>>();
+        services.AddScoped<IRequestPreCheck<DeactivateUserCommand>, TCodeProtectedRequestPreCheck<DeactivateUserCommand>>();
+        services.AddScoped<IRequestPreCheck<ReactivateUserCommand>, TCodeProtectedRequestPreCheck<ReactivateUserCommand>>();
+        services.AddScoped<IRequestPreCheck<DeleteUserCommand>, TCodeProtectedRequestPreCheck<DeleteUserCommand>>();
         services.AddScoped<IPasswordPolicyService, PasswordPolicyService>();
 
         return services;

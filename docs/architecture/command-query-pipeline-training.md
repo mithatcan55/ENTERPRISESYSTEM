@@ -77,6 +77,13 @@ Ornek kullanimlar:
 - "company context olmadan bu command calisamaz"
 - "T-Code kontrolu command seviyesinde de yapilsin"
 
+Bu turda sonuncusunun ilk gercek ornegi eklendi:
+
+- `TCodeProtectedRequestPreCheck<TRequest>`
+
+Bu sinif `Users` command/query request'lerini pipeline icinde tekrar T-Code kontrolunden gecirir.
+Yani sadece controller attribute'una guvenilmez.
+
 ### 4.4 `IAdminOnlyRequest`
 
 Bu bir marker interface'tir.
@@ -227,6 +234,13 @@ Validator yoksa pipeline sessizce devam eder.
 
 Cevap:
 Cunku tekrar eden yetki kurali tek yerde calissin istedik.
+
+### Soru: T-Code zaten controller attribute ile kontrol ediliyor, neden bir de pre-check eklendi?
+
+Cevap:
+Controller attribute birinci savunma hattidir.
+Pipeline pre-check ikinci savunma hattidir.
+Bu sayede ileride ayni command farkli bir giris noktasindan da calisirsa yetki mantigi korunur.
 
 ### Soru: Handler icindeki tum validation'lar kaldirilacak mi?
 
