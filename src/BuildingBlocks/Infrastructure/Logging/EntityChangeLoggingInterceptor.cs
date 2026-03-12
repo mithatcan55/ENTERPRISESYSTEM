@@ -14,7 +14,18 @@ public sealed class EntityChangeLoggingInterceptor(
     ILogEventWriter logEventWriter,
     IAuditActorAccessor auditActorAccessor) : SaveChangesInterceptor
 {
-    private readonly ConcurrentDictionary<Guid, List<EntityChangeLog>> _pendingChanges = new();
+    private sealed class PendingEntityChange
+    {
+        public required EntityEntry Entry { get; init; }
+        public required EntityState State { get; init; }
+        public required string TableName { get; init; }
+        public string? SchemaName { get; init; }
+        public required List<string> ChangedProperties { get; init; }
+        public Dictionary<string, object?>? OldValues { get; init; }
+        public Dictionary<string, object?>? NewValues { get; init; }
+    }
+
+    private readonly ConcurrentDictionary<Guid, List<PendingEntityChange>> _pendingChanges = new();
 
     public override InterceptionResult<int> SavingChanges(DbContextEventData eventData, InterceptionResult<int> result)
     {
@@ -75,9 +86,9 @@ public sealed class EntityChangeLoggingInterceptor(
 
         var changes = dbContext.ChangeTracker.Entries()
             .Where(ShouldLog)
-            .Select(CreateChangeLog)
+            .Select(CreatePendingChange)
             .Where(x => x is not null)
-            .Cast<EntityChangeLog>()
+            .Cast<PendingEntityChange>()
             .ToList();
 
         if (changes.Count == 0)
@@ -100,7 +111,16 @@ public sealed class EntityChangeLoggingInterceptor(
             return;
         }
 
-        await logEventWriter.WriteEntityChangesAsync(changes, cancellationToken);
+        var logs = changes
+            .Select(CreateEntityChangeLog)
+            .ToList();
+
+        if (logs.Count == 0)
+        {
+            return;
+        }
+
+        await logEventWriter.WriteEntityChangesAsync(logs, cancellationToken);
     }
 
     private bool ShouldLog(EntityEntry entry)
@@ -120,7 +140,7 @@ public sealed class EntityChangeLoggingInterceptor(
                && entityType != typeof(SystemLog);
     }
 
-    private EntityChangeLog? CreateChangeLog(EntityEntry entry)
+    private PendingEntityChange? CreatePendingChange(EntityEntry entry)
     {
         var tableName = entry.Metadata.GetTableName();
         if (string.IsNullOrWhiteSpace(tableName))
@@ -129,48 +149,94 @@ public sealed class EntityChangeLoggingInterceptor(
         }
 
         var changedProperties = entry.Properties
-            .Where(ShouldIncludeProperty)
+            .Where(x => ShouldIncludeProperty(entry, x))
             .Select(x => x.Metadata.Name)
             .Distinct()
             .ToList();
 
-        var oldValues = entry.State == EntityState.Added
-            ? null
-            : SerializeValues(entry.Properties.Where(ShouldIncludeProperty).ToDictionary(x => x.Metadata.Name, x => entry.State == EntityState.Deleted ? x.OriginalValue : x.OriginalValue));
+        if (changedProperties.Count == 0)
+        {
+            return null;
+        }
 
-        var newValues = entry.State == EntityState.Deleted
-            ? null
-            : SerializeValues(entry.Properties.Where(ShouldIncludeProperty).ToDictionary(x => x.Metadata.Name, x => x.CurrentValue));
+        return new PendingEntityChange
+        {
+            Entry = entry,
+            State = entry.State,
+            TableName = tableName,
+            SchemaName = entry.Metadata.GetSchema(),
+            ChangedProperties = changedProperties,
+            OldValues = BuildOldValues(entry, changedProperties),
+            NewValues = BuildNewValues(entry, changedProperties)
+        };
+    }
 
+    private EntityChangeLog CreateEntityChangeLog(PendingEntityChange pending)
+    {
         return new EntityChangeLog
         {
             Timestamp = DateTimeOffset.UtcNow,
             CorrelationId = Activity.Current?.Id,
             UserId = SafeGetActorId(),
-            EntityType = entry.Metadata.ClrType.Name,
-            EntityId = ResolveEntityId(entry),
-            Action = entry.State.ToString().ToUpperInvariant(),
-            OldValues = oldValues,
-            NewValues = newValues,
-            ChangedProperties = JsonSerializer.Serialize(changedProperties),
-            TableName = tableName,
-            SchemaName = entry.Metadata.GetSchema()
+            EntityType = pending.Entry.Metadata.ClrType.Name,
+            EntityId = ResolveEntityId(pending.Entry),
+            Action = pending.State.ToString().ToUpperInvariant(),
+            OldValues = SerializeValues(pending.OldValues),
+            NewValues = SerializeValues(pending.NewValues),
+            ChangedProperties = JsonSerializer.Serialize(pending.ChangedProperties),
+            TableName = pending.TableName,
+            SchemaName = pending.SchemaName
         };
     }
 
-    private static bool ShouldIncludeProperty(PropertyEntry property)
+    private static bool ShouldIncludeProperty(EntityEntry entry, PropertyEntry property)
     {
+        if (property.Metadata.Name is "CreatedAt"
+            or "CreatedBy"
+            or "ModifiedAt"
+            or "ModifiedBy"
+            or "DeletedAt"
+            or "DeletedBy")
+        {
+            return false;
+        }
+
         if (property.Metadata.IsPrimaryKey())
         {
             return true;
         }
 
-        return property.Metadata.Name is not "CreatedAt"
-            and not "CreatedBy"
-            and not "ModifiedAt"
-            and not "ModifiedBy"
-            and not "DeletedAt"
-            and not "DeletedBy";
+        return entry.State switch
+        {
+            EntityState.Added => true,
+            EntityState.Deleted => true,
+            EntityState.Modified => property.IsModified,
+            _ => false
+        };
+    }
+
+    private static Dictionary<string, object?>? BuildOldValues(EntityEntry entry, List<string> changedProperties)
+    {
+        if (entry.State == EntityState.Added)
+        {
+            return null;
+        }
+
+        return changedProperties.ToDictionary(
+            name => name,
+            name => entry.Property(name).OriginalValue);
+    }
+
+    private static Dictionary<string, object?>? BuildNewValues(EntityEntry entry, List<string> changedProperties)
+    {
+        if (entry.State == EntityState.Deleted)
+        {
+            return null;
+        }
+
+        return changedProperties.ToDictionary(
+            name => name,
+            name => entry.Property(name).CurrentValue);
     }
 
     private static string? ResolveEntityId(EntityEntry entry)
@@ -184,8 +250,8 @@ public sealed class EntityChangeLoggingInterceptor(
         return primaryKey.CurrentValue?.ToString() ?? primaryKey.OriginalValue?.ToString();
     }
 
-    private static string? SerializeValues(Dictionary<string, object?> values)
-        => values.Count == 0 ? null : JsonSerializer.Serialize(values);
+    private static string? SerializeValues(Dictionary<string, object?>? values)
+        => values is null || values.Count == 0 ? null : JsonSerializer.Serialize(values);
 
     private string SafeGetActorId()
     {

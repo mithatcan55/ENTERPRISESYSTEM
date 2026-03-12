@@ -21,6 +21,7 @@ Bu klasor, projenin gorsel ve kavramsal mimari haritasini icerir.
 - `system-learning-path.md` -> Tum rehberleri ve kod okumayi siraya koyan ogrenme yolu
 - `query-handler-and-validator-training.md` -> Query handler ve validator katmanlarinin egitim rehberi
 - `api-response-catalog.md` -> Basari ve hata response sozlesmeleri katalogu
+- `observability-deep-dive.md` -> Middleware, interceptor, event publisher ve log writer derin rehberi
 
 ## Kullanim
 
@@ -33,6 +34,7 @@ Bu klasor, projenin gorsel ve kavramsal mimari haritasini icerir.
 7. Canli endpoint ogrenimi icin `manual-api-learning-guide.md` ve `src/Host.Api/Host.Api.http` dosyalarini birlikte kullan.
 8. Uzun vadeli, baglam kaybetmeyen tam okuma sirasi icin `system-learning-path.md` dosyasini takip et.
 9. Query/validator ayrimi ve response sozlesmeleri icin `query-handler-and-validator-training.md` ile `api-response-catalog.md` dosyalarini oku.
+10. Log/denetim omurgasini derin anlamak icin `observability-deep-dive.md` dosyasini oku.
 
 ## Not
 

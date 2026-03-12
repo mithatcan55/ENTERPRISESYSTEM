@@ -20,6 +20,7 @@ public sealed class RequestLifecycleLoggingMiddleware(RequestDelegate next, ILog
     {
         var startedAt = DateTimeOffset.UtcNow;
         var stopwatch = Stopwatch.StartNew();
+        var memoryBefore = GC.GetTotalMemory(false);
 
         context.Request.EnableBuffering();
         var requestBodyRaw = await ReadBodyAsync(context.Request.Body);
@@ -134,9 +135,9 @@ public sealed class RequestLifecycleLoggingMiddleware(RequestDelegate next, ILog
                 OperationName = $"{context.Request.Method} {context.Request.Path}",
                 OperationType = "HTTP",
                 DurationMs = stopwatch.ElapsedMilliseconds,
-                MemoryBefore = 0,
+                MemoryBefore = memoryBefore,
                 MemoryAfter = GC.GetTotalMemory(false),
-                MemoryUsed = GC.GetTotalMemory(false),
+                MemoryUsed = Math.Max(0, GC.GetTotalMemory(false) - memoryBefore),
                 IsSlowOperation = stopwatch.ElapsedMilliseconds >= 1000,
                 ThresholdMs = 1000,
                 AdditionalData = System.Text.Json.JsonSerializer.Serialize(new
