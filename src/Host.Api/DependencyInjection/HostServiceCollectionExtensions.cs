@@ -36,6 +36,9 @@ public static class HostServiceCollectionExtensions
         services.AddSingleton<ISensitiveDataRedactor, SensitiveDataRedactor>();
         services.AddScoped<OperationLoggingFilter>();
 
+        services.AddOptions<PersistenceBootstrapOptions>()
+            .BindConfiguration(PersistenceBootstrapOptions.SectionName);
+
         services.AddOptions<SensitiveDataLoggingOptions>()
             .BindConfiguration(SensitiveDataLoggingOptions.SectionName);
 

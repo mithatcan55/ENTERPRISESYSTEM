@@ -1,5 +1,6 @@
 using System.Text;
 using System.Text.Json;
+using System.Text.RegularExpressions;
 using Application.Observability;
 using Infrastructure.Persistence.Entities;
 using Microsoft.Extensions.Options;
@@ -34,15 +35,21 @@ public sealed class OperationalEventPublisher(
             await logEventWriter.WriteSecurityAsync(MapSecurityLog(operationalEvent), cancellationToken);
         }
 
+        var performanceThresholdMs = route.PerformanceThresholdMs ?? routingOptions.Value.DefaultPerformanceThresholdMs;
+
         if (route.WritePerformanceLog && operationalEvent.DurationMs.HasValue)
         {
-            await logEventWriter.WritePerformanceAsync(MapPerformanceLog(operationalEvent), cancellationToken);
+            await logEventWriter.WritePerformanceAsync(MapPerformanceLog(operationalEvent, performanceThresholdMs), cancellationToken);
         }
 
-        if (route.SendNotification)
+        if (route.SendNotification && !routingOptions.Value.DisableAllNotifications)
         {
             var notification = MapNotification(operationalEvent);
-            foreach (var channelName in route.NotificationChannels)
+            var targetChannels = route.NotificationChannels.Count == 0
+                ? _channels.Keys.ToList()
+                : route.NotificationChannels;
+
+            foreach (var channelName in targetChannels)
             {
                 if (_channels.TryGetValue(channelName, out var channel))
                 {
@@ -63,12 +70,35 @@ public sealed class OperationalEventPublisher(
 
         foreach (var route in routes)
         {
-            if (!Matches(route.EventName, operationalEvent.EventName))
+            if (!Matches(route.EventName, operationalEvent.EventName)
+                || !Matches(route.Category, operationalEvent.Category)
+                || !Matches(route.Source, operationalEvent.Source)
+                || !Matches(route.OperationName, operationalEvent.OperationName))
             {
                 continue;
             }
 
             if (route.MinimumSeverities.Count > 0 && !MeetsSeverity(route.MinimumSeverities, operationalEvent.Severity))
+            {
+                continue;
+            }
+
+            if (route.OnlyFailures && operationalEvent.IsSuccessful != false)
+            {
+                continue;
+            }
+
+            if (route.OnlySuccess && operationalEvent.IsSuccessful != true)
+            {
+                continue;
+            }
+
+            if (route.MinimumHttpStatusCode.HasValue && (!operationalEvent.HttpStatusCode.HasValue || operationalEvent.HttpStatusCode.Value < route.MinimumHttpStatusCode.Value))
+            {
+                continue;
+            }
+
+            if (route.MaximumHttpStatusCode.HasValue && (!operationalEvent.HttpStatusCode.HasValue || operationalEvent.HttpStatusCode.Value > route.MaximumHttpStatusCode.Value))
             {
                 continue;
             }
@@ -79,14 +109,25 @@ public sealed class OperationalEventPublisher(
         return null;
     }
 
-    private static bool Matches(string pattern, string eventName)
+    private static bool Matches(string? pattern, string? value)
     {
-        if (string.Equals(pattern, "*", StringComparison.OrdinalIgnoreCase))
+        if (string.IsNullOrWhiteSpace(pattern) || string.Equals(pattern, "*", StringComparison.OrdinalIgnoreCase))
         {
             return true;
         }
 
-        return string.Equals(pattern, eventName, StringComparison.OrdinalIgnoreCase);
+        if (string.IsNullOrWhiteSpace(value))
+        {
+            return false;
+        }
+
+        if (!pattern.Contains('*'))
+        {
+            return string.Equals(pattern, value, StringComparison.OrdinalIgnoreCase);
+        }
+
+        var regexPattern = "^" + Regex.Escape(pattern).Replace("\\*", ".*") + "$";
+        return Regex.IsMatch(value, regexPattern, RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
     }
 
     private static bool MeetsSeverity(IEnumerable<string> minimumSeverities, string actualSeverity)
@@ -153,7 +194,7 @@ public sealed class OperationalEventPublisher(
         };
     }
 
-    private static PerformanceLog MapPerformanceLog(OperationalEvent operationalEvent)
+    private static PerformanceLog MapPerformanceLog(OperationalEvent operationalEvent, int performanceThresholdMs)
     {
         return new PerformanceLog
         {
@@ -166,8 +207,8 @@ public sealed class OperationalEventPublisher(
             MemoryBefore = 0,
             MemoryAfter = GC.GetTotalMemory(false),
             MemoryUsed = GC.GetTotalMemory(false),
-            IsSlowOperation = (operationalEvent.DurationMs ?? 0) >= 500,
-            ThresholdMs = 500,
+            IsSlowOperation = (operationalEvent.DurationMs ?? 0) >= performanceThresholdMs,
+            ThresholdMs = performanceThresholdMs,
             AdditionalData = operationalEvent.Properties.Count == 0 ? null : JsonSerializer.Serialize(operationalEvent.Properties)
         };
     }

@@ -1,7 +1,9 @@
 using Infrastructure.Persistence;
 using Infrastructure.Persistence.Entities.Authorization;
 using Infrastructure.Persistence.Entities.Identity;
+using Host.Api.Configuration;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Options;
 
 namespace Host.Api.Services;
 
@@ -9,7 +11,8 @@ public sealed class CoreBootstrapHostedService(
     IServiceProvider serviceProvider,
     ILogger<CoreBootstrapHostedService> logger,
     IConfiguration configuration,
-    IHostEnvironment hostEnvironment) : IHostedService
+    IHostEnvironment hostEnvironment,
+    IOptions<PersistenceBootstrapOptions> persistenceBootstrapOptions) : IHostedService
 {
     public async Task StartAsync(CancellationToken cancellationToken)
     {
@@ -23,9 +26,17 @@ public sealed class CoreBootstrapHostedService(
         var logDbContext = scope.ServiceProvider.GetRequiredService<LogDbContext>();
         var identityDbContext = scope.ServiceProvider.GetRequiredService<IdentityDbContext>();
         var authorizationDbContext = scope.ServiceProvider.GetRequiredService<AuthorizationDbContext>();
+        var integrationsDbContext = scope.ServiceProvider.GetRequiredService<IntegrationsDbContext>();
 
         await EnsureDatabaseAsync(logDbContext, cancellationToken);
-        await EnsureDatabaseAsync(businessDbContext, cancellationToken);
+        if (persistenceBootstrapOptions.Value.EnableLegacyBusinessContextMigration)
+        {
+            await EnsureDatabaseAsync(businessDbContext, cancellationToken);
+        }
+
+        await EnsureDatabaseAsync(identityDbContext, cancellationToken);
+        await EnsureDatabaseAsync(authorizationDbContext, cancellationToken);
+        await EnsureDatabaseAsync(integrationsDbContext, cancellationToken);
         await EnsureAdminSeedAsync(identityDbContext, authorizationDbContext, cancellationToken);
 
         logger.LogInformation("Core bootstrap tamamlandi.");
