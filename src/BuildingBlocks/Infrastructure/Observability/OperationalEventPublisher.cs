@@ -25,31 +25,31 @@ public sealed class OperationalEventPublisher(
             return;
         }
 
+        var effectiveEvent = ApplyEscalationRules(operationalEvent);
+
         if (route.WriteSystemLog)
         {
-            await logEventWriter.WriteSystemAsync(MapSystemLog(operationalEvent), cancellationToken);
+            await logEventWriter.WriteSystemAsync(MapSystemLog(effectiveEvent), cancellationToken);
         }
 
         if (route.WriteSecurityLog)
         {
-            await logEventWriter.WriteSecurityAsync(MapSecurityLog(operationalEvent), cancellationToken);
+            await logEventWriter.WriteSecurityAsync(MapSecurityLog(effectiveEvent), cancellationToken);
         }
 
         var performanceThresholdMs = route.PerformanceThresholdMs ?? routingOptions.Value.DefaultPerformanceThresholdMs;
 
-        if (route.WritePerformanceLog && operationalEvent.DurationMs.HasValue)
+        if (route.WritePerformanceLog && effectiveEvent.DurationMs.HasValue)
         {
-            await logEventWriter.WritePerformanceAsync(MapPerformanceLog(operationalEvent, performanceThresholdMs), cancellationToken);
+            await logEventWriter.WritePerformanceAsync(MapPerformanceLog(effectiveEvent, performanceThresholdMs), cancellationToken);
         }
 
-        if (route.SendNotification && !routingOptions.Value.DisableAllNotifications)
-        {
-            var notification = MapNotification(operationalEvent);
-            var targetChannels = route.NotificationChannels.Count == 0
-                ? _channels.Keys.ToList()
-                : route.NotificationChannels;
+        var notificationChannels = ResolveNotificationChannels(route, effectiveEvent);
 
-            foreach (var channelName in targetChannels)
+        if (notificationChannels.Count > 0 && !routingOptions.Value.DisableAllNotifications)
+        {
+            var notification = MapNotification(effectiveEvent);
+            foreach (var channelName in notificationChannels)
             {
                 if (_channels.TryGetValue(channelName, out var channel))
                 {
@@ -103,10 +103,172 @@ public sealed class OperationalEventPublisher(
                 continue;
             }
 
-            return route;
+            return ApplyPreset(route);
         }
 
         return null;
+    }
+
+    private OperationalEvent ApplyEscalationRules(OperationalEvent operationalEvent)
+    {
+        var escalated = CloneEvent(operationalEvent);
+
+        foreach (var rule in routingOptions.Value.EscalationRules)
+        {
+            if (!MatchesCriteria(rule, escalated))
+            {
+                continue;
+            }
+
+            if (rule.MinimumSeverities.Count > 0 && !MeetsSeverity(rule.MinimumSeverities, escalated.Severity))
+            {
+                continue;
+            }
+
+            if (rule.MinimumDurationMs.HasValue && (!escalated.DurationMs.HasValue || escalated.DurationMs.Value < rule.MinimumDurationMs.Value))
+            {
+                continue;
+            }
+
+            if (!string.IsNullOrWhiteSpace(rule.OverrideSeverity))
+            {
+                escalated.Severity = rule.OverrideSeverity;
+            }
+
+            if (rule.ForceNotification)
+            {
+                escalated.Properties["escalationChannels"] = rule.NotificationChannels;
+                escalated.Properties["escalated"] = true;
+            }
+        }
+
+        return escalated;
+    }
+
+    private static OperationalEvent CloneEvent(OperationalEvent source)
+    {
+        return new OperationalEvent
+        {
+            EventName = source.EventName,
+            Category = source.Category,
+            Severity = source.Severity,
+            Message = source.Message,
+            Source = source.Source,
+            OperationName = source.OperationName,
+            IsSuccessful = source.IsSuccessful,
+            FailureReason = source.FailureReason,
+            CorrelationId = source.CorrelationId,
+            UserId = source.UserId,
+            Username = source.Username,
+            IpAddress = source.IpAddress,
+            UserAgent = source.UserAgent,
+            HttpMethod = source.HttpMethod,
+            HttpPath = source.HttpPath,
+            HttpStatusCode = source.HttpStatusCode,
+            DurationMs = source.DurationMs,
+            Resource = source.Resource,
+            Action = source.Action,
+            ExceptionMessage = source.ExceptionMessage,
+            StackTrace = source.StackTrace,
+            Properties = new Dictionary<string, object?>(source.Properties, StringComparer.OrdinalIgnoreCase)
+        };
+    }
+
+    private List<string> ResolveNotificationChannels(OperationalEventRouteOptions route, OperationalEvent effectiveEvent)
+    {
+        var channels = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
+        if (route.SendNotification)
+        {
+            var routeChannels = route.NotificationChannels.Count == 0
+                ? _channels.Keys
+                : route.NotificationChannels;
+
+            foreach (var channel in routeChannels)
+            {
+                channels.Add(channel);
+            }
+        }
+
+        if (effectiveEvent.Properties.TryGetValue("escalationChannels", out var escalationChannelsObj)
+            && escalationChannelsObj is IEnumerable<string> escalationChannels)
+        {
+            foreach (var channel in escalationChannels)
+            {
+                channels.Add(channel);
+            }
+        }
+
+        return channels.ToList();
+    }
+
+    private OperationalEventRouteOptions ApplyPreset(OperationalEventRouteOptions route)
+    {
+        if (string.IsNullOrWhiteSpace(route.Preset))
+        {
+            return route;
+        }
+
+        var preset = routingOptions.Value.Presets
+            .FirstOrDefault(x => string.Equals(x.Name, route.Preset, StringComparison.OrdinalIgnoreCase));
+
+        if (preset is null)
+        {
+            return route;
+        }
+
+        return new OperationalEventRouteOptions
+        {
+            EventName = route.EventName,
+            Category = route.Category,
+            Source = route.Source,
+            OperationName = route.OperationName,
+            OnlyFailures = route.OnlyFailures,
+            OnlySuccess = route.OnlySuccess,
+            MinimumHttpStatusCode = route.MinimumHttpStatusCode,
+            MaximumHttpStatusCode = route.MaximumHttpStatusCode,
+            Preset = route.Preset,
+            WriteSystemLog = route.WriteSystemLog || preset.WriteSystemLog,
+            WriteSecurityLog = route.WriteSecurityLog || preset.WriteSecurityLog,
+            WritePerformanceLog = route.WritePerformanceLog || preset.WritePerformanceLog,
+            PerformanceThresholdMs = route.PerformanceThresholdMs ?? preset.PerformanceThresholdMs,
+            SendNotification = route.SendNotification || preset.SendNotification,
+            NotificationChannels = route.NotificationChannels.Count == 0 ? preset.NotificationChannels : route.NotificationChannels,
+            MinimumSeverities = route.MinimumSeverities.Count == 0 ? preset.MinimumSeverities : route.MinimumSeverities
+        };
+    }
+
+    private static bool MatchesCriteria(OperationalEventRouteCriteria criteria, OperationalEvent operationalEvent)
+    {
+        if (!Matches(criteria.EventName, operationalEvent.EventName)
+            || !Matches(criteria.Category, operationalEvent.Category)
+            || !Matches(criteria.Source, operationalEvent.Source)
+            || !Matches(criteria.OperationName, operationalEvent.OperationName))
+        {
+            return false;
+        }
+
+        if (criteria.OnlyFailures && operationalEvent.IsSuccessful != false)
+        {
+            return false;
+        }
+
+        if (criteria.OnlySuccess && operationalEvent.IsSuccessful != true)
+        {
+            return false;
+        }
+
+        if (criteria.MinimumHttpStatusCode.HasValue && (!operationalEvent.HttpStatusCode.HasValue || operationalEvent.HttpStatusCode.Value < criteria.MinimumHttpStatusCode.Value))
+        {
+            return false;
+        }
+
+        if (criteria.MaximumHttpStatusCode.HasValue && (!operationalEvent.HttpStatusCode.HasValue || operationalEvent.HttpStatusCode.Value > criteria.MaximumHttpStatusCode.Value))
+        {
+            return false;
+        }
+
+        return true;
     }
 
     private static bool Matches(string? pattern, string? value)

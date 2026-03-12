@@ -4,6 +4,7 @@ using Infrastructure.Persistence.Entities.Identity;
 using Host.Api.Configuration;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
+using Infrastructure.Persistence.Auditing;
 
 namespace Host.Api.Services;
 
@@ -14,6 +15,11 @@ public sealed class CoreBootstrapHostedService(
     IHostEnvironment hostEnvironment,
     IOptions<PersistenceBootstrapOptions> persistenceBootstrapOptions) : IHostedService
 {
+    private sealed class SystemAuditActorAccessor : IAuditActorAccessor
+    {
+        public string GetActorId() => "system";
+    }
+
     public async Task StartAsync(CancellationToken cancellationToken)
     {
         if (hostEnvironment.IsEnvironment("Testing"))
@@ -22,7 +28,6 @@ public sealed class CoreBootstrapHostedService(
         }
 
         using var scope = serviceProvider.CreateScope();
-        var businessDbContext = scope.ServiceProvider.GetRequiredService<BusinessDbContext>();
         var logDbContext = scope.ServiceProvider.GetRequiredService<LogDbContext>();
         var identityDbContext = scope.ServiceProvider.GetRequiredService<IdentityDbContext>();
         var authorizationDbContext = scope.ServiceProvider.GetRequiredService<AuthorizationDbContext>();
@@ -31,6 +36,7 @@ public sealed class CoreBootstrapHostedService(
         await EnsureDatabaseAsync(logDbContext, cancellationToken);
         if (persistenceBootstrapOptions.Value.EnableLegacyBusinessContextMigration)
         {
+            await using var businessDbContext = CreateLegacyBusinessDbContext();
             await EnsureDatabaseAsync(businessDbContext, cancellationToken);
         }
 
@@ -45,6 +51,21 @@ public sealed class CoreBootstrapHostedService(
     public Task StopAsync(CancellationToken cancellationToken)
     {
         return Task.CompletedTask;
+    }
+
+    private BusinessDbContext CreateLegacyBusinessDbContext()
+    {
+        var connectionString = configuration.GetConnectionString("BusinessDb")
+                               ?? throw new InvalidOperationException("BusinessDb connection string tanimli degil.");
+
+        var options = new DbContextOptionsBuilder<BusinessDbContext>()
+            .UseNpgsql(connectionString, npgsql =>
+            {
+                npgsql.MigrationsHistoryTable("__EFMigrationsHistory", PersistenceSchemaNames.Business);
+            })
+            .Options;
+
+        return new BusinessDbContext(options, new SystemAuditActorAccessor());
     }
 
     private static async Task EnsureDatabaseAsync(DbContext dbContext, CancellationToken cancellationToken)

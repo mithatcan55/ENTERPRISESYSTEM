@@ -56,19 +56,6 @@ public static class InfrastructureServiceCollectionExtensions
             });
         });
 
-        services.AddDbContext<BusinessDbContext>((sp, options) =>
-        {
-            var connectionString = configuration.GetConnectionString("BusinessDb");
-            options.UseNpgsql(connectionString, npgsql =>
-            {
-                npgsql.MigrationsHistoryTable("__EFMigrationsHistory", PersistenceSchemaNames.Business);
-            });
-
-            options.AddInterceptors(
-                sp.GetRequiredService<DatabaseCommandLoggingInterceptor>(),
-                sp.GetRequiredService<EntityChangeLoggingInterceptor>());
-        });
-
         services.AddDbContext<AuthorizationDbContext>((sp, options) =>
         {
             var connectionString = configuration.GetConnectionString("BusinessDb");
