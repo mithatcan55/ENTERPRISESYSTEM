@@ -1,9 +1,7 @@
 using Infrastructure.Persistence;
 using Infrastructure.Persistence.Entities.Authorization;
 using Infrastructure.Persistence.Entities.Identity;
-using Host.Api.Configuration;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Options;
 using Infrastructure.Persistence.Auditing;
 
 namespace Host.Api.Services;
@@ -12,8 +10,7 @@ public sealed class CoreBootstrapHostedService(
     IServiceProvider serviceProvider,
     ILogger<CoreBootstrapHostedService> logger,
     IConfiguration configuration,
-    IHostEnvironment hostEnvironment,
-    IOptions<PersistenceBootstrapOptions> persistenceBootstrapOptions) : IHostedService
+    IHostEnvironment hostEnvironment) : IHostedService
 {
     private sealed class SystemAuditActorAccessor : IAuditActorAccessor
     {
@@ -34,15 +31,13 @@ public sealed class CoreBootstrapHostedService(
         var integrationsDbContext = scope.ServiceProvider.GetRequiredService<IntegrationsDbContext>();
 
         await EnsureDatabaseAsync(logDbContext, cancellationToken);
-        if (persistenceBootstrapOptions.Value.EnableLegacyBusinessContextMigration)
-        {
-            await using var businessDbContext = CreateLegacyBusinessDbContext();
-            await EnsureDatabaseAsync(businessDbContext, cancellationToken);
-        }
+        await using var businessDbContext = CreateLegacyBusinessDbContext();
+        await EnsureDatabaseAsync(businessDbContext, cancellationToken);
 
         await EnsureDatabaseAsync(identityDbContext, cancellationToken);
         await EnsureDatabaseAsync(authorizationDbContext, cancellationToken);
         await EnsureDatabaseAsync(integrationsDbContext, cancellationToken);
+        await EnsureAuthorizationSeedAsync(authorizationDbContext, cancellationToken);
         await EnsureAdminSeedAsync(identityDbContext, authorizationDbContext, cancellationToken);
 
         logger.LogInformation("Core bootstrap tamamlandi.");
@@ -79,6 +74,71 @@ public sealed class CoreBootstrapHostedService(
         }
 
         await dbContext.Database.EnsureCreatedAsync(cancellationToken);
+    }
+
+    private static async Task EnsureAuthorizationSeedAsync(AuthorizationDbContext authorizationDbContext, CancellationToken cancellationToken)
+    {
+        var module = await authorizationDbContext.Modules.FirstOrDefaultAsync(x => !x.IsDeleted && x.Code == "SYS", cancellationToken);
+        if (module is null)
+        {
+            module = new Module
+            {
+                Name = "System",
+                Code = "SYS",
+                Description = "Sistem yonetimi ana modulu",
+                CompanyId = 1,
+                RouteLink = "/system"
+            };
+
+            authorizationDbContext.Modules.Add(module);
+            await authorizationDbContext.SaveChangesAsync(cancellationToken);
+        }
+
+        var subModule = await authorizationDbContext.SubModules.FirstOrDefaultAsync(x => !x.IsDeleted && x.Code == "SYS_USER", cancellationToken);
+        if (subModule is null)
+        {
+            subModule = new SubModule
+            {
+                ModuleId = module.Id,
+                Name = "UserManagement",
+                Code = "SYS_USER",
+                Description = "Kullanici islemleri",
+                RouteLink = "/system/users"
+            };
+
+            authorizationDbContext.SubModules.Add(subModule);
+            await authorizationDbContext.SaveChangesAsync(cancellationToken);
+        }
+
+        var requiredPages = new[]
+        {
+            new { Name = "Create User", Code = "USER_CREATE", TransactionCode = "SYS01", RouteLink = "/system/users/create" },
+            new { Name = "Update User", Code = "USER_UPDATE", TransactionCode = "SYS02", RouteLink = "/system/users/update" },
+            new { Name = "View User", Code = "USER_VIEW", TransactionCode = "SYS03", RouteLink = "/system/users/view" },
+            new { Name = "User Report", Code = "USER_REPORT", TransactionCode = "SYS04", RouteLink = "/system/users/report" }
+        };
+
+        foreach (var pageSeed in requiredPages)
+        {
+            var page = await authorizationDbContext.SubModulePages
+                .FirstOrDefaultAsync(x => !x.IsDeleted && x.TransactionCode == pageSeed.TransactionCode, cancellationToken);
+
+            if (page is not null)
+            {
+                continue;
+            }
+
+            authorizationDbContext.SubModulePages.Add(new SubModulePage
+            {
+                SubModuleId = subModule.Id,
+                Name = pageSeed.Name,
+                Code = pageSeed.Code,
+                TransactionCode = pageSeed.TransactionCode,
+                RouteLink = pageSeed.RouteLink
+            });
+        }
+
+        await authorizationDbContext.SaveChangesAsync(cancellationToken);
     }
 
     private async Task EnsureAdminSeedAsync(IdentityDbContext identityDbContext, AuthorizationDbContext authorizationDbContext, CancellationToken cancellationToken)
@@ -136,27 +196,42 @@ public sealed class CoreBootstrapHostedService(
             await identityDbContext.SaveChangesAsync(cancellationToken);
         }
 
-        if (!await authorizationDbContext.UserModulePermissions.AnyAsync(x => !x.IsDeleted && x.UserId == user.Id && x.ModuleId == 1, cancellationToken))
+        var systemModule = await authorizationDbContext.Modules
+            .AsNoTracking()
+            .FirstAsync(x => !x.IsDeleted && x.Code == "SYS", cancellationToken);
+
+        var systemSubModule = await authorizationDbContext.SubModules
+            .AsNoTracking()
+            .FirstAsync(x => !x.IsDeleted && x.Code == "SYS_USER", cancellationToken);
+
+        if (!await authorizationDbContext.UserModulePermissions.AnyAsync(x => !x.IsDeleted && x.UserId == user.Id && x.ModuleId == systemModule.Id, cancellationToken))
         {
             authorizationDbContext.UserModulePermissions.Add(new UserModulePermission
             {
                 UserId = user.Id,
-                ModuleId = 1,
+                ModuleId = systemModule.Id,
                 AuthorizationLevel = 1
             });
         }
 
-        if (!await authorizationDbContext.UserSubModulePermissions.AnyAsync(x => !x.IsDeleted && x.UserId == user.Id && x.SubModuleId == 1, cancellationToken))
+        if (!await authorizationDbContext.UserSubModulePermissions.AnyAsync(x => !x.IsDeleted && x.UserId == user.Id && x.SubModuleId == systemSubModule.Id, cancellationToken))
         {
             authorizationDbContext.UserSubModulePermissions.Add(new UserSubModulePermission
             {
                 UserId = user.Id,
-                SubModuleId = 1,
+                SubModuleId = systemSubModule.Id,
                 AuthorizationLevel = 2
             });
         }
 
-        foreach (var pageId in new[] { 1, 2, 3, 4 })
+        var pageIds = await authorizationDbContext.SubModulePages
+            .AsNoTracking()
+            .Where(x => !x.IsDeleted && (x.TransactionCode == "SYS01" || x.TransactionCode == "SYS02" || x.TransactionCode == "SYS03" || x.TransactionCode == "SYS04"))
+            .OrderBy(x => x.TransactionCode)
+            .Select(x => x.Id)
+            .ToListAsync(cancellationToken);
+
+        foreach (var pageId in pageIds)
         {
             if (await authorizationDbContext.UserPagePermissions.AnyAsync(
                     x => !x.IsDeleted && x.UserId == user.Id && x.SubModulePageId == pageId,

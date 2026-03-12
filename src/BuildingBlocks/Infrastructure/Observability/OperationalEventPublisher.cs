@@ -19,13 +19,12 @@ public sealed class OperationalEventPublisher(
     {
         // Publisher'in ana isi event'i "nereye gidecek?" sorusuna gore route etmektir.
         // Handler veya middleware bununla ilgilenmez; sadece event uretir.
-        var route = ResolveRoute(operationalEvent);
+        var effectiveEvent = ApplyEscalationRules(operationalEvent);
+        var route = ResolveRoute(effectiveEvent);
         if (route is null)
         {
             return;
         }
-
-        var effectiveEvent = ApplyEscalationRules(operationalEvent);
 
         if (route.WriteSystemLog)
         {

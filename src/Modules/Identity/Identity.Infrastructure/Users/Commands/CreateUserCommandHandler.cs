@@ -89,21 +89,35 @@ public sealed class CreateUserCommandHandler(
 
         await passwordPolicyService.RecordPasswordHistoryAsync(user.Id, user.PasswordHash, cancellationToken);
 
-        authorizationDbContext.UserModulePermissions.Add(new UserModulePermission
+        try
         {
-            UserId = user.Id,
-            ModuleId = systemModule.Id,
-            AuthorizationLevel = 1
-        });
+            authorizationDbContext.UserModulePermissions.Add(new UserModulePermission
+            {
+                UserId = user.Id,
+                ModuleId = systemModule.Id,
+                AuthorizationLevel = 1
+            });
 
-        authorizationDbContext.UserCompanyPermissions.Add(new UserCompanyPermission
+            authorizationDbContext.UserCompanyPermissions.Add(new UserCompanyPermission
+            {
+                UserId = user.Id,
+                CompanyId = request.CompanyId,
+                AuthorizationLevel = 4
+            });
+
+            await authorizationDbContext.SaveChangesAsync(cancellationToken);
+        }
+        catch
         {
-            UserId = user.Id,
-            CompanyId = request.CompanyId,
-            AuthorizationLevel = 4
-        });
-
-        await authorizationDbContext.SaveChangesAsync(cancellationToken);
+            // Ayrik context'ler nedeniyle ikinci yazim patlarsa yarim kaydi manuel olarak geri sarariz.
+            await identityDbContext.Database.ExecuteSqlInterpolatedAsync(
+                $"DELETE FROM \"{PersistenceSchemaNames.Business}\".\"UserPasswordHistories\" WHERE \"UserId\" = {user.Id}",
+                cancellationToken);
+            await identityDbContext.Database.ExecuteSqlInterpolatedAsync(
+                $"DELETE FROM \"{PersistenceSchemaNames.Business}\".\"Users\" WHERE \"Id\" = {user.Id}",
+                cancellationToken);
+            throw;
+        }
 
         if (request.NotifyAdminByMail)
         {
