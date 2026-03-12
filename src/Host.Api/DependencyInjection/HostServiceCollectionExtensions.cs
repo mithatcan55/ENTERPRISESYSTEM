@@ -74,10 +74,10 @@ public static class HostServiceCollectionExtensions
                         return;
                     }
 
-                    var businessDbContext = context.HttpContext.RequestServices.GetRequiredService<BusinessDbContext>();
+                    var identityDbContext = context.HttpContext.RequestServices.GetRequiredService<IdentityDbContext>();
                     var now = DateTime.UtcNow;
 
-                    var session = await businessDbContext.UserSessions
+                    var session = await identityDbContext.UserSessions
                         .AsNoTracking()
                         .FirstOrDefaultAsync(x => x.Id == sessionId && x.UserId == userId && !x.IsDeleted, context.HttpContext.RequestAborted);
 
@@ -87,7 +87,7 @@ public static class HostServiceCollectionExtensions
                         return;
                     }
 
-                    var user = await businessDbContext.Users
+                    var user = await identityDbContext.Users
                         .AsNoTracking()
                         .FirstOrDefaultAsync(x => x.Id == userId && !x.IsDeleted, context.HttpContext.RequestAborted);
 

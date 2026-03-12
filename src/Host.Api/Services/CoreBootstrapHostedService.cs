@@ -21,10 +21,12 @@ public sealed class CoreBootstrapHostedService(
         using var scope = serviceProvider.CreateScope();
         var businessDbContext = scope.ServiceProvider.GetRequiredService<BusinessDbContext>();
         var logDbContext = scope.ServiceProvider.GetRequiredService<LogDbContext>();
+        var identityDbContext = scope.ServiceProvider.GetRequiredService<IdentityDbContext>();
+        var authorizationDbContext = scope.ServiceProvider.GetRequiredService<AuthorizationDbContext>();
 
         await EnsureDatabaseAsync(logDbContext, cancellationToken);
         await EnsureDatabaseAsync(businessDbContext, cancellationToken);
-        await EnsureAdminSeedAsync(businessDbContext, cancellationToken);
+        await EnsureAdminSeedAsync(identityDbContext, authorizationDbContext, cancellationToken);
 
         logger.LogInformation("Core bootstrap tamamlandi.");
     }
@@ -47,14 +49,14 @@ public sealed class CoreBootstrapHostedService(
         await dbContext.Database.EnsureCreatedAsync(cancellationToken);
     }
 
-    private async Task EnsureAdminSeedAsync(BusinessDbContext businessDbContext, CancellationToken cancellationToken)
+    private async Task EnsureAdminSeedAsync(IdentityDbContext identityDbContext, AuthorizationDbContext authorizationDbContext, CancellationToken cancellationToken)
     {
         var adminUserCode = configuration["BootstrapAdmin:UserCode"] ?? "CORE_ADMIN";
         var adminUsername = configuration["BootstrapAdmin:Username"] ?? "core.admin";
         var adminEmail = configuration["BootstrapAdmin:Email"] ?? "core.admin@local";
         var adminPassword = configuration["BootstrapAdmin:Password"] ?? "CoreAdmin@12345";
 
-        var role = await businessDbContext.Roles.FirstOrDefaultAsync(x => !x.IsDeleted && x.Code == "SYS_ADMIN", cancellationToken);
+        var role = await identityDbContext.Roles.FirstOrDefaultAsync(x => !x.IsDeleted && x.Code == "SYS_ADMIN", cancellationToken);
         if (role is null)
         {
             role = new Role
@@ -65,11 +67,11 @@ public sealed class CoreBootstrapHostedService(
                 IsSystemRole = true
             };
 
-            businessDbContext.Roles.Add(role);
-            await businessDbContext.SaveChangesAsync(cancellationToken);
+            identityDbContext.Roles.Add(role);
+            await identityDbContext.SaveChangesAsync(cancellationToken);
         }
 
-        var user = await businessDbContext.Users.FirstOrDefaultAsync(x => !x.IsDeleted && x.UserCode == adminUserCode, cancellationToken);
+        var user = await identityDbContext.Users.FirstOrDefaultAsync(x => !x.IsDeleted && x.UserCode == adminUserCode, cancellationToken);
         if (user is null)
         {
             user = new User
@@ -83,28 +85,28 @@ public sealed class CoreBootstrapHostedService(
                 PasswordExpiresAt = DateTime.UtcNow.AddDays(90)
             };
 
-            businessDbContext.Users.Add(user);
-            await businessDbContext.SaveChangesAsync(cancellationToken);
+            identityDbContext.Users.Add(user);
+            await identityDbContext.SaveChangesAsync(cancellationToken);
         }
 
-        var hasAssignment = await businessDbContext.UserRoles.AnyAsync(
+        var hasAssignment = await identityDbContext.UserRoles.AnyAsync(
             x => !x.IsDeleted && x.UserId == user.Id && x.RoleId == role.Id,
             cancellationToken);
 
         if (!hasAssignment)
         {
-            businessDbContext.UserRoles.Add(new UserRole
+            identityDbContext.UserRoles.Add(new UserRole
             {
                 UserId = user.Id,
                 RoleId = role.Id
             });
 
-            await businessDbContext.SaveChangesAsync(cancellationToken);
+            await identityDbContext.SaveChangesAsync(cancellationToken);
         }
 
-        if (!await businessDbContext.UserModulePermissions.AnyAsync(x => !x.IsDeleted && x.UserId == user.Id && x.ModuleId == 1, cancellationToken))
+        if (!await authorizationDbContext.UserModulePermissions.AnyAsync(x => !x.IsDeleted && x.UserId == user.Id && x.ModuleId == 1, cancellationToken))
         {
-            businessDbContext.UserModulePermissions.Add(new UserModulePermission
+            authorizationDbContext.UserModulePermissions.Add(new UserModulePermission
             {
                 UserId = user.Id,
                 ModuleId = 1,
@@ -112,9 +114,9 @@ public sealed class CoreBootstrapHostedService(
             });
         }
 
-        if (!await businessDbContext.UserSubModulePermissions.AnyAsync(x => !x.IsDeleted && x.UserId == user.Id && x.SubModuleId == 1, cancellationToken))
+        if (!await authorizationDbContext.UserSubModulePermissions.AnyAsync(x => !x.IsDeleted && x.UserId == user.Id && x.SubModuleId == 1, cancellationToken))
         {
-            businessDbContext.UserSubModulePermissions.Add(new UserSubModulePermission
+            authorizationDbContext.UserSubModulePermissions.Add(new UserSubModulePermission
             {
                 UserId = user.Id,
                 SubModuleId = 1,
@@ -124,14 +126,14 @@ public sealed class CoreBootstrapHostedService(
 
         foreach (var pageId in new[] { 1, 2, 3, 4 })
         {
-            if (await businessDbContext.UserPagePermissions.AnyAsync(
+            if (await authorizationDbContext.UserPagePermissions.AnyAsync(
                     x => !x.IsDeleted && x.UserId == user.Id && x.SubModulePageId == pageId,
                     cancellationToken))
             {
                 continue;
             }
 
-            businessDbContext.UserPagePermissions.Add(new UserPagePermission
+            authorizationDbContext.UserPagePermissions.Add(new UserPagePermission
             {
                 UserId = user.Id,
                 SubModulePageId = pageId,
@@ -139,9 +141,9 @@ public sealed class CoreBootstrapHostedService(
             });
         }
 
-        if (!await businessDbContext.UserCompanyPermissions.AnyAsync(x => !x.IsDeleted && x.UserId == user.Id && x.CompanyId == 1, cancellationToken))
+        if (!await authorizationDbContext.UserCompanyPermissions.AnyAsync(x => !x.IsDeleted && x.UserId == user.Id && x.CompanyId == 1, cancellationToken))
         {
-            businessDbContext.UserCompanyPermissions.Add(new UserCompanyPermission
+            authorizationDbContext.UserCompanyPermissions.Add(new UserCompanyPermission
             {
                 UserId = user.Id,
                 CompanyId = 1,
@@ -149,7 +151,7 @@ public sealed class CoreBootstrapHostedService(
             });
         }
 
-        await businessDbContext.SaveChangesAsync(cancellationToken);
+        await authorizationDbContext.SaveChangesAsync(cancellationToken);
 
         logger.LogInformation("Bootstrap admin dogrulandi. UserCode={UserCode}", adminUserCode);
     }

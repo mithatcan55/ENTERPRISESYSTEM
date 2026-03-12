@@ -5,7 +5,7 @@ namespace Infrastructure.Persistence;
 
 public sealed class LogDbContext(DbContextOptions<LogDbContext> options) : DbContext(options)
 {
-    public const string LogsSchema = "logs";
+    public const string LogsSchema = PersistenceSchemaNames.Logs;
 
     public DbSet<DatabaseQueryLog> DatabaseQueryLogs => Set<DatabaseQueryLog>();
     public DbSet<EntityChangeLog> EntityChangeLogs => Set<EntityChangeLog>();

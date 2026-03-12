@@ -5,11 +5,11 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Identity.Infrastructure.Roles.Commands;
 
-public sealed class DeleteRoleCommandHandler(BusinessDbContext businessDbContext) : IDeleteRoleCommandHandler
+public sealed class DeleteRoleCommandHandler(IdentityDbContext identityDbContext) : IDeleteRoleCommandHandler
 {
     public async Task HandleAsync(int roleId, CancellationToken cancellationToken)
     {
-        var role = await businessDbContext.Roles
+        var role = await identityDbContext.Roles
             .FirstOrDefaultAsync(x => x.Id == roleId && !x.IsDeleted, cancellationToken);
 
         if (role is null)
@@ -22,7 +22,7 @@ public sealed class DeleteRoleCommandHandler(BusinessDbContext businessDbContext
             throw new ForbiddenAppException("Sistem role kayitlari silinemez.");
         }
 
-        var hasActiveAssignments = await businessDbContext.UserRoles
+        var hasActiveAssignments = await identityDbContext.UserRoles
             .AsNoTracking()
             .AnyAsync(x => x.RoleId == roleId && !x.IsDeleted, cancellationToken);
 
@@ -38,6 +38,6 @@ public sealed class DeleteRoleCommandHandler(BusinessDbContext businessDbContext
 
         role.IsDeleted = true;
         role.DeletedAt = DateTime.UtcNow;
-        await businessDbContext.SaveChangesAsync(cancellationToken);
+        await identityDbContext.SaveChangesAsync(cancellationToken);
     }
 }

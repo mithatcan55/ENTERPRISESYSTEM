@@ -5,7 +5,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Identity.Infrastructure.Permissions.Commands;
 
-public sealed class DeleteUserActionPermissionCommandHandler(BusinessDbContext businessDbContext) : IDeleteUserActionPermissionCommandHandler
+public sealed class DeleteUserActionPermissionCommandHandler(AuthorizationDbContext authorizationDbContext) : IDeleteUserActionPermissionCommandHandler
 {
     public async Task HandleAsync(int permissionId, CancellationToken cancellationToken)
     {
@@ -19,7 +19,7 @@ public sealed class DeleteUserActionPermissionCommandHandler(BusinessDbContext b
                 });
         }
 
-        var permission = await businessDbContext.UserPageActionPermissions
+        var permission = await authorizationDbContext.UserPageActionPermissions
             .FirstOrDefaultAsync(x => x.Id == permissionId && !x.IsDeleted, cancellationToken);
 
         if (permission is null)
@@ -31,6 +31,6 @@ public sealed class DeleteUserActionPermissionCommandHandler(BusinessDbContext b
 
         permission.IsDeleted = true;
         permission.DeletedAt = DateTime.UtcNow;
-        await businessDbContext.SaveChangesAsync(cancellationToken);
+        await authorizationDbContext.SaveChangesAsync(cancellationToken);
     }
 }

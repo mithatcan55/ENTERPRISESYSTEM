@@ -6,7 +6,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Identity.Infrastructure.Users.Commands;
 
-public sealed class UpdateUserCommandHandler(BusinessDbContext businessDbContext) : IUpdateUserCommandHandler
+public sealed class UpdateUserCommandHandler(IdentityDbContext identityDbContext) : IUpdateUserCommandHandler
 {
     public async Task<UserListItemDto> HandleAsync(int userId, UpdateUserRequest request, CancellationToken cancellationToken)
     {
@@ -31,14 +31,14 @@ public sealed class UpdateUserCommandHandler(BusinessDbContext businessDbContext
                 });
         }
 
-        var user = await businessDbContext.Users.FirstOrDefaultAsync(x => x.Id == userId && !x.IsDeleted, cancellationToken);
+        var user = await identityDbContext.Users.FirstOrDefaultAsync(x => x.Id == userId && !x.IsDeleted, cancellationToken);
         if (user is null)
             throw new NotFoundAppException($"Kullanici bulunamadi. userId={userId}");
 
         var normalizedUsername = request.Username.Trim();
         var normalizedEmail = request.Email.Trim().ToLowerInvariant();
 
-        var duplicateExists = await businessDbContext.Users
+        var duplicateExists = await identityDbContext.Users
             .AsNoTracking()
             .AnyAsync(x => !x.IsDeleted && x.Id != userId && (x.Username == normalizedUsername || x.Email == normalizedEmail), cancellationToken);
 
@@ -56,9 +56,9 @@ public sealed class UpdateUserCommandHandler(BusinessDbContext businessDbContext
         user.Email = normalizedEmail;
         user.IsActive = request.IsActive;
 
-        await businessDbContext.SaveChangesAsync(cancellationToken);
+        await identityDbContext.SaveChangesAsync(cancellationToken);
 
-        return await businessDbContext.Users
+        return await identityDbContext.Users
             .AsNoTracking()
             .Where(x => x.Id == userId)
             .Select(x => new UserListItemDto(

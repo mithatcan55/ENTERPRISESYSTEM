@@ -30,7 +30,7 @@ public sealed class IdentityDbContext(
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
-        modelBuilder.HasDefaultSchema(BusinessDbContext.AuthorizationSchema);
+        modelBuilder.HasDefaultSchema(PersistenceSchemaNames.Business);
 
         modelBuilder.Entity<User>(entity =>
         {

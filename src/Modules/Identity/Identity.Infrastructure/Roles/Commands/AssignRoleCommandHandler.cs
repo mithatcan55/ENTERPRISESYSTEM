@@ -6,11 +6,11 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Identity.Infrastructure.Roles.Commands;
 
-public sealed class AssignRoleCommandHandler(BusinessDbContext businessDbContext) : IAssignRoleCommandHandler
+public sealed class AssignRoleCommandHandler(IdentityDbContext identityDbContext) : IAssignRoleCommandHandler
 {
     public async Task HandleAsync(int userId, int roleId, CancellationToken cancellationToken)
     {
-        var userExists = await businessDbContext.Users
+        var userExists = await identityDbContext.Users
             .AsNoTracking()
             .AnyAsync(x => x.Id == userId && !x.IsDeleted, cancellationToken);
 
@@ -19,7 +19,7 @@ public sealed class AssignRoleCommandHandler(BusinessDbContext businessDbContext
             throw new NotFoundAppException($"Kullanici bulunamadi. userId={userId}");
         }
 
-        var role = await businessDbContext.Roles
+        var role = await identityDbContext.Roles
             .FirstOrDefaultAsync(x => x.Id == roleId && !x.IsDeleted, cancellationToken);
 
         if (role is null)
@@ -27,7 +27,7 @@ public sealed class AssignRoleCommandHandler(BusinessDbContext businessDbContext
             throw new NotFoundAppException($"Role bulunamadi. roleId={roleId}");
         }
 
-        var alreadyAssigned = await businessDbContext.UserRoles
+        var alreadyAssigned = await identityDbContext.UserRoles
             .AsNoTracking()
             .AnyAsync(x => x.UserId == userId && x.RoleId == roleId && !x.IsDeleted, cancellationToken);
 
@@ -36,12 +36,12 @@ public sealed class AssignRoleCommandHandler(BusinessDbContext businessDbContext
             return;
         }
 
-        businessDbContext.UserRoles.Add(new UserRole
+        identityDbContext.UserRoles.Add(new UserRole
         {
             UserId = userId,
             RoleId = roleId
         });
 
-        await businessDbContext.SaveChangesAsync(cancellationToken);
+        await identityDbContext.SaveChangesAsync(cancellationToken);
     }
 }

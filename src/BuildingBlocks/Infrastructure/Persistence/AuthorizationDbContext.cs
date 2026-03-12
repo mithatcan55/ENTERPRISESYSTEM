@@ -33,7 +33,7 @@ public sealed class AuthorizationDbContext(
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
-        modelBuilder.HasDefaultSchema(BusinessDbContext.AuthorizationSchema);
+        modelBuilder.HasDefaultSchema(PersistenceSchemaNames.Business);
 
         modelBuilder.Entity<Module>(entity =>
         {

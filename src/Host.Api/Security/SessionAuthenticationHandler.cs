@@ -12,7 +12,8 @@ public sealed class SessionAuthenticationHandler(
     IOptionsMonitor<AuthenticationSchemeOptions> options,
     ILoggerFactory logger,
     UrlEncoder encoder,
-    BusinessDbContext businessDbContext) : AuthenticationHandler<AuthenticationSchemeOptions>(options, logger, encoder)
+    IdentityDbContext identityDbContext,
+    AuthorizationDbContext authorizationDbContext) : AuthenticationHandler<AuthenticationSchemeOptions>(options, logger, encoder)
 {
     public const string SchemeName = "SessionBearer";
 
@@ -37,7 +38,7 @@ public sealed class SessionAuthenticationHandler(
 
         var now = DateTime.UtcNow;
 
-        var session = await businessDbContext.UserSessions
+        var session = await identityDbContext.UserSessions
             .FirstOrDefaultAsync(x => x.SessionKey == sessionKey && !x.IsDeleted, Context.RequestAborted);
 
         if (session is null)
@@ -55,7 +56,7 @@ public sealed class SessionAuthenticationHandler(
             return AuthenticateResult.Fail("Session süresi dolmuş.");
         }
 
-        var user = await businessDbContext.Users
+        var user = await identityDbContext.Users
             .AsNoTracking()
             .FirstOrDefaultAsync(x => x.Id == session.UserId && !x.IsDeleted, Context.RequestAborted);
 
@@ -77,10 +78,10 @@ public sealed class SessionAuthenticationHandler(
         if (!session.LastSeenAt.HasValue || (now - session.LastSeenAt.Value).TotalSeconds >= 30)
         {
             session.LastSeenAt = now;
-            await businessDbContext.SaveChangesAsync(Context.RequestAborted);
+            await identityDbContext.SaveChangesAsync(Context.RequestAborted);
         }
 
-        var companyId = await businessDbContext.UserCompanyPermissions
+        var companyId = await authorizationDbContext.UserCompanyPermissions
             .AsNoTracking()
             .Where(x => x.UserId == user.Id && !x.IsDeleted)
             .OrderBy(x => x.Id)
@@ -88,13 +89,13 @@ public sealed class SessionAuthenticationHandler(
             .FirstOrDefaultAsync(Context.RequestAborted);
 
         var roles = await (
-                from userRole in businessDbContext.UserRoles.AsNoTracking()
-                join role in businessDbContext.Roles.AsNoTracking() on userRole.RoleId equals role.Id
+                from userRole in identityDbContext.UserRoles.AsNoTracking()
+                join role in identityDbContext.Roles.AsNoTracking() on userRole.RoleId equals role.Id
                 where userRole.UserId == user.Id && !userRole.IsDeleted && !role.IsDeleted
                 select role.Code)
             .ToListAsync(Context.RequestAborted);
 
-        var permissions = await businessDbContext.UserPageActionPermissions
+        var permissions = await authorizationDbContext.UserPageActionPermissions
             .AsNoTracking()
             .Where(x => x.UserId == user.Id && !x.IsDeleted && x.IsAllowed)
             .Select(x => x.ActionCode)

@@ -25,7 +25,7 @@ public sealed class IntegrationsDbContext(
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
-        modelBuilder.HasDefaultSchema(BusinessDbContext.AuthorizationSchema);
+        modelBuilder.HasDefaultSchema(PersistenceSchemaNames.Business);
 
         modelBuilder.Entity<ExternalOutboxMessage>(entity =>
         {

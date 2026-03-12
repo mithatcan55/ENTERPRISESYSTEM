@@ -5,11 +5,11 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Identity.Infrastructure.Roles.Commands;
 
-public sealed class UnassignRoleCommandHandler(BusinessDbContext businessDbContext) : IUnassignRoleCommandHandler
+public sealed class UnassignRoleCommandHandler(IdentityDbContext identityDbContext) : IUnassignRoleCommandHandler
 {
     public async Task HandleAsync(int userId, int roleId, CancellationToken cancellationToken)
     {
-        var userRole = await businessDbContext.UserRoles
+        var userRole = await identityDbContext.UserRoles
             .FirstOrDefaultAsync(x => x.UserId == userId && x.RoleId == roleId && !x.IsDeleted, cancellationToken);
 
         if (userRole is null)
@@ -19,6 +19,6 @@ public sealed class UnassignRoleCommandHandler(BusinessDbContext businessDbConte
 
         userRole.IsDeleted = true;
         userRole.DeletedAt = DateTime.UtcNow;
-        await businessDbContext.SaveChangesAsync(cancellationToken);
+        await identityDbContext.SaveChangesAsync(cancellationToken);
     }
 }

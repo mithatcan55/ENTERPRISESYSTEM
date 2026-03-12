@@ -16,7 +16,8 @@ using Microsoft.Extensions.Options;
 namespace Identity.Infrastructure.Services;
 
 public sealed class AuthLifecycleService(
-    BusinessDbContext businessDbContext,
+    IdentityDbContext identityDbContext,
+    AuthorizationDbContext authorizationDbContext,
     IOperationalEventPublisher operationalEventPublisher,
     IIdentityRequestContext identityRequestContext,
     IPasswordPolicyService passwordPolicyService,
@@ -45,7 +46,7 @@ public sealed class AuthLifecycleService(
         var normalizedEmail = identifier.ToLowerInvariant();
         var normalizedCode = identifier.ToUpperInvariant();
 
-        var user = await businessDbContext.Users
+        var user = await identityDbContext.Users
             .FirstOrDefaultAsync(x => !x.IsDeleted &&
                                       (x.UserCode == normalizedCode || x.Username == identifier || x.Email == normalizedEmail),
                 cancellationToken);
@@ -87,12 +88,12 @@ public sealed class AuthLifecycleService(
             UserAgent = identityRequestContext.UserAgent
         };
 
-        businessDbContext.UserSessions.Add(session);
-        await businessDbContext.SaveChangesAsync(cancellationToken);
+        identityDbContext.UserSessions.Add(session);
+        await identityDbContext.SaveChangesAsync(cancellationToken);
 
         var roles = await (
-                from userRole in businessDbContext.UserRoles.AsNoTracking()
-                join role in businessDbContext.Roles.AsNoTracking() on userRole.RoleId equals role.Id
+                from userRole in identityDbContext.UserRoles.AsNoTracking()
+                join role in identityDbContext.Roles.AsNoTracking() on userRole.RoleId equals role.Id
                 where userRole.UserId == user.Id && !userRole.IsDeleted && !role.IsDeleted
                 select role.Code)
             .Distinct()
@@ -100,15 +101,15 @@ public sealed class AuthLifecycleService(
             .ToListAsync(cancellationToken);
 
         var transactionCodes = await (
-                from userPagePermission in businessDbContext.UserPagePermissions.AsNoTracking()
-                join page in businessDbContext.SubModulePages.AsNoTracking() on userPagePermission.SubModulePageId equals page.Id
+                from userPagePermission in authorizationDbContext.UserPagePermissions.AsNoTracking()
+                join page in authorizationDbContext.SubModulePages.AsNoTracking() on userPagePermission.SubModulePageId equals page.Id
                 where userPagePermission.UserId == user.Id && !userPagePermission.IsDeleted && !page.IsDeleted
                 select page.TransactionCode)
             .Distinct()
             .OrderBy(x => x)
             .ToListAsync(cancellationToken);
 
-        var permissions = await businessDbContext.UserPageActionPermissions
+        var permissions = await authorizationDbContext.UserPageActionPermissions
             .AsNoTracking()
             .Where(x => x.UserId == user.Id && !x.IsDeleted && x.IsAllowed)
             .Select(x => x.ActionCode)
@@ -116,7 +117,7 @@ public sealed class AuthLifecycleService(
             .OrderBy(x => x)
             .ToListAsync(cancellationToken);
 
-        var companyId = await businessDbContext.UserCompanyPermissions
+        var companyId = await authorizationDbContext.UserCompanyPermissions
             .AsNoTracking()
             .Where(x => x.UserId == user.Id && !x.IsDeleted)
             .OrderBy(x => x.Id)
@@ -134,7 +135,7 @@ public sealed class AuthLifecycleService(
 
         var (refreshTokenValue, refreshTokenHash, refreshTokenExpiresAt) = CreateRefreshToken();
 
-        businessDbContext.UserRefreshTokens.Add(new UserRefreshToken
+        identityDbContext.UserRefreshTokens.Add(new UserRefreshToken
         {
             UserId = user.Id,
             UserSessionId = session.Id,
@@ -145,7 +146,7 @@ public sealed class AuthLifecycleService(
             UserAgent = identityRequestContext.UserAgent
         });
 
-        await businessDbContext.SaveChangesAsync(cancellationToken);
+        await identityDbContext.SaveChangesAsync(cancellationToken);
 
         var effectiveAuthorization = new EffectiveAuthorizationSummaryDto(roles, transactionCodes, permissions);
 
@@ -183,7 +184,7 @@ public sealed class AuthLifecycleService(
 
         var hashedIncomingToken = HashToken(request.RefreshToken.Trim());
 
-        var refreshToken = await businessDbContext.UserRefreshTokens
+        var refreshToken = await identityDbContext.UserRefreshTokens
             .FirstOrDefaultAsync(x => x.TokenHash == hashedIncomingToken && !x.IsDeleted, cancellationToken);
 
         if (refreshToken is null)
@@ -204,7 +205,7 @@ public sealed class AuthLifecycleService(
             throw new ForbiddenAppException("Refresh token süresi dolmuş.", errorCode: "refresh_token_expired");
         }
 
-        var session = await businessDbContext.UserSessions
+        var session = await identityDbContext.UserSessions
             .FirstOrDefaultAsync(x => x.Id == refreshToken.UserSessionId && !x.IsDeleted, cancellationToken);
 
         if (session is null || session.IsRevoked || session.ExpiresAt <= now)
@@ -212,7 +213,7 @@ public sealed class AuthLifecycleService(
             throw new ForbiddenAppException("Session geçersiz veya süresi dolmuş.", errorCode: "session_invalid_or_expired");
         }
 
-        var user = await businessDbContext.Users
+        var user = await identityDbContext.Users
             .FirstOrDefaultAsync(x => x.Id == refreshToken.UserId && !x.IsDeleted, cancellationToken);
 
         if (user is null || !user.IsActive)
@@ -226,21 +227,21 @@ public sealed class AuthLifecycleService(
         }
 
         var roles = await (
-                from userRole in businessDbContext.UserRoles.AsNoTracking()
-                join role in businessDbContext.Roles.AsNoTracking() on userRole.RoleId equals role.Id
+                from userRole in identityDbContext.UserRoles.AsNoTracking()
+                join role in identityDbContext.Roles.AsNoTracking() on userRole.RoleId equals role.Id
                 where userRole.UserId == user.Id && !userRole.IsDeleted && !role.IsDeleted
                 select role.Code)
             .Distinct()
             .ToListAsync(cancellationToken);
 
-        var permissions = await businessDbContext.UserPageActionPermissions
+        var permissions = await authorizationDbContext.UserPageActionPermissions
             .AsNoTracking()
             .Where(x => x.UserId == user.Id && !x.IsDeleted && x.IsAllowed)
             .Select(x => x.ActionCode)
             .Distinct()
             .ToListAsync(cancellationToken);
 
-        var companyId = await businessDbContext.UserCompanyPermissions
+        var companyId = await authorizationDbContext.UserCompanyPermissions
             .AsNoTracking()
             .Where(x => x.UserId == user.Id && !x.IsDeleted)
             .OrderBy(x => x.Id)
@@ -265,7 +266,7 @@ public sealed class AuthLifecycleService(
         refreshToken.RevokedBy = "rotation";
         refreshToken.ReplacedByTokenHash = newRefreshTokenHash;
 
-        businessDbContext.UserRefreshTokens.Add(new UserRefreshToken
+        identityDbContext.UserRefreshTokens.Add(new UserRefreshToken
         {
             UserId = user.Id,
             UserSessionId = session.Id,
@@ -278,7 +279,7 @@ public sealed class AuthLifecycleService(
 
         session.LastSeenAt = now;
 
-        await businessDbContext.SaveChangesAsync(cancellationToken);
+        await identityDbContext.SaveChangesAsync(cancellationToken);
 
         await LogSecurityEventAsync("RefreshToken", true, null, user.UserCode, user.Id, cancellationToken,
             new { session.Id, accessToken.ExpiresAtUtc, newRefreshTokenExpiresAt });
@@ -315,7 +316,7 @@ public sealed class AuthLifecycleService(
             throw new ForbiddenAppException("Sadece kendi şifrenizi değiştirebilirsiniz.", errorCode: "password_change_not_allowed");
         }
 
-        var user = await businessDbContext.Users
+        var user = await identityDbContext.Users
             .FirstOrDefaultAsync(x => x.Id == request.UserId && !x.IsDeleted, cancellationToken);
 
         if (user is null)
@@ -341,7 +342,7 @@ public sealed class AuthLifecycleService(
         user.MustChangePassword = false;
         user.PasswordExpiresAt = DateTime.UtcNow.AddDays(90);
 
-        await businessDbContext.SaveChangesAsync(cancellationToken);
+        await identityDbContext.SaveChangesAsync(cancellationToken);
         await passwordPolicyService.RecordPasswordHistoryAsync(user.Id, user.PasswordHash, cancellationToken);
 
         await LogSecurityEventAsync("ChangePassword", true, null, user.UserCode, user.Id, cancellationToken,
@@ -350,7 +351,7 @@ public sealed class AuthLifecycleService(
 
     public async Task<IReadOnlyList<SessionListItemDto>> ListSessionsAsync(int userId, bool onlyActive, CancellationToken cancellationToken)
     {
-        var query = businessDbContext.UserSessions
+        var query = identityDbContext.UserSessions
             .AsNoTracking()
             .Where(x => x.UserId == userId && !x.IsDeleted);
 
@@ -380,7 +381,7 @@ public sealed class AuthLifecycleService(
     public async Task RevokeSessionAsync(int sessionId, string? reason, CancellationToken cancellationToken)
     {
         // Session revoke davranisi self-service ve privileged actor senaryolarini ayni yerde toplar.
-        var session = await businessDbContext.UserSessions
+        var session = await identityDbContext.UserSessions
             .FirstOrDefaultAsync(x => x.Id == sessionId && !x.IsDeleted, cancellationToken);
 
         if (session is null)
@@ -423,7 +424,7 @@ public sealed class AuthLifecycleService(
         session.RevokedAt = DateTime.UtcNow;
         session.RevokedBy = actor;
 
-        var refreshTokens = await businessDbContext.UserRefreshTokens
+        var refreshTokens = await identityDbContext.UserRefreshTokens
             .Where(x => x.UserSessionId == session.Id && !x.IsDeleted && !x.IsRevoked)
             .ToListAsync(cancellationToken);
 
@@ -434,7 +435,7 @@ public sealed class AuthLifecycleService(
             refreshToken.RevokedBy = actor;
         }
 
-        await businessDbContext.SaveChangesAsync(cancellationToken);
+        await identityDbContext.SaveChangesAsync(cancellationToken);
 
         await LogSecurityEventAsync("RevokeSession", true, reason, actor, session.UserId, cancellationToken,
             new { session.Id, session.SessionKey, session.RevokedAt, session.RevokedBy, reason });
@@ -445,7 +446,7 @@ public sealed class AuthLifecycleService(
         // Reuse tespiti savunmaci bir guvenlik olayidir; ayni session'a bagli aktif tokenlar topluca revoke edilir.
         refreshToken.ReuseDetectedAt = DateTime.UtcNow;
 
-        var linkedSession = await businessDbContext.UserSessions
+        var linkedSession = await identityDbContext.UserSessions
             .FirstOrDefaultAsync(x => x.Id == refreshToken.UserSessionId && !x.IsDeleted, cancellationToken);
 
         if (linkedSession is not null && !linkedSession.IsRevoked)
@@ -455,7 +456,7 @@ public sealed class AuthLifecycleService(
             linkedSession.RevokedBy = "refresh_reuse_detected";
         }
 
-        var activeTokens = await businessDbContext.UserRefreshTokens
+        var activeTokens = await identityDbContext.UserRefreshTokens
             .Where(x => x.UserSessionId == refreshToken.UserSessionId && !x.IsDeleted && !x.IsRevoked)
             .ToListAsync(cancellationToken);
 
@@ -466,7 +467,7 @@ public sealed class AuthLifecycleService(
             token.RevokedBy = "refresh_reuse_detected";
         }
 
-        await businessDbContext.SaveChangesAsync(cancellationToken);
+        await identityDbContext.SaveChangesAsync(cancellationToken);
 
         await LogSecurityEventAsync(
             "RefreshTokenReuseDetected",

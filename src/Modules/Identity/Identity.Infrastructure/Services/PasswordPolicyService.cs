@@ -9,7 +9,7 @@ using Microsoft.Extensions.Options;
 namespace Identity.Infrastructure.Services;
 
 public sealed class PasswordPolicyService(
-    BusinessDbContext businessDbContext,
+    IdentityDbContext identityDbContext,
     IOptions<PasswordPolicyOptions> passwordPolicyOptions) : IPasswordPolicyService
 {
     private readonly PasswordPolicyOptions _options = passwordPolicyOptions.Value;
@@ -72,7 +72,7 @@ public sealed class PasswordPolicyService(
     public async Task EnsureNotRecentlyUsedOrThrowAsync(int userId, string candidatePassword, CancellationToken cancellationToken)
     {
         // Reuse kontrolu plaintext karsilastirmasi ile degil, hash verify mantigiyla yapilir.
-        var recentHashes = await businessDbContext.UserPasswordHistories
+        var recentHashes = await identityDbContext.UserPasswordHistories
             .AsNoTracking()
             .Where(x => x.UserId == userId && !x.IsDeleted)
             .OrderByDescending(x => x.ChangedAt)
@@ -100,7 +100,7 @@ public sealed class PasswordPolicyService(
             return;
         }
 
-        var lastChangedAt = await businessDbContext.UserPasswordHistories
+        var lastChangedAt = await identityDbContext.UserPasswordHistories
             .AsNoTracking()
             .Where(x => x.UserId == userId && !x.IsDeleted)
             .OrderByDescending(x => x.ChangedAt)
@@ -128,14 +128,14 @@ public sealed class PasswordPolicyService(
     public async Task RecordPasswordHistoryAsync(int userId, string passwordHash, CancellationToken cancellationToken)
     {
         // Gecmis hash'leri ayri tabloda tuttugumuz icin reuse kontrolleri mevcut sifreden bagimsiz calisabilir.
-        businessDbContext.UserPasswordHistories.Add(new UserPasswordHistory
+        identityDbContext.UserPasswordHistories.Add(new UserPasswordHistory
         {
             UserId = userId,
             PasswordHash = passwordHash,
             ChangedAt = DateTime.UtcNow
         });
 
-        await businessDbContext.SaveChangesAsync(cancellationToken);
+        await identityDbContext.SaveChangesAsync(cancellationToken);
     }
 
     public async Task EnforcePasswordChangePolicyOrThrowAsync(int userId, string username, string email, string currentPasswordHash, string candidatePassword, CancellationToken cancellationToken)

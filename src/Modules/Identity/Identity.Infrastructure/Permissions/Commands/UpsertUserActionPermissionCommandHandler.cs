@@ -7,7 +7,9 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Identity.Infrastructure.Permissions.Commands;
 
-public sealed class UpsertUserActionPermissionCommandHandler(BusinessDbContext businessDbContext) : IUpsertUserActionPermissionCommandHandler
+public sealed class UpsertUserActionPermissionCommandHandler(
+    IdentityDbContext identityDbContext,
+    AuthorizationDbContext authorizationDbContext) : IUpsertUserActionPermissionCommandHandler
 {
     public async Task<UserActionPermissionDto> HandleAsync(UpsertUserActionPermissionRequest request, CancellationToken cancellationToken)
     {
@@ -32,7 +34,7 @@ public sealed class UpsertUserActionPermissionCommandHandler(BusinessDbContext b
                 });
         }
 
-        var userExists = await businessDbContext.Users
+        var userExists = await identityDbContext.Users
             .AsNoTracking()
             .AnyAsync(x => x.Id == request.UserId && !x.IsDeleted, cancellationToken);
 
@@ -46,7 +48,7 @@ public sealed class UpsertUserActionPermissionCommandHandler(BusinessDbContext b
 
         // Eski kayit varsa guncellenir, yoksa yeni kayit acilir.
         // Soft-delete edilmis bir kayit varsa tekrar aktif hale de getirilebilir.
-        var permission = await businessDbContext.UserPageActionPermissions
+        var permission = await authorizationDbContext.UserPageActionPermissions
             .FirstOrDefaultAsync(
                 x => x.UserId == request.UserId
                      && x.SubModulePageId == page.Id
@@ -63,7 +65,7 @@ public sealed class UpsertUserActionPermissionCommandHandler(BusinessDbContext b
                 IsAllowed = request.IsAllowed
             };
 
-            businessDbContext.UserPageActionPermissions.Add(permission);
+            authorizationDbContext.UserPageActionPermissions.Add(permission);
         }
         else
         {
@@ -73,7 +75,7 @@ public sealed class UpsertUserActionPermissionCommandHandler(BusinessDbContext b
             permission.DeletedBy = null;
         }
 
-        await businessDbContext.SaveChangesAsync(cancellationToken);
+        await authorizationDbContext.SaveChangesAsync(cancellationToken);
 
         return new UserActionPermissionDto(
             permission.Id,
@@ -92,7 +94,7 @@ public sealed class UpsertUserActionPermissionCommandHandler(BusinessDbContext b
         // UI ister page id ile, ister T-Code ile ayni sayfayi hedefleyebilir.
         if (subModulePageId.HasValue)
         {
-            var pageById = await businessDbContext.SubModulePages
+            var pageById = await authorizationDbContext.SubModulePages
                 .AsNoTracking()
                 .FirstOrDefaultAsync(x => x.Id == subModulePageId.Value && !x.IsDeleted, cancellationToken);
 
@@ -116,7 +118,7 @@ public sealed class UpsertUserActionPermissionCommandHandler(BusinessDbContext b
         }
 
         var normalizedTCode = transactionCode.Trim().ToUpperInvariant();
-        var pageByTCode = await businessDbContext.SubModulePages
+        var pageByTCode = await authorizationDbContext.SubModulePages
             .AsNoTracking()
             .FirstOrDefaultAsync(x => x.TransactionCode == normalizedTCode && !x.IsDeleted, cancellationToken);
 

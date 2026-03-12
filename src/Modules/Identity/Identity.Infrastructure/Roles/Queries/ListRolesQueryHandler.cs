@@ -5,12 +5,12 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Identity.Infrastructure.Roles.Queries;
 
-public sealed class ListRolesQueryHandler(BusinessDbContext businessDbContext) : IListRolesQueryHandler
+public sealed class ListRolesQueryHandler(IdentityDbContext identityDbContext) : IListRolesQueryHandler
 {
     public async Task<IReadOnlyList<RoleListItemDto>> HandleAsync(CancellationToken cancellationToken)
     {
         // Role listeleme gibi basit okuma akislari CQRS tarafinda query handler ile net bir sorumluluk alir.
-        return await businessDbContext.Roles
+        return await identityDbContext.Roles
             .AsNoTracking()
             .Where(x => !x.IsDeleted)
             // Role adina gore siralamak operasyon ekraninda taramayi kolaylastirir.

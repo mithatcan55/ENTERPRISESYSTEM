@@ -10,7 +10,8 @@ using Microsoft.EntityFrameworkCore;
 namespace Identity.Infrastructure.Users.Commands;
 
 public sealed class CreateUserCommandHandler(
-    BusinessDbContext businessDbContext,
+    IdentityDbContext identityDbContext,
+    AuthorizationDbContext authorizationDbContext,
     IPasswordPolicyService passwordPolicyService,
     IIdentityNotificationService identityNotificationService) : ICreateUserCommandHandler
 {
@@ -47,7 +48,7 @@ public sealed class CreateUserCommandHandler(
         // Sifre karmasikligi teknik bir input kontrolu degil, merkezi policy kuralidir.
         passwordPolicyService.ValidateComplexityOrThrow(request.Password, normalizedUsername, normalizedEmail);
 
-        var duplicateExists = await businessDbContext.Users
+        var duplicateExists = await identityDbContext.Users
             .AsNoTracking()
             .AnyAsync(x => !x.IsDeleted &&
                            (x.UserCode == normalizedUserCode
@@ -65,75 +66,62 @@ public sealed class CreateUserCommandHandler(
                 });
         }
 
-        var systemModule = await businessDbContext.Modules
+        var systemModule = await authorizationDbContext.Modules
             .AsNoTracking()
             .FirstOrDefaultAsync(x => x.Code == "SYS" && !x.IsDeleted, cancellationToken);
 
         if (systemModule is null)
             throw new NotFoundAppException("Varsayilan SYS modulu bulunamadi.");
 
-        // Kullanici acildiginda birden fazla tabloya yaziyoruz.
-        // Bu yuzden islem tek transaction icinde tutuluyor.
-        await using var transaction = await businessDbContext.Database.BeginTransactionAsync(cancellationToken);
-        try
+        var user = new User
         {
-            var user = new User
-            {
-                UserCode = normalizedUserCode,
-                Username = normalizedUsername,
-                Email = normalizedEmail,
-                PasswordHash = BCrypt.Net.BCrypt.HashPassword(request.Password),
-                IsActive = true,
-                MustChangePassword = true,
-                PasswordExpiresAt = DateTime.UtcNow.AddDays(90)
-            };
+            UserCode = normalizedUserCode,
+            Username = normalizedUsername,
+            Email = normalizedEmail,
+            PasswordHash = BCrypt.Net.BCrypt.HashPassword(request.Password),
+            IsActive = true,
+            MustChangePassword = true,
+            PasswordExpiresAt = DateTime.UtcNow.AddDays(90)
+        };
 
-            businessDbContext.Users.Add(user);
-            await businessDbContext.SaveChangesAsync(cancellationToken);
+        identityDbContext.Users.Add(user);
+        await identityDbContext.SaveChangesAsync(cancellationToken);
 
-            await passwordPolicyService.RecordPasswordHistoryAsync(user.Id, user.PasswordHash, cancellationToken);
+        await passwordPolicyService.RecordPasswordHistoryAsync(user.Id, user.PasswordHash, cancellationToken);
 
-            businessDbContext.UserModulePermissions.Add(new UserModulePermission
-            {
-                UserId = user.Id,
-                ModuleId = systemModule.Id,
-                AuthorizationLevel = 1
-            });
-            await businessDbContext.SaveChangesAsync(cancellationToken);
-
-            businessDbContext.UserCompanyPermissions.Add(new UserCompanyPermission
-            {
-                UserId = user.Id,
-                CompanyId = request.CompanyId,
-                AuthorizationLevel = 4
-            });
-            await businessDbContext.SaveChangesAsync(cancellationToken);
-
-            await transaction.CommitAsync(cancellationToken);
-
-            if (request.NotifyAdminByMail)
-            {
-                // Bildirim ana transaction'dan sonra cagriliyor.
-                // Boylece mail problemi veri kaydini geri sardirmiyor.
-                await identityNotificationService.QueueAdminMailAsync(
-                    request.AdminEmail!.Trim(),
-                    $"Yeni kullanici olusturuldu: {user.UserCode}",
-                    $"Kullanici olusturuldu. UserCode={user.UserCode}, Username={user.Username}, Email={user.Email}",
-                    cancellationToken);
-            }
-
-            return new CreatedUserDto(
-                user.Id,
-                user.UserCode,
-                user.Username,
-                user.Email,
-                user.MustChangePassword,
-                user.PasswordExpiresAt);
-        }
-        catch
+        authorizationDbContext.UserModulePermissions.Add(new UserModulePermission
         {
-            await transaction.RollbackAsync(cancellationToken);
-            throw;
+            UserId = user.Id,
+            ModuleId = systemModule.Id,
+            AuthorizationLevel = 1
+        });
+
+        authorizationDbContext.UserCompanyPermissions.Add(new UserCompanyPermission
+        {
+            UserId = user.Id,
+            CompanyId = request.CompanyId,
+            AuthorizationLevel = 4
+        });
+
+        await authorizationDbContext.SaveChangesAsync(cancellationToken);
+
+        if (request.NotifyAdminByMail)
+        {
+            // Bildirim ana veri kaydindan sonra cagriliyor.
+            // Boylece mail problemi kullanici kaydini geri sardirmaz.
+            await identityNotificationService.QueueAdminMailAsync(
+                request.AdminEmail!.Trim(),
+                $"Yeni kullanici olusturuldu: {user.UserCode}",
+                $"Kullanici olusturuldu. UserCode={user.UserCode}, Username={user.Username}, Email={user.Email}",
+                cancellationToken);
         }
+
+        return new CreatedUserDto(
+            user.Id,
+            user.UserCode,
+            user.Username,
+            user.Email,
+            user.MustChangePassword,
+            user.PasswordExpiresAt);
     }
 }

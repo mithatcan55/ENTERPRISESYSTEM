@@ -6,7 +6,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Identity.Infrastructure.Permissions.Queries;
 
-public sealed class ListUserActionPermissionsQueryHandler(BusinessDbContext businessDbContext) : IListUserActionPermissionsQueryHandler
+public sealed class ListUserActionPermissionsQueryHandler(AuthorizationDbContext authorizationDbContext) : IListUserActionPermissionsQueryHandler
 {
     public async Task<IReadOnlyList<UserActionPermissionDto>> HandleAsync(UserActionPermissionQueryRequest request, CancellationToken cancellationToken)
     {
@@ -22,8 +22,8 @@ public sealed class ListUserActionPermissionsQueryHandler(BusinessDbContext busi
         }
 
         var query =
-            from permission in businessDbContext.UserPageActionPermissions.AsNoTracking()
-            join page in businessDbContext.SubModulePages.AsNoTracking() on permission.SubModulePageId equals page.Id
+            from permission in authorizationDbContext.UserPageActionPermissions.AsNoTracking()
+            join page in authorizationDbContext.SubModulePages.AsNoTracking() on permission.SubModulePageId equals page.Id
             where permission.UserId == request.UserId
                   && !permission.IsDeleted
                   && !page.IsDeleted

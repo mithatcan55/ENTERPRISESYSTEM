@@ -52,7 +52,7 @@ public static class InfrastructureServiceCollectionExtensions
             var connectionString = configuration.GetConnectionString("LogDb");
             options.UseNpgsql(connectionString, npgsql =>
             {
-                npgsql.MigrationsHistoryTable("__EFMigrationsHistory", LogDbContext.LogsSchema);
+                npgsql.MigrationsHistoryTable("__EFMigrationsHistory", PersistenceSchemaNames.Logs);
             });
         });
 
@@ -61,7 +61,7 @@ public static class InfrastructureServiceCollectionExtensions
             var connectionString = configuration.GetConnectionString("BusinessDb");
             options.UseNpgsql(connectionString, npgsql =>
             {
-                npgsql.MigrationsHistoryTable("__EFMigrationsHistory", BusinessDbContext.AuthorizationSchema);
+                npgsql.MigrationsHistoryTable("__EFMigrationsHistory", PersistenceSchemaNames.Business);
             });
 
             options.AddInterceptors(

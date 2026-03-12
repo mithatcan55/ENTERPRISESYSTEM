@@ -5,13 +5,13 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Identity.Infrastructure.Users.Queries;
 
-public sealed class ListUsersQueryHandler(BusinessDbContext businessDbContext) : IListUsersQueryHandler
+public sealed class ListUsersQueryHandler(IdentityDbContext identityDbContext) : IListUsersQueryHandler
 {
     public async Task<IReadOnlyList<UserListItemDto>> HandleAsync(CancellationToken cancellationToken)
     {
         // Query handler'larda AsNoTracking varsayilan refleks olmalidir.
         // Cunku burada entity degistirmiyoruz, sadece listeleme yapiyoruz.
-        return await businessDbContext.Users
+        return await identityDbContext.Users
             .AsNoTracking()
             .Where(x => !x.IsDeleted)
             // Yeni olusan kayitlari ustte gostermek admin ekranlari icin daha kullanislidir.
