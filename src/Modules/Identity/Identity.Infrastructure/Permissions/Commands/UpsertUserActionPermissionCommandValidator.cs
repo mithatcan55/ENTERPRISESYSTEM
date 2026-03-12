@@ -8,6 +8,8 @@ public sealed class UpsertUserActionPermissionCommandValidator : IRequestValidat
 {
     public Task ValidateAsync(UpsertUserActionPermissionCommand request, CancellationToken cancellationToken)
     {
+        // Bu validator'in kritik noktasi "hangi sayfayi hedefledigin acik olmali" kuralidir.
+        // Bu nedenle SubModulePageId veya TransactionCode zorunludur.
         var errors = new Dictionary<string, string[]>();
 
         if (request.Request.UserId <= 0)

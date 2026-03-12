@@ -8,6 +8,8 @@ public sealed class CreateUserCommandValidator : IRequestValidator<CreateUserCom
 {
     public Task ValidateAsync(CreateUserCommand request, CancellationToken cancellationToken)
     {
+        // Validator sadece request girisinin sekil kontrolune odaklanir.
+        // Duplicate kontrolu veya password policy gibi daha agir is kurallari handler/policy katmaninda kalir.
         var errors = new Dictionary<string, string[]>();
 
         if (string.IsNullOrWhiteSpace(request.Request.UserCode))
@@ -31,6 +33,7 @@ public sealed class CreateUserCommandValidator : IRequestValidator<CreateUserCom
         if (errors.Count > 0)
             throw new ValidationAppException("CreateUserCommand dogrulamasi basarisiz.", errors);
 
+        // Validator tamamlandiysa pipeline handler'a gecis izni verir.
         return Task.CompletedTask;
     }
 }

@@ -8,6 +8,7 @@ public sealed class CreateRoleCommandValidator : IRequestValidator<CreateRoleCom
 {
     public Task ValidateAsync(CreateRoleCommand request, CancellationToken cancellationToken)
     {
+        // Basit request kurallari validator'da tutulur; role benzersizligi gibi sorgu isteyen kurallar handler'dadir.
         var errors = new Dictionary<string, string[]>();
 
         if (string.IsNullOrWhiteSpace(request.Request.Code))

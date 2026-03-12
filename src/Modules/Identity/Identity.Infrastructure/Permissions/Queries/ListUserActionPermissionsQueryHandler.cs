@@ -10,6 +10,7 @@ public sealed class ListUserActionPermissionsQueryHandler(BusinessDbContext busi
 {
     public async Task<IReadOnlyList<UserActionPermissionDto>> HandleAsync(UserActionPermissionQueryRequest request, CancellationToken cancellationToken)
     {
+        // Query handler yazma mantigina degil, veriyi en uygun sekilde okuma ve sekillendirme mantigina odaklanir.
         if (request.UserId <= 0)
         {
             throw new ValidationAppException(
@@ -28,6 +29,8 @@ public sealed class ListUserActionPermissionsQueryHandler(BusinessDbContext busi
                   && !page.IsDeleted
             select new { permission, page };
 
+        // Bu sorgu hem page id hem transaction code ile daraltma destekler.
+        // Bu esneklik operasyon ekranlari ve admin UI icin faydalidir.
         if (request.SubModulePageId.HasValue)
         {
             query = query.Where(x => x.permission.SubModulePageId == request.SubModulePageId.Value);
@@ -40,6 +43,8 @@ public sealed class ListUserActionPermissionsQueryHandler(BusinessDbContext busi
         }
 
         return await query
+            // Query tarafinda projection'i en sonda yaparak hem SQL tarafini temiz tutuyor
+            // hem de API'nin ihtiyac duydugu DTO'ya dogrudan cikiyoruz.
             .OrderBy(x => x.page.TransactionCode)
             .ThenBy(x => x.permission.ActionCode)
             .Select(x => new UserActionPermissionDto(

@@ -19,6 +19,8 @@ Bu klasor, projenin gorsel ve kavramsal mimari haritasini icerir.
 - `error-policy-and-notification-training.md` -> Error policy, event routing ve notification omurgasi rehberi
 - `manual-api-learning-guide.md` -> Host.Api.http dosyasini egitim sirasiyla kullanma rehberi
 - `system-learning-path.md` -> Tum rehberleri ve kod okumayi siraya koyan ogrenme yolu
+- `query-handler-and-validator-training.md` -> Query handler ve validator katmanlarinin egitim rehberi
+- `api-response-catalog.md` -> Basari ve hata response sozlesmeleri katalogu
 
 ## Kullanim
 
@@ -30,6 +32,7 @@ Bu klasor, projenin gorsel ve kavramsal mimari haritasini icerir.
 6. Dil yonetimi ve hata/notification omurgasi icin `localization-training.md` ve `error-policy-and-notification-training.md` dosyalarini oku.
 7. Canli endpoint ogrenimi icin `manual-api-learning-guide.md` ve `src/Host.Api/Host.Api.http` dosyalarini birlikte kullan.
 8. Uzun vadeli, baglam kaybetmeyen tam okuma sirasi icin `system-learning-path.md` dosyasini takip et.
+9. Query/validator ayrimi ve response sozlesmeleri icin `query-handler-and-validator-training.md` ile `api-response-catalog.md` dosyalarini oku.
 
 ## Not
 

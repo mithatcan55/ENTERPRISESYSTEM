@@ -9,9 +9,11 @@ public sealed class ListRolesQueryHandler(BusinessDbContext businessDbContext) :
 {
     public async Task<IReadOnlyList<RoleListItemDto>> HandleAsync(CancellationToken cancellationToken)
     {
+        // Role listeleme gibi basit okuma akislari CQRS tarafinda query handler ile net bir sorumluluk alir.
         return await businessDbContext.Roles
             .AsNoTracking()
             .Where(x => !x.IsDeleted)
+            // Role adina gore siralamak operasyon ekraninda taramayi kolaylastirir.
             .OrderBy(x => x.Name)
             .Select(x => new RoleListItemDto(x.Id, x.Code, x.Name, x.Description, x.IsSystemRole, x.CreatedAt))
             .ToListAsync(cancellationToken);
