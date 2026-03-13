@@ -83,6 +83,30 @@ public static class InfrastructureServiceCollectionExtensions
                 sp.GetRequiredService<EntityChangeLoggingInterceptor>());
         });
 
+        services.AddDbContext<ReportsDbContext>((sp, options) =>
+        {
+            var connectionString = configuration.GetConnectionString("BusinessDb");
+            options.UseNpgsql(connectionString, npgsql =>
+            {
+                npgsql.MigrationsHistoryTable("__EFMigrationsHistory_Reports", PersistenceSchemaNames.Business);
+            });
+            options.AddInterceptors(
+                sp.GetRequiredService<DatabaseCommandLoggingInterceptor>(),
+                sp.GetRequiredService<EntityChangeLoggingInterceptor>());
+        });
+
+        services.AddDbContext<ApprovalsDbContext>((sp, options) =>
+        {
+            var connectionString = configuration.GetConnectionString("BusinessDb");
+            options.UseNpgsql(connectionString, npgsql =>
+            {
+                npgsql.MigrationsHistoryTable("__EFMigrationsHistory_Approvals", PersistenceSchemaNames.Business);
+            });
+            options.AddInterceptors(
+                sp.GetRequiredService<DatabaseCommandLoggingInterceptor>(),
+                sp.GetRequiredService<EntityChangeLoggingInterceptor>());
+        });
+
         return services;
     }
 }

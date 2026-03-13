@@ -22,6 +22,7 @@ Bu klasor, projenin gorsel ve kavramsal mimari haritasini icerir.
 - `query-handler-and-validator-training.md` -> Query handler ve validator katmanlarinin egitim rehberi
 - `api-response-catalog.md` -> Basari ve hata response sozlesmeleri katalogu
 - `observability-deep-dive.md` -> Middleware, interceptor, event publisher ve log writer derin rehberi
+- `approvals-module-training.md` -> Approval workflow ve delegation cekirdegi icin egitim odakli teknik rehber
 
 ## Kullanim
 
@@ -35,6 +36,7 @@ Bu klasor, projenin gorsel ve kavramsal mimari haritasini icerir.
 8. Uzun vadeli, baglam kaybetmeyen tam okuma sirasi icin `system-learning-path.md` dosyasini takip et.
 9. Query/validator ayrimi ve response sozlesmeleri icin `query-handler-and-validator-training.md` ile `api-response-catalog.md` dosyalarini oku.
 10. Log/denetim omurgasini derin anlamak icin `observability-deep-dive.md` dosyasini oku.
+11. Approval ve vekalet tasarimini anlamak icin `approvals-module-training.md` dosyasini oku.
 
 ## Not
 

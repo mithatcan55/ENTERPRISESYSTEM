@@ -34,6 +34,8 @@
     <ProjectReference Include="..\Modules\Operations\Operations.Infrastructure\Operations.Infrastructure.csproj" />
     <ProjectReference Include="..\Modules\Reports\Reports.Presentation\Reports.Presentation.csproj" />
     <ProjectReference Include="..\Modules\Reports\Reports.Infrastructure\Reports.Infrastructure.csproj" />
+    <ProjectReference Include="..\Modules\Approvals\Approvals.Presentation\Approvals.Presentation.csproj" />
+    <ProjectReference Include="..\Modules\Approvals\Approvals.Infrastructure\Approvals.Infrastructure.csproj" />
     <ProjectReference Include="..\BuildingBlocks\Infrastructure\Infrastructure.csproj" />
   </ItemGroup>
 
