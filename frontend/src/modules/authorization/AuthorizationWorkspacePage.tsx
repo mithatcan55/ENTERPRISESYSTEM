@@ -1,6 +1,7 @@
 import { Route, Routes } from "react-router-dom";
 import { PermissionsPage } from "./permissions/PermissionsPage";
 import { RolesListPage } from "./roles/RolesListPage";
+import { TCodeResolverPage } from "./tcode/TCodeResolverPage";
 import { PlaceholderModulePage } from "../shared/PlaceholderModulePage";
 
 export function AuthorizationWorkspacePage() {
@@ -8,15 +9,7 @@ export function AuthorizationWorkspacePage() {
     <Routes>
       <Route path="roles" element={<RolesListPage />} />
       <Route path="permissions/actions" element={<PermissionsPage />} />
-      <Route
-        path="tcode"
-        element={
-          <PlaceholderModulePage
-            title="T-Code Workspace"
-            description="T-Code cozumleme ve seviye bazli sonuc ekrani sonraki adimda gercek modulle baglanacak."
-          />
-        }
-      />
+      <Route path="tcode" element={<TCodeResolverPage />} />
       <Route
         path="*"
         element={

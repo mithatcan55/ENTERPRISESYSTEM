@@ -1,4 +1,5 @@
 import { Route, Routes } from "react-router-dom";
+import { PasswordPolicyPage } from "./password-policy/PasswordPolicyPage";
 import { UsersListPage } from "./users/UsersListPage";
 import { SessionsPage } from "./sessions/SessionsPage";
 import { PlaceholderModulePage } from "../shared/PlaceholderModulePage";
@@ -8,15 +9,7 @@ export function IdentityWorkspacePage() {
     <Routes>
       <Route path="users" element={<UsersListPage />} />
       <Route path="sessions" element={<SessionsPage />} />
-      <Route
-        path="password-policy"
-        element={
-          <PlaceholderModulePage
-            title="Password Policy Workspace"
-            description="Sifre politikasi yonetimi cekirdek shell icinde yerini aldi; detay form ekranlari sonraki adimda eklenecek."
-          />
-        }
-      />
+      <Route path="password-policy" element={<PasswordPolicyPage />} />
       <Route
         path="*"
         element={

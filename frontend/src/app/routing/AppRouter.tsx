@@ -5,7 +5,7 @@ import { DashboardPage } from "../../modules/dashboard/DashboardPage";
 import { IdentityWorkspacePage } from "../../modules/identity/IdentityWorkspacePage";
 import { IntegrationsWorkspacePage } from "../../modules/integrations/IntegrationsWorkspacePage";
 import { OperationsWorkspacePage } from "../../modules/operations/OperationsWorkspacePage";
-import { ReportsPlaceholderPage } from "../../modules/reports/ReportsPlaceholderPage";
+import { ReportsWorkspacePage } from "../../modules/reports/ReportsWorkspacePage";
 import { ForbiddenPage } from "../../modules/system/ForbiddenPage";
 import { LoginPage } from "../../modules/system/LoginPage";
 import { AppShell } from "../shell/AppShell";
@@ -29,7 +29,7 @@ export function AppRouter() {
         <Route path="authorization/*" element={<AuthorizationWorkspacePage />} />
         <Route path="operations/*" element={<OperationsWorkspacePage />} />
         <Route path="integrations/*" element={<IntegrationsWorkspacePage />} />
-        <Route path="reports/*" element={<ReportsPlaceholderPage />} />
+        <Route path="reports/*" element={<ReportsWorkspacePage />} />
       </Route>
     </Routes>
   );

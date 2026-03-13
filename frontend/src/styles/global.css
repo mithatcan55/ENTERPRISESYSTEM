@@ -708,6 +708,11 @@ select {
   height: 16px;
 }
 
+.event-list__item strong,
+.event-list__item span {
+  display: block;
+}
+
 .secondary-button,
 .danger-button {
   min-height: 42px;

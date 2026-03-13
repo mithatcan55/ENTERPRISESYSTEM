@@ -1,6 +1,6 @@
 import type { PropsWithChildren } from "react";
 import { createContext, useContext, useEffect, useMemo, useState } from "react";
-import { configureHttpClient } from "../api/httpClient";
+import { configureHttpClientRuntime } from "../api/httpClientRuntime";
 import { login, refresh, type LoginPayload } from "./auth.api";
 import type { AuthUser } from "./access";
 import {
@@ -27,8 +27,29 @@ export function AuthProvider({ children }: PropsWithChildren) {
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    configureHttpClient({
+    configureHttpClientRuntime({
       getAccessToken: () => session?.accessToken ?? null
+      ,
+      refreshSession: async () => {
+        const currentSession = readStoredAuthSession();
+
+        if (!currentSession || isTokenExpired(currentSession.refreshTokenExpiresAt)) {
+          clearStoredAuthSession();
+          setSession(null);
+          return false;
+        }
+
+        try {
+          const refreshedSession = await refresh(currentSession.refreshToken, currentSession);
+          writeStoredAuthSession(refreshedSession);
+          setSession(refreshedSession);
+          return true;
+        } catch {
+          clearStoredAuthSession();
+          setSession(null);
+          return false;
+        }
+      }
     });
   }, [session]);
 

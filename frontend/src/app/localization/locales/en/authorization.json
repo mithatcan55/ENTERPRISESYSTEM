@@ -36,5 +36,20 @@
   "savePermissionSuccess": "Permission saved successfully.",
   "deletePermission": "Delete Permission",
   "noPermissionsTitle": "No permissions to display",
-  "noPermissionsDescription": "Change filters or save a new permission."
+  "noPermissionsDescription": "Change filters or save a new permission.",
+  "tcodePageTitle": "T-Code Resolver",
+  "tcodePageDescription": "Analyze T-Code outcome by user, company, action and condition context.",
+  "tcodeResolveTitle": "T-Code Query",
+  "tcodeResolveSubtitle": "Live authorization resolution for debug and operations.",
+  "tcodeResolveAction": "Resolve",
+  "tcodeResolving": "Resolving...",
+  "tcodeResultTitle": "T-Code Result",
+  "tcodeResultSubtitle": "Inspect allow/deny, action and condition details.",
+  "tcodeResultEmptyTitle": "No result yet",
+  "tcodeResultEmptyDescription": "Result will appear here after running the resolver.",
+  "requiredActionCode": "Required Action",
+  "userId": "User Id",
+  "companyId": "Company Id",
+  "amount": "Amount",
+  "denyOnUnsatisfiedConditions": "Deny on unsatisfied conditions"
 }

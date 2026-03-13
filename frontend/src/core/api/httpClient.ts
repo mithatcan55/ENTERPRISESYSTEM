@@ -11,14 +11,11 @@ type RequestOptions = {
   body?: unknown;
   signal?: AbortSignal;
   useAuth?: boolean;
+  retryOnUnauthorized?: boolean;
 };
 
 const apiBaseUrl = (import.meta.env.VITE_API_BASE_URL as string | undefined)?.replace(/\/$/, "") ?? "";
-let accessTokenResolver: (() => string | null) | null = null;
-
-export function configureHttpClient(options: { getAccessToken: () => string | null }) {
-  accessTokenResolver = options.getAccessToken;
-}
+import { getHttpClientRuntime } from "./httpClientRuntime";
 
 async function request<T>(path: string, options: RequestOptions = {}): Promise<T> {
   // Tek noktadan gecen client sayesinde auth header, correlation ve hata standardi
@@ -26,8 +23,9 @@ async function request<T>(path: string, options: RequestOptions = {}): Promise<T
   const headers: Record<string, string> = {
     "Content-Type": "application/json"
   };
+  const runtime = getHttpClientRuntime();
   const useAuth = options.useAuth ?? true;
-  const accessToken = useAuth ? accessTokenResolver?.() : null;
+  const accessToken = useAuth ? runtime.getAccessToken() : null;
 
   if (accessToken) {
     headers.Authorization = `Bearer ${accessToken}`;
@@ -39,6 +37,17 @@ async function request<T>(path: string, options: RequestOptions = {}): Promise<T
     body: options.body ? JSON.stringify(options.body) : undefined,
     signal: options.signal
   });
+
+  if (response.status === 401 && useAuth && (options.retryOnUnauthorized ?? true)) {
+    const refreshed = await runtime.refreshSession();
+
+    if (refreshed) {
+      return request<T>(path, {
+        ...options,
+        retryOnUnauthorized: false
+      });
+    }
+  }
 
   if (!response.ok) {
     const errorBody = (await response.json().catch(() => null)) as Partial<ApiError> | null;

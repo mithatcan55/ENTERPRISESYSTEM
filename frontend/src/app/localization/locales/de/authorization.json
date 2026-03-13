@@ -36,5 +36,20 @@
   "savePermissionSuccess": "Permission erfolgreich gespeichert.",
   "deletePermission": "Permission loschen",
   "noPermissionsTitle": "Keine Permissions vorhanden",
-  "noPermissionsDescription": "Filter anpassen oder neue Permission speichern."
+  "noPermissionsDescription": "Filter anpassen oder neue Permission speichern.",
+  "tcodePageTitle": "T-Code Resolver",
+  "tcodePageDescription": "T-Code-Ergebnis nach Benutzer-, Firmen-, Action- und Condition-Kontext analysieren.",
+  "tcodeResolveTitle": "T-Code Abfrage",
+  "tcodeResolveSubtitle": "Live-Berechtigungsauflosung fur Debug und Betrieb.",
+  "tcodeResolveAction": "Auflosen",
+  "tcodeResolving": "Wird aufgelost...",
+  "tcodeResultTitle": "T-Code Ergebnis",
+  "tcodeResultSubtitle": "Allow/Deny-, Action- und Condition-Details prufen.",
+  "tcodeResultEmptyTitle": "Noch kein Ergebnis",
+  "tcodeResultEmptyDescription": "Das Ergebnis erscheint hier nach dem Resolver-Lauf.",
+  "requiredActionCode": "Erforderliche Action",
+  "userId": "Benutzer-Id",
+  "companyId": "Firmen-Id",
+  "amount": "Betrag",
+  "denyOnUnsatisfiedConditions": "Bei unerfullten Conditions deny"
 }

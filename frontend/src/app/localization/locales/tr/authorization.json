@@ -36,5 +36,20 @@
   "savePermissionSuccess": "Permission basariyla kaydedildi.",
   "deletePermission": "Permission Sil",
   "noPermissionsTitle": "Gosterilecek permission yok",
-  "noPermissionsDescription": "Filtreyi degistir veya yeni permission kaydet."
+  "noPermissionsDescription": "Filtreyi degistir veya yeni permission kaydet.",
+  "tcodePageTitle": "T-Code Resolver",
+  "tcodePageDescription": "Kullanici, sirket, action ve condition baglaminda T-Code sonucunu analiz et.",
+  "tcodeResolveTitle": "T-Code Sorgusu",
+  "tcodeResolveSubtitle": "Debug ve operasyonel analiz icin canli yetki cozumleme.",
+  "tcodeResolveAction": "Cozumle",
+  "tcodeResolving": "Cozumleniyor...",
+  "tcodeResultTitle": "T-Code Sonucu",
+  "tcodeResultSubtitle": "Allow/deny, action ve condition detaylarini incele.",
+  "tcodeResultEmptyTitle": "Henuz sorgu sonucu yok",
+  "tcodeResultEmptyDescription": "Resolver formunu calistirdiginda sonuc burada acilir.",
+  "requiredActionCode": "Gerekli Action",
+  "userId": "Kullanici Id",
+  "companyId": "Sirket Id",
+  "amount": "Tutar",
+  "denyOnUnsatisfiedConditions": "Saglanmayan conditionlarda deny"
 }
