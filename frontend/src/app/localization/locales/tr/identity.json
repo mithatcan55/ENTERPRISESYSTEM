@@ -32,5 +32,11 @@
   "notifyAdminByMail": "Yoneticiye e-posta gonder",
   "notifyAdminHelp": "Aciksa olusum sonrasi yoneticiye bildirim gonderilir.",
   "adminEmail": "Yonetici E-Postasi",
-  "adminEmailPlaceholder": "admin@example.com"
+  "adminEmailPlaceholder": "admin@example.com",
+  "userDetailTitle": "Kullanici Detayi",
+  "userDetailSubtitle": "Secilen kullaniciyi ayni sayfada incele ve guncelle.",
+  "updateUserAction": "Kullaniciyi Guncelle",
+  "updateUserSuccess": "Kullanici basariyla guncellendi.",
+  "closeDetail": "Detayi Kapat",
+  "statusHelp": "Pasif kullanicilar sisteme giris yapamaz."
 }

@@ -1,0 +1,21 @@
+{
+  "rolesPageTitle": "Rol Yonetimi",
+  "rolesPageDescription": "Sistem rolleri ile ozel rolleri ayni ekranda yonet. Bu ekran ikinci gercek yonetim modulu olarak cekirdek shell icine baglandi.",
+  "rolesListTitle": "Rol Listesi",
+  "rolesListSubtitle": "Yonetim rolleri, sistem rolleri ve aciklamalari burada gorunur.",
+  "createRoleTitle": "Yeni Rol",
+  "createRoleSubtitle": "Yetki organizasyonunu bozmadan yeni rol tanimlamak icin standart form karti.",
+  "createRoleAction": "Rol Olustur",
+  "createRoleSuccess": "Rol basariyla olusturuldu.",
+  "saving": "Kaydediliyor...",
+  "code": "Kod",
+  "name": "Ad",
+  "description": "Aciklama",
+  "type": "Tip",
+  "systemRole": "Sistem Rolu",
+  "customRole": "Ozel Rol",
+  "namePlaceholder": "Finans Direktoru",
+  "descriptionPlaceholder": "Rolun kapsamini acikla",
+  "noRolesTitle": "Gosterilecek rol yok",
+  "noRolesDescription": "Yeni rol ekleyerek baslayabilirsin."
+}

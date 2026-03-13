@@ -1,0 +1,21 @@
+{
+  "rolesPageTitle": "Rollenverwaltung",
+  "rolesPageDescription": "System- und benutzerdefinierte Rollen im zweiten echten Administrationsbildschirm verwalten.",
+  "rolesListTitle": "Rollenliste",
+  "rolesListSubtitle": "Managementrollen, Systemrollen und Beschreibungen werden hier angezeigt.",
+  "createRoleTitle": "Neue Rolle",
+  "createRoleSubtitle": "Standardformular fur neue Rollendefinitionen.",
+  "createRoleAction": "Rolle anlegen",
+  "createRoleSuccess": "Rolle erfolgreich angelegt.",
+  "saving": "Wird gespeichert...",
+  "code": "Code",
+  "name": "Name",
+  "description": "Beschreibung",
+  "type": "Typ",
+  "systemRole": "Systemrolle",
+  "customRole": "Benutzerdefinierte Rolle",
+  "namePlaceholder": "Finanzdirektor",
+  "descriptionPlaceholder": "Beschreibe den Geltungsbereich der Rolle",
+  "noRolesTitle": "Keine Rollen vorhanden",
+  "noRolesDescription": "Beginne mit dem Anlegen einer neuen Rolle."
+}

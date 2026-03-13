@@ -32,5 +32,11 @@
   "notifyAdminByMail": "Notify admin by mail",
   "notifyAdminHelp": "When enabled, the related admin receives a creation mail.",
   "adminEmail": "Admin Email",
-  "adminEmailPlaceholder": "admin@example.com"
+  "adminEmailPlaceholder": "admin@example.com",
+  "userDetailTitle": "User Detail",
+  "userDetailSubtitle": "Inspect and update the selected user in the same page.",
+  "updateUserAction": "Update User",
+  "updateUserSuccess": "User updated successfully.",
+  "closeDetail": "Close Detail",
+  "statusHelp": "Inactive users cannot sign in."
 }

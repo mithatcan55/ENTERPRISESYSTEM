@@ -1,0 +1,21 @@
+{
+  "rolesPageTitle": "Role Management",
+  "rolesPageDescription": "Manage system and custom roles from the second real admin screen connected to the platform shell.",
+  "rolesListTitle": "Roles",
+  "rolesListSubtitle": "Management roles, system roles and descriptions are listed here.",
+  "createRoleTitle": "Create Role",
+  "createRoleSubtitle": "Standard form card for new role definitions.",
+  "createRoleAction": "Create Role",
+  "createRoleSuccess": "Role created successfully.",
+  "saving": "Saving...",
+  "code": "Code",
+  "name": "Name",
+  "description": "Description",
+  "type": "Type",
+  "systemRole": "System Role",
+  "customRole": "Custom Role",
+  "namePlaceholder": "Finance Director",
+  "descriptionPlaceholder": "Describe what this role covers",
+  "noRolesTitle": "No roles to display",
+  "noRolesDescription": "Start by creating a new role."
+}

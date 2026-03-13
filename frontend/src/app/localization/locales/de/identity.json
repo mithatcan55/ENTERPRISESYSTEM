@@ -32,5 +32,11 @@
   "notifyAdminByMail": "Admin per E-Mail informieren",
   "notifyAdminHelp": "Wenn aktiv, wird nach dem Anlegen eine Benachrichtigung gesendet.",
   "adminEmail": "Admin E-Mail",
-  "adminEmailPlaceholder": "admin@example.com"
+  "adminEmailPlaceholder": "admin@example.com",
+  "userDetailTitle": "Benutzerdetail",
+  "userDetailSubtitle": "Ausgewahlten Benutzer auf derselben Seite prufen und aktualisieren.",
+  "updateUserAction": "Benutzer aktualisieren",
+  "updateUserSuccess": "Benutzer erfolgreich aktualisiert.",
+  "closeDetail": "Detail schliessen",
+  "statusHelp": "Passive Benutzer konnen sich nicht anmelden."
 }

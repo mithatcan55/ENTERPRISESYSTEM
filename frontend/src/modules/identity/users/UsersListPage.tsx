@@ -6,7 +6,15 @@ import { PageHeader } from "../../../design-system/patterns/PageHeader";
 import { PanelCard } from "../../../design-system/primitives/PanelCard";
 import { StandardDataTable, type TableColumn } from "../../../design-system/data-display/StandardDataTable";
 import { StandardForm, type FormField } from "../../../design-system/forms/StandardForm";
-import { createUser, listUsers, type CreateUserPayload, type UserListItem } from "./users.api";
+import {
+  createUser,
+  deactivateUser,
+  listUsers,
+  updateUser,
+  type CreateUserPayload,
+  type UpdateUserPayload,
+  type UserListItem
+} from "./users.api";
 
 const initialCreateUserForm: CreateUserPayload = {
   userCode: "",
@@ -24,6 +32,12 @@ export function UsersListPage() {
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(1);
   const [createUserForm, setCreateUserForm] = useState<CreateUserPayload>(initialCreateUserForm);
+  const [selectedUser, setSelectedUser] = useState<UserListItem | null>(null);
+  const [editUserForm, setEditUserForm] = useState<UpdateUserPayload>({
+    username: "",
+    email: "",
+    isActive: true
+  });
 
   const usersQuery = useQuery({
     queryKey: ["identity", "users"],
@@ -37,6 +51,28 @@ export function UsersListPage() {
       // standart optimistic olmayan temel akistir.
       setCreateUserForm(initialCreateUserForm);
       await queryClient.invalidateQueries({ queryKey: ["identity", "users"] });
+    }
+  });
+
+  const updateUserMutation = useMutation<UserListItem, ApiError, { userId: number; payload: UpdateUserPayload }>({
+    mutationFn: ({ userId, payload }) => updateUser(userId, payload),
+    onSuccess: async (updatedUser) => {
+      setSelectedUser(updatedUser);
+      setEditUserForm({
+        username: updatedUser.username,
+        email: updatedUser.email,
+        isActive: updatedUser.isActive
+      });
+      await queryClient.invalidateQueries({ queryKey: ["identity", "users"] });
+    }
+  });
+
+  const deactivateUserMutation = useMutation<void, ApiError, { userId: number }>({
+    mutationFn: ({ userId }) => deactivateUser(userId),
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ["identity", "users"] });
+      setSelectedUser((current) => (current ? { ...current, isActive: false } : current));
+      setEditUserForm((current) => ({ ...current, isActive: false }));
     }
   });
 
@@ -152,6 +188,28 @@ export function UsersListPage() {
     }
   ];
 
+  const editUserFields: FormField[] = [
+    {
+      key: "username",
+      label: t("identity:username"),
+      type: "text",
+      value: editUserForm.username
+    },
+    {
+      key: "email",
+      label: t("identity:email"),
+      type: "email",
+      value: editUserForm.email
+    },
+    {
+      key: "isActive",
+      label: t("identity:status"),
+      type: "switch",
+      value: editUserForm.isActive,
+      helpText: t("identity:statusHelp")
+    }
+  ];
+
   return (
     <div className="page-grid">
       <PageHeader title={t("identity:usersPageTitle")} description={t("identity:usersPageDescription")} />
@@ -179,14 +237,21 @@ export function UsersListPage() {
               {
                 key: "detail",
                 label: t("identity:viewDetail"),
-                onClick: (item) => window.alert(`${item.username} detay ekrani sonraki adimda baglanacak.`)
+                onClick: (item) => {
+                  setSelectedUser(item);
+                  setEditUserForm({
+                    username: item.username,
+                    email: item.email,
+                    isActive: item.isActive
+                  });
+                }
               },
               {
                 key: "deactivate",
                 label: t("identity:deactivate"),
                 tone: "danger",
                 hidden: (item) => !item.isActive,
-                onClick: (item) => window.alert(`${item.username} icin deaktif akisi sonraki adimda baglanacak.`)
+                onClick: (item) => deactivateUserMutation.mutate({ userId: item.id })
               }
             ]}
           />
@@ -216,6 +281,66 @@ export function UsersListPage() {
           ) : null}
         </PanelCard>
       </div>
+
+      {selectedUser ? (
+        <PanelCard title={t("identity:userDetailTitle")} subtitle={t("identity:userDetailSubtitle")}>
+          <div className="detail-summary">
+            <div>
+              <span>{t("identity:userCode")}</span>
+              <strong>{selectedUser.userCode}</strong>
+            </div>
+            <div>
+              <span>{t("identity:createdAt")}</span>
+              <strong>{new Intl.DateTimeFormat("tr-TR").format(new Date(selectedUser.createdAt))}</strong>
+            </div>
+            <div>
+              <span>{t("identity:passwordState")}</span>
+              <strong>
+                {selectedUser.mustChangePassword
+                  ? t("identity:mustChangePassword")
+                  : t("identity:passwordHealthy")}
+              </strong>
+            </div>
+          </div>
+
+          <StandardForm
+            fields={editUserFields}
+            onChange={(key, value) =>
+              setEditUserForm((current) => ({
+                ...current,
+                [key]: value
+              }))
+            }
+            onSubmit={() => updateUserMutation.mutate({ userId: selectedUser.id, payload: editUserForm })}
+            submitLabel={updateUserMutation.isPending ? t("identity:saving") : t("identity:updateUserAction")}
+          />
+
+          <div className="detail-actions">
+            <button className="secondary-button" type="button" onClick={() => setSelectedUser(null)}>
+              {t("identity:closeDetail")}
+            </button>
+            {selectedUser.isActive ? (
+              <button
+                className="danger-button"
+                type="button"
+                onClick={() => deactivateUserMutation.mutate({ userId: selectedUser.id })}
+              >
+                {t("identity:deactivate")}
+              </button>
+            ) : null}
+          </div>
+
+          {updateUserMutation.isError ? (
+            <p className="form-feedback form-feedback--error">
+              {updateUserMutation.error.detail ?? updateUserMutation.error.title}
+            </p>
+          ) : null}
+
+          {updateUserMutation.isSuccess ? (
+            <p className="form-feedback form-feedback--success">{t("identity:updateUserSuccess")}</p>
+          ) : null}
+        </PanelCard>
+      ) : null}
     </div>
   );
 }
