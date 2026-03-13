@@ -29,6 +29,7 @@ public sealed class CoreBootstrapHostedService(
         var identityDbContext = scope.ServiceProvider.GetRequiredService<IdentityDbContext>();
         var authorizationDbContext = scope.ServiceProvider.GetRequiredService<AuthorizationDbContext>();
         var integrationsDbContext = scope.ServiceProvider.GetRequiredService<IntegrationsDbContext>();
+        var reportsDbContext = scope.ServiceProvider.GetRequiredService<ReportsDbContext>();
 
         await EnsureDatabaseAsync(logDbContext, cancellationToken);
         await using var businessDbContext = CreateLegacyBusinessDbContext();
@@ -37,6 +38,7 @@ public sealed class CoreBootstrapHostedService(
         await EnsureDatabaseAsync(identityDbContext, cancellationToken);
         await EnsureDatabaseAsync(authorizationDbContext, cancellationToken);
         await EnsureDatabaseAsync(integrationsDbContext, cancellationToken);
+        await EnsureDatabaseAsync(reportsDbContext, cancellationToken);
         await EnsureAuthorizationSeedAsync(authorizationDbContext, cancellationToken);
         await EnsureAdminSeedAsync(identityDbContext, authorizationDbContext, cancellationToken);
 

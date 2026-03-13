@@ -11,13 +11,15 @@ public static partial class StartupSecurityValidator
             return;
         }
 
-        ValidateConnectionString(configuration.GetConnectionString("BusinessDb"), "ConnectionStrings:BusinessDb");
-        ValidateConnectionString(configuration.GetConnectionString("LogDb"), "ConnectionStrings:LogDb");
-        ValidateJwtSigningKey(configuration["Jwt:SigningKey"]);
-        ValidateBootstrapPassword(configuration["BootstrapAdmin:Password"]);
+        var allowWeakDevelopmentSecrets = environment.IsDevelopment();
+
+        ValidateConnectionString(configuration.GetConnectionString("BusinessDb"), "ConnectionStrings:BusinessDb", allowWeakDevelopmentSecrets);
+        ValidateConnectionString(configuration.GetConnectionString("LogDb"), "ConnectionStrings:LogDb", allowWeakDevelopmentSecrets);
+        ValidateJwtSigningKey(configuration["Jwt:SigningKey"], allowWeakDevelopmentSecrets);
+        ValidateBootstrapPassword(configuration["BootstrapAdmin:Password"], allowWeakDevelopmentSecrets);
     }
 
-    private static void ValidateConnectionString(string? connectionString, string key)
+    private static void ValidateConnectionString(string? connectionString, string key, bool allowWeakDevelopmentSecrets)
     {
         if (string.IsNullOrWhiteSpace(connectionString))
         {
@@ -31,43 +33,43 @@ public static partial class StartupSecurityValidator
         }
 
         var password = passwordMatch.Groups["password"].Value;
-        if (IsPlaceholder(password))
+        if (IsPlaceholder(password, allowWeakDevelopmentSecrets))
         {
             throw new InvalidOperationException($"{key} i\u00e7inde placeholder/de\u011ferlendirme d\u0131\u015f\u0131 bir parola bulundu. Ger\u00e7ek secret environment variable veya user-secrets ile verilmelidir.");
         }
     }
 
-    private static void ValidateJwtSigningKey(string? signingKey)
+    private static void ValidateJwtSigningKey(string? signingKey, bool allowWeakDevelopmentSecrets)
     {
         if (string.IsNullOrWhiteSpace(signingKey))
         {
             throw new InvalidOperationException("Jwt:SigningKey zorunludur.");
         }
 
-        if (IsPlaceholder(signingKey))
+        if (IsPlaceholder(signingKey, allowWeakDevelopmentSecrets))
         {
             throw new InvalidOperationException("Jwt:SigningKey placeholder olarak b\u0131rak\u0131lm\u0131\u015f. Ger\u00e7ek secret environment variable veya user-secrets ile verilmelidir.");
         }
     }
 
-    private static void ValidateBootstrapPassword(string? password)
+    private static void ValidateBootstrapPassword(string? password, bool allowWeakDevelopmentSecrets)
     {
         if (string.IsNullOrWhiteSpace(password))
         {
             throw new InvalidOperationException("BootstrapAdmin:Password zorunludur.");
         }
 
-        if (IsPlaceholder(password))
+        if (IsPlaceholder(password, allowWeakDevelopmentSecrets))
         {
             throw new InvalidOperationException("BootstrapAdmin:Password placeholder olarak b\u0131rak\u0131lm\u0131\u015f. Ger\u00e7ek de\u011fer environment variable veya user-secrets ile verilmelidir.");
         }
     }
 
-    private static bool IsPlaceholder(string value)
+    private static bool IsPlaceholder(string value, bool allowWeakDevelopmentSecrets)
     {
         return value.Contains("CHANGE_ME", StringComparison.OrdinalIgnoreCase)
                || value.Contains("DEV_ONLY", StringComparison.OrdinalIgnoreCase)
-               || value == "123456";
+               || (!allowWeakDevelopmentSecrets && value == "123456");
     }
 
     [GeneratedRegex(@"(?:^|;)Password=(?<password>[^;]+)", RegexOptions.IgnoreCase)]

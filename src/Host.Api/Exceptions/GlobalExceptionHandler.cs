@@ -9,7 +9,7 @@ namespace Host.Api.Exceptions;
 
 public sealed class GlobalExceptionHandler(
     ILogger<GlobalExceptionHandler> logger,
-    IOperationalEventPublisher operationalEventPublisher,
+    IServiceScopeFactory serviceScopeFactory,
     IProblemDetailsService problemDetailsService,
     IHostEnvironment hostEnvironment,
     IApiTextLocalizer localizer) : IExceptionHandler
@@ -77,8 +77,13 @@ public sealed class GlobalExceptionHandler(
             }
         };
 
-        // Exception mantigi da artik loga dogrudan yazmak yerine event backbone'a akitiliyor.
-        await operationalEventPublisher.PublishAsync(operationalEvent, cancellationToken);
+        // IExceptionHandler singleton oldugu icin scoped publisher'i ctor'da tasiyamayiz.
+        // Bu nedenle event publisher request aninda yeni bir scope icinden cozulur.
+        await using (var scope = serviceScopeFactory.CreateAsyncScope())
+        {
+            var operationalEventPublisher = scope.ServiceProvider.GetRequiredService<IOperationalEventPublisher>();
+            await operationalEventPublisher.PublishAsync(operationalEvent, cancellationToken);
+        }
 
         httpContext.Response.StatusCode = statusCode;
 

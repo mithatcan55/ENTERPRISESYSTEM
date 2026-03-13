@@ -9,6 +9,8 @@ using Integrations.Presentation.DependencyInjection;
 using Host.Api.Middleware;
 using Operations.Infrastructure.DependencyInjection;
 using Operations.Presentation.DependencyInjection;
+using Reports.Infrastructure.DependencyInjection;
+using Reports.Presentation.DependencyInjection;
 using Scalar.AspNetCore;
 using Serilog;
 using Microsoft.AspNetCore.Localization;
@@ -46,10 +48,12 @@ mvcBuilder.AddIdentityPresentationModule();
 mvcBuilder.AddAuthorizationPresentationModule();
 mvcBuilder.AddOperationsPresentationModule();
 mvcBuilder.AddIntegrationsPresentationModule();
+mvcBuilder.AddReportsPresentationModule();
 builder.Services.AddIdentityInfrastructureModule();
 builder.Services.AddAuthorizationInfrastructureModule();
 builder.Services.AddOperationsInfrastructureModule();
 builder.Services.AddIntegrationsInfrastructureModule(builder.Configuration);
+builder.Services.AddReportsInfrastructureModule();
 
 var app = builder.Build();
 
