@@ -9,6 +9,10 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@pdfme/common": "^5.3.8",
+    "@pdfme/generator": "^5.3.8",
+    "@pdfme/schemas": "^5.3.8",
+    "@pdfme/ui": "^5.3.8",
     "@tanstack/react-query": "^5.75.5",
     "i18next": "^25.1.2",
     "lucide-react": "^0.511.0",

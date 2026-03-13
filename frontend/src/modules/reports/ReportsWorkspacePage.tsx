@@ -1,7 +1,22 @@
+import { StandardDataTable, type TableColumn } from "../../design-system/data-display/StandardDataTable";
 import { PageHeader } from "../../design-system/patterns/PageHeader";
 import { PanelCard } from "../../design-system/primitives/PanelCard";
+import { reportDesignerCapabilities, starterReportTemplates } from "./reporting.catalog";
+import type { ReportDesignerCapability, ReportTemplateListItem } from "./reporting.types";
 
 export function ReportsWorkspacePage() {
+  const templateColumns: Array<TableColumn<ReportTemplateListItem>> = [
+    { key: "code", header: "Kod", cell: (item) => item.code },
+    { key: "name", header: "Ad", cell: (item) => item.name },
+    { key: "type", header: "Tip", cell: (item) => item.type },
+    { key: "version", header: "Versiyon", cell: (item) => item.version }
+  ];
+
+  const capabilityColumns: Array<TableColumn<ReportDesignerCapability>> = [
+    { key: "label", header: "Yetkinlik", cell: (item) => item.label },
+    { key: "description", header: "Aciklama", cell: (item) => item.description }
+  ];
+
   return (
     <div className="page-grid">
       <PageHeader
@@ -10,20 +25,24 @@ export function ReportsWorkspacePage() {
       />
 
       <div className="workspace-grid workspace-grid--two-columns">
-        <PanelCard title="Designer Roadmap" subtitle="pdfme odakli ilk faz">
-          <div className="event-list">
-            <div className="event-list__item">Template registry ve report tanim kayitlari eklenecek.</div>
-            <div className="event-list__item">Designer editor bu workspace icine gomulecek.</div>
-            <div className="event-list__item">JSON template + backend payload binding standardi kurulacak.</div>
-          </div>
+        <PanelCard title="Template Registry" subtitle="Ilk rapor katalogu">
+          <StandardDataTable
+            columns={templateColumns}
+            items={starterReportTemplates}
+            rowKey={(item) => item.id}
+            emptyTitle="Kayitli rapor yok"
+            emptyDescription="Ilk raporlar taslak olarak bu listeye dusecek."
+          />
         </PanelCard>
 
-        <PanelCard title="Report Capabilities" subtitle="Hedef fonksiyonlar">
-          <div className="event-list">
-            <div className="event-list__item">Label, image, dynamic field ve table/loop alanlari</div>
-            <div className="event-list__item">Page number, multi-page ve branded header/footer</div>
-            <div className="event-list__item">Kaydet, onizle, PDF export ve sonraki fazda scheduler</div>
-          </div>
+        <PanelCard title="Designer Capabilities" subtitle="pdfme odakli hedefler">
+          <StandardDataTable
+            columns={capabilityColumns}
+            items={reportDesignerCapabilities}
+            rowKey={(item) => item.key}
+            emptyTitle="Yetkinlik tanimi yok"
+            emptyDescription="Designer kapsam maddeleri burada listelenir."
+          />
         </PanelCard>
       </div>
     </div>
