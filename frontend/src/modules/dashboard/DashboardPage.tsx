@@ -1,11 +1,29 @@
+import { useQuery } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
 import { KpiCard } from "../../design-system/patterns/KpiCard";
 import { PageHeader } from "../../design-system/patterns/PageHeader";
 import { QuickActionCard } from "../../design-system/patterns/QuickActionCard";
 import { PanelCard } from "../../design-system/primitives/PanelCard";
+import { listOutboxMessages } from "../integrations/outbox/outbox.api";
+import { getAuditDashboardSummary, getSecurityLogs } from "../operations/operations.api";
 
 export function DashboardPage() {
-  const { t } = useTranslation("common");
+  const { t } = useTranslation(["common", "operations", "integrations"]);
+  const summaryQuery = useQuery({
+    queryKey: ["dashboard", "audit-summary"],
+    queryFn: ({ signal }) => getAuditDashboardSummary(24, signal)
+  });
+  const securityQuery = useQuery({
+    queryKey: ["dashboard", "security"],
+    queryFn: ({ signal }) => getSecurityLogs({ page: 1, pageSize: 3 }, signal)
+  });
+  const outboxQuery = useQuery({
+    queryKey: ["dashboard", "outbox"],
+    queryFn: ({ signal }) => listOutboxMessages({ page: 1, pageSize: 3 }, signal)
+  });
+  const summary = summaryQuery.data;
+  const securityItems = securityQuery.data?.items ?? [];
+  const outboxItems = outboxQuery.data?.items ?? [];
 
   return (
     <div className="page-grid">
@@ -15,26 +33,32 @@ export function DashboardPage() {
       />
 
       <section className="kpi-grid">
-        <KpiCard title={t("activeUsers")} value="128" tone="primary" delta="+12%" />
-        <KpiCard title={t("openSessions")} value="342" tone="neutral" delta="+5%" />
-        <KpiCard title={t("systemErrors")} value="4" tone="danger" delta="-33%" />
-        <KpiCard title={t("pendingOutbox")} value="17" tone="accent" delta="+2" />
+        <KpiCard title={t("operations:systemErrors")} value={String(summary?.systemErrorCount ?? 0)} tone="danger" delta={t("operations:last24Hours")} />
+        <KpiCard title={t("operations:failedLogins")} value={String(summary?.failedLoginCount ?? 0)} tone="accent" delta={t("operations:last24Hours")} />
+        <KpiCard title={t("operations:sessionRevokeRate")} value={`${summary?.sessionRevokeRatePercent ?? 0}%`} tone="neutral" delta={t("operations:activeSummary")} />
+        <KpiCard title={t("pendingOutbox")} value={String(outboxQuery.data?.totalCount ?? 0)} tone="primary" delta={t("integrations:queueStatus")} />
       </section>
 
       <section className="dashboard-main-grid">
         <PanelCard title={t("securityEvents")} subtitle={t("viewAll")}>
           <div className="event-list">
-            <div className="event-list__item event-list__item--danger">3 failed login attempts detected</div>
-            <div className="event-list__item">T-Code deny events remained within threshold</div>
-            <div className="event-list__item">Session revoke operations completed successfully</div>
+            {securityItems.map((item) => (
+              <div key={item.id} className={`event-list__item ${item.isSuccessful ? "" : "event-list__item--danger"}`}>
+                {item.eventType ?? t("operations:unknownEvent")} / {item.username ?? "-"}
+              </div>
+            ))}
+            {!securityItems.length ? <div className="event-list__item">{t("operations:noCriticalEvents")}</div> : null}
           </div>
         </PanelCard>
 
         <PanelCard title={t("alerts")} subtitle="Audit & operations">
           <div className="event-list">
-            <div className="event-list__item event-list__item--accent">Outbox queue approaching retry threshold</div>
-            <div className="event-list__item">One critical exception notification escalated by email</div>
-            <div className="event-list__item">No rate-limit saturation detected in the last hour</div>
+            {outboxItems.map((item) => (
+              <div key={item.id} className={`event-list__item ${item.lastError ? "event-list__item--accent" : ""}`}>
+                {item.eventType} / {item.status}
+              </div>
+            ))}
+            {!outboxItems.length ? <div className="event-list__item">{t("integrations:noOutboxDescription")}</div> : null}
           </div>
         </PanelCard>
       </section>

@@ -2,14 +2,20 @@ import i18n from "i18next";
 import { initReactI18next } from "react-i18next";
 import enAuthorization from "./locales/en/authorization.json";
 import enIdentity from "./locales/en/identity.json";
+import enIntegrations from "./locales/en/integrations.json";
+import enOperations from "./locales/en/operations.json";
 import enCommon from "./locales/en/common.json";
 import enMenu from "./locales/en/menu.json";
 import deAuthorization from "./locales/de/authorization.json";
 import deIdentity from "./locales/de/identity.json";
+import deIntegrations from "./locales/de/integrations.json";
+import deOperations from "./locales/de/operations.json";
 import deCommon from "./locales/de/common.json";
 import deMenu from "./locales/de/menu.json";
 import trAuthorization from "./locales/tr/authorization.json";
 import trIdentity from "./locales/tr/identity.json";
+import trIntegrations from "./locales/tr/integrations.json";
+import trOperations from "./locales/tr/operations.json";
 import trCommon from "./locales/tr/common.json";
 import trMenu from "./locales/tr/menu.json";
 
@@ -17,7 +23,7 @@ void i18n.use(initReactI18next).init({
   lng: "tr",
   fallbackLng: "en",
   defaultNS: "common",
-  ns: ["common", "menu", "identity", "authorization"],
+  ns: ["common", "menu", "identity", "authorization", "operations", "integrations"],
   interpolation: {
     escapeValue: false
   },
@@ -26,19 +32,25 @@ void i18n.use(initReactI18next).init({
       common: trCommon,
       menu: trMenu,
       identity: trIdentity,
-      authorization: trAuthorization
+      authorization: trAuthorization,
+      operations: trOperations,
+      integrations: trIntegrations
     },
     en: {
       common: enCommon,
       menu: enMenu,
       identity: enIdentity,
-      authorization: enAuthorization
+      authorization: enAuthorization,
+      operations: enOperations,
+      integrations: enIntegrations
     },
     de: {
       common: deCommon,
       menu: deMenu,
       identity: deIdentity,
-      authorization: deAuthorization
+      authorization: deAuthorization,
+      operations: deOperations,
+      integrations: deIntegrations
     }
   }
 });

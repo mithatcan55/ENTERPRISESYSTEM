@@ -3,8 +3,8 @@ import { PermissionGuard } from "../../core/auth/guards";
 import { AuthorizationWorkspacePage } from "../../modules/authorization/AuthorizationWorkspacePage";
 import { DashboardPage } from "../../modules/dashboard/DashboardPage";
 import { IdentityWorkspacePage } from "../../modules/identity/IdentityWorkspacePage";
-import { IntegrationsPlaceholderPage } from "../../modules/integrations/IntegrationsPlaceholderPage";
-import { OperationsPlaceholderPage } from "../../modules/operations/OperationsPlaceholderPage";
+import { IntegrationsWorkspacePage } from "../../modules/integrations/IntegrationsWorkspacePage";
+import { OperationsWorkspacePage } from "../../modules/operations/OperationsWorkspacePage";
 import { ReportsPlaceholderPage } from "../../modules/reports/ReportsPlaceholderPage";
 import { ForbiddenPage } from "../../modules/system/ForbiddenPage";
 import { LoginPage } from "../../modules/system/LoginPage";
@@ -27,8 +27,8 @@ export function AppRouter() {
         <Route path="dashboard" element={<DashboardPage />} />
         <Route path="identity/*" element={<IdentityWorkspacePage />} />
         <Route path="authorization/*" element={<AuthorizationWorkspacePage />} />
-        <Route path="operations/*" element={<OperationsPlaceholderPage />} />
-        <Route path="integrations/*" element={<IntegrationsPlaceholderPage />} />
+        <Route path="operations/*" element={<OperationsWorkspacePage />} />
+        <Route path="integrations/*" element={<IntegrationsWorkspacePage />} />
         <Route path="reports/*" element={<ReportsPlaceholderPage />} />
       </Route>
     </Routes>
