@@ -10,3 +10,6 @@ logs/
 src/Host.Api/logs/
 .DS_Store
 Thumbs.db
+frontend/node_modules/
+frontend/dist/
+frontend/.vite/
