@@ -695,6 +695,10 @@ select {
   margin-top: 16px;
 }
 
+.spacer-block {
+  height: 16px;
+}
+
 .secondary-button,
 .danger-button {
   min-height: 42px;

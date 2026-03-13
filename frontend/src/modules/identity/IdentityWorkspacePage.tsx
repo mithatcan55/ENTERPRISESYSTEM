@@ -1,20 +1,13 @@
 import { Route, Routes } from "react-router-dom";
 import { UsersListPage } from "./users/UsersListPage";
+import { SessionsPage } from "./sessions/SessionsPage";
 import { PlaceholderModulePage } from "../shared/PlaceholderModulePage";
 
 export function IdentityWorkspacePage() {
   return (
     <Routes>
       <Route path="users" element={<UsersListPage />} />
-      <Route
-        path="sessions"
-        element={
-          <PlaceholderModulePage
-            title="Sessions Workspace"
-            description="Oturum izleme ve revoke ekranlari bir sonraki adimda gercek module baglanacak."
-          />
-        }
-      />
+      <Route path="sessions" element={<SessionsPage />} />
       <Route
         path="password-policy"
         element={
