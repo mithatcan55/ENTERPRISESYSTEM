@@ -1,3 +1,5 @@
+import { getHttpClientRuntime } from "./httpClientRuntime";
+
 export type ApiError = {
   status: number;
   title: string;
@@ -15,7 +17,6 @@ type RequestOptions = {
 };
 
 const apiBaseUrl = (import.meta.env.VITE_API_BASE_URL as string | undefined)?.replace(/\/$/, "") ?? "";
-import { getHttpClientRuntime } from "./httpClientRuntime";
 
 async function request<T>(path: string, options: RequestOptions = {}): Promise<T> {
   // Tek noktadan gecen client sayesinde auth header, correlation ve hata standardi

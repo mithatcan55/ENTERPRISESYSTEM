@@ -28,8 +28,7 @@ export function AuthProvider({ children }: PropsWithChildren) {
 
   useEffect(() => {
     configureHttpClientRuntime({
-      getAccessToken: () => session?.accessToken ?? null
-      ,
+      getAccessToken: () => session?.accessToken ?? null,
       refreshSession: async () => {
         const currentSession = readStoredAuthSession();
 

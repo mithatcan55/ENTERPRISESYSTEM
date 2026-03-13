@@ -1,0 +1,23 @@
+{
+  "workspaceTitle": "Report Design Center",
+  "workspaceDescription": "pdfme based report design, draft template management, and branded PDF preview workspace.",
+  "draftStorageTitle": "Draft Storage Model",
+  "draftStorageSubtitle": "This behavior is intentionally explicit at this stage",
+  "draftStorageHeadline": "Report drafts are currently stored in browser localStorage.",
+  "draftStorageBody": "Because backend report template tables and migrations are not defined yet, this screen does not pretend that there is live database persistence. The UI stores drafts locally; this behavior will change when a registry table is added later.",
+  "resetDraft": "Reset draft",
+  "registryTitle": "Template Registry",
+  "registrySubtitle": "Initial report catalog and draft list",
+  "emptyRegistryTitle": "No reports found",
+  "emptyRegistryDescription": "The first reports will appear here as drafts.",
+  "openDraft": "Open draft",
+  "capabilitiesTitle": "Designer Capabilities",
+  "capabilitiesSubtitle": "Initial pdfme-driven scope",
+  "emptyCapabilitiesTitle": "No capabilities defined",
+  "emptyCapabilitiesDescription": "Designer scope items are listed here.",
+  "designerTitle": "Designer",
+  "previewTitle": "Template Preview",
+  "previewSubtitle": "In-browser PDF preview",
+  "noPreviewTitle": "No preview yet",
+  "noPreviewDescription": "You can generate a preview from the designer toolbar."
+}

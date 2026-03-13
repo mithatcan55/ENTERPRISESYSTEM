@@ -713,6 +713,53 @@ select {
   display: block;
 }
 
+.pdfme-designer-panel {
+  display: grid;
+  gap: 16px;
+}
+
+.pdfme-designer-panel__toolbar {
+  display: flex;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.pdfme-designer-panel__canvas {
+  min-height: 720px;
+  border: 1px solid var(--surface-200);
+  border-radius: 18px;
+  overflow: hidden;
+  background: white;
+}
+
+.pdf-preview-frame {
+  width: 100%;
+  min-height: 720px;
+  border: 1px solid var(--surface-200);
+  border-radius: 18px;
+  background: white;
+}
+
+.report-storage-notice {
+  display: grid;
+  gap: 10px;
+}
+
+.report-storage-notice strong {
+  color: var(--brand-primaryStrong);
+}
+
+.report-storage-notice span {
+  color: var(--brand-textMuted);
+  line-height: 1.6;
+}
+
+.report-storage-notice__actions {
+  display: flex;
+  justify-content: flex-end;
+}
+
 .secondary-button,
 .danger-button {
   min-height: 42px;

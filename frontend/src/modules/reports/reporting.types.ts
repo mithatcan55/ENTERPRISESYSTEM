@@ -5,14 +5,20 @@ export type ReportTemplateType = "document" | "label" | "table" | "summary";
 
 export type ReportTemplateStatus = "draft" | "published" | "archived";
 
+export type ReportTemplateStorageMode = "local-draft" | "backend-registry";
+
 export type ReportTemplateListItem = {
   id: string;
   code: string;
   name: string;
+  description: string;
+  moduleKey: string;
   type: ReportTemplateType;
   status: ReportTemplateStatus;
+  storageMode: ReportTemplateStorageMode;
   updatedAt: string;
   version: string;
+  sampleInput: Record<string, string>;
 };
 
 export type ReportDesignerCapability = {

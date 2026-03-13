@@ -1,0 +1,23 @@
+{
+  "workspaceTitle": "Berichtsdesign-Zentrum",
+  "workspaceDescription": "pdfme basierter Berichtsdesigner, Entwurfsverwaltung und markenkonforme PDF-Vorschau.",
+  "draftStorageTitle": "Entwurfs-Speichermodell",
+  "draftStorageSubtitle": "Dieses Verhalten ist in dieser Phase bewusst offengelegt",
+  "draftStorageHeadline": "Berichtsentwuerfe werden derzeit im Browser-localStorage gespeichert.",
+  "draftStorageBody": "Da im Backend noch keine Report-Template-Tabellen und Migrationen definiert sind, tut diese Ansicht nicht so, als gaebe es bereits eine Live-Datenbankpersistenz. Die UI speichert Entwuerfe lokal; dieses Verhalten wird spaeter mit einer Registry-Tabelle geaendert.",
+  "resetDraft": "Entwurf zuruecksetzen",
+  "registryTitle": "Template-Registry",
+  "registrySubtitle": "Erster Berichtskatalog und Entwurfsliste",
+  "emptyRegistryTitle": "Keine Berichte gefunden",
+  "emptyRegistryDescription": "Die ersten Berichte erscheinen hier als Entwuerfe.",
+  "openDraft": "Entwurf oeffnen",
+  "capabilitiesTitle": "Designer-Faehigkeiten",
+  "capabilitiesSubtitle": "Erster pdfme-basierter Umfang",
+  "emptyCapabilitiesTitle": "Keine Faehigkeiten definiert",
+  "emptyCapabilitiesDescription": "Designer-Umfangspunkte werden hier aufgelistet.",
+  "designerTitle": "Designer",
+  "previewTitle": "Template-Vorschau",
+  "previewSubtitle": "PDF-Vorschau im Browser",
+  "noPreviewTitle": "Noch keine Vorschau",
+  "noPreviewDescription": "Ueber die Designer-Toolbar kannst du eine Vorschau erzeugen."
+}

@@ -1,0 +1,23 @@
+{
+  "workspaceTitle": "Rapor Tasarim Merkezi",
+  "workspaceDescription": "pdfme tabanli rapor tasarimi, taslak template yonetimi ve marka uyumlu PDF onizleme alani.",
+  "draftStorageTitle": "Taslak Saklama Modeli",
+  "draftStorageSubtitle": "Bu asamadaki davranis bilincli olarak acik tutulur",
+  "draftStorageHeadline": "Rapor taslaklari su anda tarayici localStorage alaninda tutulur.",
+  "draftStorageBody": "Backend tarafinda report template tablosu ve migration henuz tanimli olmadigi icin bu ekran canli veritabani persistence varmis gibi davranmaz. UI taslagi yerelde saklar; ileride registry DB tablosu geldiginde bu davranis degistirilecektir.",
+  "resetDraft": "Taslagi sifirla",
+  "registryTitle": "Template Registry",
+  "registrySubtitle": "Ilk rapor katalogu ve taslak listesi",
+  "emptyRegistryTitle": "Kayitli rapor yok",
+  "emptyRegistryDescription": "Ilk raporlar taslak olarak bu listeye dusecek.",
+  "openDraft": "Taslagi ac",
+  "capabilitiesTitle": "Designer Yetkinlikleri",
+  "capabilitiesSubtitle": "pdfme odakli ilk kapsam",
+  "emptyCapabilitiesTitle": "Yetkinlik tanimi yok",
+  "emptyCapabilitiesDescription": "Designer kapsam maddeleri burada listelenir.",
+  "designerTitle": "Designer",
+  "previewTitle": "Template Preview",
+  "previewSubtitle": "Tarayici ici PDF onizleme",
+  "noPreviewTitle": "Henuz preview yok",
+  "noPreviewDescription": "Designer toolbar uzerinden preview uretebilirsin."
+}
