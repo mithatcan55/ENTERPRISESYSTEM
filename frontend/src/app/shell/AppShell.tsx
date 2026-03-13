@@ -10,7 +10,7 @@ import { navigationGroups } from "./navigation";
 export function AppShell() {
   const { t, i18n } = useTranslation(["common", "menu"]);
   const { theme } = useBrandTheme();
-  const { user } = useAuth();
+  const { user, logout } = useAuth();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const visibleGroups = navigationGroups
     .map((group) => ({
@@ -79,8 +79,12 @@ export function AppShell() {
 
             <div className="topbar__profile">
               <span className="topbar__tenant">HM | AYGUN</span>
-              <strong>{user.displayName}</strong>
+              <strong>{user?.displayName ?? "-"}</strong>
             </div>
+
+            <button className="topbar__logout-button" type="button" onClick={logout}>
+              {t("logout")}
+            </button>
           </div>
         </header>
 

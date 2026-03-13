@@ -13,8 +13,17 @@ export function PermissionGuard({
   anyPermission?: string[];
   anyTransactionCode?: string[];
 }>) {
-  const { user } = useAuth();
+  const { isAuthenticated, isLoading, user } = useAuth();
   const rule: AccessRule = { anyRole, anyPermission, anyTransactionCode };
+
+  if (isLoading) {
+    return null;
+  }
+
+  if (!isAuthenticated) {
+    return <Navigate to="/login" replace />;
+  }
+
   if (!canAccess(user, rule)) {
     return <Navigate to="/forbidden" replace />;
   }

@@ -197,6 +197,15 @@ select {
   padding: 0 6px 0 8px;
 }
 
+.topbar__logout-button {
+  min-height: 42px;
+  padding: 0 14px;
+  border-radius: 999px;
+  border: 1px solid var(--brand-border);
+  background: var(--surface-0);
+  cursor: pointer;
+}
+
 .topbar__tenant {
   color: var(--brand-textMuted);
   font-size: 0.75rem;

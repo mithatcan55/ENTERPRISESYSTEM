@@ -1,24 +1,117 @@
 import type { PropsWithChildren } from "react";
-import { createContext, useContext } from "react";
+import { createContext, useContext, useEffect, useMemo, useState } from "react";
+import { configureHttpClient } from "../api/httpClient";
+import { login, refresh, type LoginPayload } from "./auth.api";
 import type { AuthUser } from "./access";
+import {
+  clearStoredAuthSession,
+  isTokenExpired,
+  readStoredAuthSession,
+  writeStoredAuthSession,
+  type AuthSession
+} from "./authSession";
 
 type AuthContextValue = {
-  user: AuthUser;
+  user: AuthUser | null;
+  session: AuthSession | null;
+  isAuthenticated: boolean;
+  isLoading: boolean;
+  login: (payload: LoginPayload) => Promise<void>;
+  logout: () => void;
 };
 
 const AuthContext = createContext<AuthContextValue | null>(null);
 
 export function AuthProvider({ children }: PropsWithChildren) {
-  const value: AuthContextValue = {
-    user: {
-      id: 1,
-      username: "core.admin",
-      displayName: "Core Platform Admin",
-      roles: ["SYS_ADMIN"],
-      permissions: ["USER_ACTION_VIEW", "USER_ACTION_EDIT", "USER_ACTION_ASSIGN"],
-      transactionCodes: ["SYS01", "SYS02", "SYS03", "SYS04"]
+  const [session, setSession] = useState<AuthSession | null>(() => readStoredAuthSession());
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    configureHttpClient({
+      getAccessToken: () => session?.accessToken ?? null
+    });
+  }, [session]);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    async function bootstrapSession() {
+      const storedSession = readStoredAuthSession();
+
+      if (!storedSession) {
+        if (!cancelled) {
+          setSession(null);
+          setIsLoading(false);
+        }
+
+        return;
+      }
+
+      if (!isTokenExpired(storedSession.accessTokenExpiresAt)) {
+        if (!cancelled) {
+          setSession(storedSession);
+          setIsLoading(false);
+        }
+
+        return;
+      }
+
+      if (isTokenExpired(storedSession.refreshTokenExpiresAt)) {
+        clearStoredAuthSession();
+
+        if (!cancelled) {
+          setSession(null);
+          setIsLoading(false);
+        }
+
+        return;
+      }
+
+      try {
+        const refreshedSession = await refresh(storedSession.refreshToken, storedSession);
+        writeStoredAuthSession(refreshedSession);
+
+        if (!cancelled) {
+          setSession(refreshedSession);
+        }
+      } catch {
+        clearStoredAuthSession();
+
+        if (!cancelled) {
+          setSession(null);
+        }
+      } finally {
+        if (!cancelled) {
+          setIsLoading(false);
+        }
+      }
     }
-  };
+
+    void bootstrapSession();
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const value = useMemo<AuthContextValue>(
+    () => ({
+      user: session?.user ?? null,
+      session,
+      isAuthenticated: !!session?.accessToken,
+      isLoading,
+      login: async (payload) => {
+        const nextSession = await login(payload);
+        writeStoredAuthSession(nextSession);
+        setSession(nextSession);
+      },
+      logout: () => {
+        clearStoredAuthSession();
+        setSession(null);
+      }
+    }),
+    [isLoading, session]
+  );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }

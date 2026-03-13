@@ -6,16 +6,22 @@ export type AccessRule = {
 
 export type AuthUser = {
   id: number;
+  userCode: string;
   username: string;
   displayName: string;
   roles: string[];
   permissions: string[];
   transactionCodes: string[];
+  companyId?: number;
 };
 
-export function canAccess(user: AuthUser, rule?: AccessRule) {
+export function canAccess(user: AuthUser | null, rule?: AccessRule) {
   // Menu, route ve buton gorunurlugu ayni kural fonksiyonundan beslensin ki
   // frontend tarafinda farkli yetki yorumlari olusmasin.
+  if (!user) {
+    return false;
+  }
+
   if (!rule) {
     return true;
   }
