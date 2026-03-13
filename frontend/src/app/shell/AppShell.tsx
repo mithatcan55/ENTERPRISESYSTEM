@@ -3,12 +3,21 @@ import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { NavLink, Outlet } from "react-router-dom";
 import { useBrandTheme } from "../providers/BrandProvider";
+import { canAccess } from "../../core/auth/access";
+import { useAuth } from "../../core/auth/AuthProvider";
 import { navigationGroups } from "./navigation";
 
 export function AppShell() {
   const { t, i18n } = useTranslation(["common", "menu"]);
   const { theme } = useBrandTheme();
+  const { user } = useAuth();
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const visibleGroups = navigationGroups
+    .map((group) => ({
+      ...group,
+      items: group.items.filter((item) => canAccess(user, item.access))
+    }))
+    .filter((group) => group.items.length > 0);
 
   return (
     <div className="app-shell">
@@ -22,7 +31,7 @@ export function AppShell() {
         </div>
 
         <nav className="sidebar__nav">
-          {navigationGroups.map((group) => (
+          {visibleGroups.map((group) => (
             <section key={group.key} className="sidebar__group">
               <h3>{t(group.titleKey)}</h3>
               {group.items.map((item) => (
@@ -70,7 +79,7 @@ export function AppShell() {
 
             <div className="topbar__profile">
               <span className="topbar__tenant">HM | AYGUN</span>
-              <strong>core.admin</strong>
+              <strong>{user.displayName}</strong>
             </div>
           </div>
         </header>

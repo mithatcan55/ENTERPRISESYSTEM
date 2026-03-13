@@ -2,7 +2,7 @@ import { Navigate, Route, Routes } from "react-router-dom";
 import { PermissionGuard } from "../../core/auth/guards";
 import { AuthorizationPlaceholderPage } from "../../modules/authorization/AuthorizationPlaceholderPage";
 import { DashboardPage } from "../../modules/dashboard/DashboardPage";
-import { IdentityPlaceholderPage } from "../../modules/identity/IdentityPlaceholderPage";
+import { IdentityWorkspacePage } from "../../modules/identity/IdentityWorkspacePage";
 import { IntegrationsPlaceholderPage } from "../../modules/integrations/IntegrationsPlaceholderPage";
 import { OperationsPlaceholderPage } from "../../modules/operations/OperationsPlaceholderPage";
 import { ReportsPlaceholderPage } from "../../modules/reports/ReportsPlaceholderPage";
@@ -25,7 +25,7 @@ export function AppRouter() {
       >
         <Route index element={<Navigate to="/dashboard" replace />} />
         <Route path="dashboard" element={<DashboardPage />} />
-        <Route path="identity/*" element={<IdentityPlaceholderPage />} />
+        <Route path="identity/*" element={<IdentityWorkspacePage />} />
         <Route path="authorization/*" element={<AuthorizationPlaceholderPage />} />
         <Route path="operations/*" element={<OperationsPlaceholderPage />} />
         <Route path="integrations/*" element={<IntegrationsPlaceholderPage />} />

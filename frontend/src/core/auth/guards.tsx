@@ -1,5 +1,6 @@
 import type { PropsWithChildren } from "react";
 import { Navigate } from "react-router-dom";
+import { canAccess, type AccessRule } from "./access";
 import { useAuth } from "./AuthProvider";
 
 export function PermissionGuard({
@@ -13,13 +14,8 @@ export function PermissionGuard({
   anyTransactionCode?: string[];
 }>) {
   const { user } = useAuth();
-
-  const roleAllowed = !anyRole || anyRole.some((item) => user.roles.includes(item));
-  const permissionAllowed = !anyPermission || anyPermission.some((item) => user.permissions.includes(item));
-  const tcodeAllowed =
-    !anyTransactionCode || anyTransactionCode.some((item) => user.transactionCodes.includes(item));
-
-  if (!roleAllowed || !permissionAllowed || !tcodeAllowed) {
+  const rule: AccessRule = { anyRole, anyPermission, anyTransactionCode };
+  if (!canAccess(user, rule)) {
     return <Navigate to="/forbidden" replace />;
   }
 
