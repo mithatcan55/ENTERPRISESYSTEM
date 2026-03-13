@@ -760,6 +760,38 @@ select {
   justify-content: flex-end;
 }
 
+.report-version-list {
+  display: grid;
+  gap: 12px;
+}
+
+.report-version-list__item {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 14px 16px;
+  border-radius: 16px;
+  border: 1px solid var(--surface-200);
+  background: var(--surface-50);
+}
+
+.report-version-list__item strong,
+.report-version-list__item span {
+  display: block;
+}
+
+.report-version-list__item span {
+  color: var(--brand-textMuted);
+  line-height: 1.5;
+}
+
+.report-version-list__meta {
+  display: grid;
+  gap: 6px;
+  text-align: right;
+  white-space: nowrap;
+}
+
 .secondary-button,
 .danger-button {
   min-height: 42px;
@@ -956,5 +988,15 @@ select {
 
   .standard-form__grid {
     grid-template-columns: 1fr;
+  }
+
+  .report-version-list__item {
+    grid-template-columns: 1fr;
+    display: grid;
+  }
+
+  .report-version-list__meta {
+    text-align: left;
+    white-space: normal;
   }
 }
