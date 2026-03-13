@@ -1,0 +1,14 @@
+{
+  "appTitle": "Enterprise System",
+  "dashboardTitle": "Ana Panel",
+  "searchPlaceholder": "Komut veya sayfa ara",
+  "language": "Dil",
+  "quickActions": "Hizli Islemler",
+  "alerts": "Kritik Uyarilar",
+  "activeUsers": "Aktif Kullanici",
+  "openSessions": "Acik Oturum",
+  "pendingOutbox": "Bekleyen Outbox",
+  "systemErrors": "Sistem Hatalari",
+  "securityEvents": "Guvenlik Olaylari",
+  "viewAll": "Tumunu Gor"
+}

@@ -1,0 +1,14 @@
+{
+  "appTitle": "Enterprise System",
+  "dashboardTitle": "Dashboard",
+  "searchPlaceholder": "Befehl oder Seite suchen",
+  "language": "Sprache",
+  "quickActions": "Schnellaktionen",
+  "alerts": "Kritische Warnungen",
+  "activeUsers": "Aktive Benutzer",
+  "openSessions": "Offene Sitzungen",
+  "pendingOutbox": "Wartende Outbox",
+  "systemErrors": "Systemfehler",
+  "securityEvents": "Sicherheitsereignisse",
+  "viewAll": "Alle Anzeigen"
+}

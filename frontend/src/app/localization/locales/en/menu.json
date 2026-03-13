@@ -1,0 +1,18 @@
+{
+  "dashboard": "Dashboard",
+  "identity": "Users and Sessions",
+  "authorization": "Roles and Permissions",
+  "operations": "Audit and Logs",
+  "integrations": "Integrations and Outbox",
+  "reports": "Reports",
+  "settings": "Settings",
+  "users": "Users",
+  "sessions": "Sessions",
+  "passwordPolicy": "Password Policy",
+  "roles": "Roles",
+  "permissions": "Action Permissions",
+  "tcode": "T-Code Resolver",
+  "audit": "Audit Dashboard",
+  "logs": "Log Monitoring",
+  "outbox": "Outbox"
+}

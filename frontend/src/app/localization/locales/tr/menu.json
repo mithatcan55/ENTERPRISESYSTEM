@@ -1,0 +1,18 @@
+{
+  "dashboard": "Ana Panel",
+  "identity": "Kullanici ve Oturum",
+  "authorization": "Rol ve Yetki",
+  "operations": "Denetim ve Log",
+  "integrations": "Entegrasyon ve Outbox",
+  "reports": "Raporlar",
+  "settings": "Ayarlar",
+  "users": "Kullanicilar",
+  "sessions": "Oturumlar",
+  "passwordPolicy": "Sifre Politikasi",
+  "roles": "Roller",
+  "permissions": "Action Yetkileri",
+  "tcode": "T-Code Cozumleme",
+  "audit": "Audit Dashboard",
+  "logs": "Log Izleme",
+  "outbox": "Outbox"
+}

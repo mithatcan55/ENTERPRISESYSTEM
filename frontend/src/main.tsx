@@ -1,0 +1,14 @@
+import React from "react";
+import ReactDOM from "react-dom/client";
+import { AppProviders } from "./app/providers/AppProviders";
+import { AppRouter } from "./app/routing/AppRouter";
+import "./app/localization/i18n";
+import "./styles/global.css";
+
+ReactDOM.createRoot(document.getElementById("root")!).render(
+  <React.StrictMode>
+    <AppProviders>
+      <AppRouter />
+    </AppProviders>
+  </React.StrictMode>
+);
