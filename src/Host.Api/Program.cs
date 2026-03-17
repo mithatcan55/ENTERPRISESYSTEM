@@ -5,7 +5,6 @@ using Authorization.Presentation.DependencyInjection;
 using Documents.Infrastructure.DependencyInjection;
 using Documents.Presentation.DependencyInjection;
 using Host.Api.DependencyInjection;
-using Host.Api.Logging;
 using Identity.Presentation.DependencyInjection;
 using Identity.Infrastructure.DependencyInjection;
 using Infrastructure.DependencyInjection;
@@ -25,19 +24,10 @@ var builder = WebApplication.CreateBuilder(args);
 
 builder.Host.UseSerilog((context, services, configuration) =>
 {
-    var logDbConnectionString = context.Configuration.GetConnectionString("LogDb");
-
     configuration
         .ReadFrom.Configuration(context.Configuration)
         .ReadFrom.Services(services)
         .Enrich.FromLogContext();
-
-    if (!string.IsNullOrWhiteSpace(logDbConnectionString))
-    {
-        // Tum Serilog olaylarini mevcut logs.system_logs tablosuna da yazar.
-        // Boylece framework startup loglari ile uygulama loglari ayni log DB'de toplanir.
-        configuration.WriteTo.Sink(new PostgreSqlSystemLogSink(logDbConnectionString, context.HostingEnvironment));
-    }
 });
 
 var mvcBuilder = builder.Services.AddControllers();
