@@ -16,7 +16,8 @@ type RequestOptions = {
   retryOnUnauthorized?: boolean;
 };
 
-const apiBaseUrl = (import.meta.env.VITE_API_BASE_URL as string | undefined)?.replace(/\/$/, "") ?? "";
+const explicitApiBaseUrl = (import.meta.env.VITE_API_BASE_URL as string | undefined)?.replace(/\/$/, "");
+const apiBaseUrl = explicitApiBaseUrl ?? (import.meta.env.DEV ? "http://localhost:5279" : "");
 
 async function request<T>(path: string, options: RequestOptions = {}): Promise<T> {
   // Tek noktadan gecen client sayesinde auth header, correlation ve hata standardi

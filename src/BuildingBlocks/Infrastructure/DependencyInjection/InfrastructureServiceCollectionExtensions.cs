@@ -107,6 +107,18 @@ public static class InfrastructureServiceCollectionExtensions
                 sp.GetRequiredService<EntityChangeLoggingInterceptor>());
         });
 
+        services.AddDbContext<DocumentsDbContext>((sp, options) =>
+        {
+            var connectionString = configuration.GetConnectionString("BusinessDb");
+            options.UseNpgsql(connectionString, npgsql =>
+            {
+                npgsql.MigrationsHistoryTable("__EFMigrationsHistory_Documents", PersistenceSchemaNames.Business);
+            });
+            options.AddInterceptors(
+                sp.GetRequiredService<DatabaseCommandLoggingInterceptor>(),
+                sp.GetRequiredService<EntityChangeLoggingInterceptor>());
+        });
+
         return services;
     }
 }

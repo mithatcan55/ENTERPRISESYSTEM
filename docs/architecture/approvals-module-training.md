@@ -106,16 +106,20 @@ saklanÄ±r.
 - workflow detayÄ± step ve condition ile okunabilir
 - delegation assignment kaydÄ± tutulabilir
 - runtime instance/decision tablolarÄ± Ã§ekirdekte aÃ§Ä±ldÄ±
+- workflow resolver ilk fazda calisir
+- approval instance baslatma komutu vardir
+- approve / reject / return karar akisi vardir
+- pending approval inbox sorgusu vardir
 
 ## Bu ilk fazda neler henÃ¼z yok?
 
-- workflow resolver motoru
-- approval instance baÅŸlatma komutu
-- approve/reject/return command akÄ±ÅŸÄ±
-- delegation resolve motoru
-- approval inbox ekranlarÄ±
+- organizasyon bazli approver resolver (`manager_of_requester`, `department_head`, `title`)
+- tam delegation scope motoru
+- frontend approval workspace
+- notification ve inbox ekran entegrasyonu
+- WhatsApp / mail adapter seviyesinde karar kanallari
 
-Yani bu tur "approval engine'in veri omurgasÄ±" kuruldu.
+Yani bu tur approval engine sadece veri omurgasi olarak kalmadi; temel runtime kararlari da uretebilir hale geldi.
 
 ## Neden instance tablolarÄ± ÅŸimdiden eklendi?
 
@@ -129,11 +133,29 @@ Bu projede hedef:
 
 Bu nedenle daha ilk fazda instance ve decision tablolarÄ± da ÅŸemaya alÄ±ndÄ±.
 
+## Resolver mantÄ±ÄŸÄ± ilk fazda nasÄ±l Ã§alÄ±ÅŸÄ±r?
+
+1. `moduleKey + documentType` ile aktif workflow'lar cekilir.
+2. PayloadJson icindeki alanlar kosullarla eslestirilir.
+3. Tum kosullari saglayan workflow'lar arasindan en fazla condition eslesen secilir.
+4. Step listesi runtime'a acilir.
+5. `specific_user` veya `role` tipi approver satirlari somut user listesine cevrilir.
+6. Aktif delegation varsa atama vekile kaydirilir.
+
+## Karar mantigi ilk fazda nasil calisir?
+
+- `approve` -> step satiri approved olur
+- minimum approver count saglandiysa ayni step'teki kalan pending satirlar skipped olur
+- sonraki step varsa `Waiting -> Pending` gecer
+- step kalmadiysa instance `Approved` olur
+- `reject` -> instance `Rejected` olur
+- `return` -> instance `Returned` olur
+
 ## Sonraki teknik adÄ±mlar
 
-1. workflow resolver
-2. approval instance create/start
-3. approve / reject / return komutlarÄ±
-4. delegation scope resolve
-5. frontend approval workspace
-6. notification ve inbox entegrasyonu
+1. organizasyon bazli approver resolver
+2. workflow secimi icin daha zengin condition operator seti
+3. delegation scope motorunu permission/workflow/module seviyesine indirmek
+4. frontend approval workspace
+5. notification ve inbox entegrasyonu
+6. WhatsApp / mail approval adapter katmani

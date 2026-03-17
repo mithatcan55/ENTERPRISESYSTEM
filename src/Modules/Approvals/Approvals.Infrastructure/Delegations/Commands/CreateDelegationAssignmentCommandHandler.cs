@@ -1,12 +1,15 @@
 using Approvals.Application.Commands;
 using Approvals.Application.Contracts;
+using Application.Observability;
 using Application.Exceptions;
 using global::Infrastructure.Persistence;
 using global::Infrastructure.Persistence.Entities.Approvals;
 
 namespace Approvals.Infrastructure.Delegations.Commands;
 
-public sealed class CreateDelegationAssignmentCommandHandler(ApprovalsDbContext dbContext) : ICreateDelegationAssignmentCommandHandler
+public sealed class CreateDelegationAssignmentCommandHandler(
+    ApprovalsDbContext dbContext,
+    IOperationalEventPublisher operationalEventPublisher) : ICreateDelegationAssignmentCommandHandler
 {
     public async Task<DelegationAssignmentDetailDto> HandleAsync(CreateDelegationAssignmentRequest request, CancellationToken cancellationToken)
     {
@@ -33,11 +36,32 @@ public sealed class CreateDelegationAssignmentCommandHandler(ApprovalsDbContext 
             StartsAt = request.StartsAt,
             EndsAt = request.EndsAt,
             IsActive = true,
+            RevokedReason = string.Empty,
             Notes = request.Notes.Trim()
         };
 
         dbContext.DelegationAssignments.Add(assignment);
         await dbContext.SaveChangesAsync(cancellationToken);
+
+        await operationalEventPublisher.PublishAsync(new OperationalEvent
+        {
+            EventName = "approval.delegation.created",
+            Category = "ApprovalDelegation",
+            Severity = "Information",
+            Action = "Create",
+            Resource = "DelegationAssignment",
+            Message = $"Delegation olusturuldu. Delegator={assignment.DelegatorUserId}, Delegate={assignment.DelegateUserId}",
+            UserId = assignment.DelegatorUserId.ToString(),
+            Properties =
+            {
+                ["delegationAssignmentId"] = assignment.Id,
+                ["delegatorUserId"] = assignment.DelegatorUserId,
+                ["delegateUserId"] = assignment.DelegateUserId,
+                ["scopeType"] = assignment.ScopeType,
+                ["startsAt"] = assignment.StartsAt,
+                ["endsAt"] = assignment.EndsAt
+            }
+        }, cancellationToken);
 
         return assignment.ToDetailDto();
     }

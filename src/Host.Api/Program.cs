@@ -2,6 +2,8 @@ using Approvals.Infrastructure.DependencyInjection;
 using Approvals.Presentation.DependencyInjection;
 using Authorization.Infrastructure.DependencyInjection;
 using Authorization.Presentation.DependencyInjection;
+using Documents.Infrastructure.DependencyInjection;
+using Documents.Presentation.DependencyInjection;
 using Host.Api.DependencyInjection;
 using Identity.Presentation.DependencyInjection;
 using Identity.Infrastructure.DependencyInjection;
@@ -52,12 +54,14 @@ mvcBuilder.AddOperationsPresentationModule();
 mvcBuilder.AddIntegrationsPresentationModule();
 mvcBuilder.AddReportsPresentationModule();
 mvcBuilder.AddApprovalsPresentationModule();
+mvcBuilder.AddDocumentsPresentationModule();
 builder.Services.AddIdentityInfrastructureModule();
 builder.Services.AddAuthorizationInfrastructureModule();
 builder.Services.AddOperationsInfrastructureModule();
 builder.Services.AddIntegrationsInfrastructureModule(builder.Configuration);
 builder.Services.AddReportsInfrastructureModule();
 builder.Services.AddApprovalsInfrastructureModule();
+builder.Services.AddDocumentsInfrastructureModule();
 
 var app = builder.Build();
 
@@ -71,6 +75,7 @@ if (app.Environment.IsDevelopment())
 
 app.UseExceptionHandler();
 app.UseHttpsRedirection();
+app.UseCors("frontend-dev");
 app.UseRequestLocalization(localizationOptions.Value);
 app.UseMiddleware<CorrelationIdMiddleware>();
 if (!app.Environment.IsEnvironment("Testing"))

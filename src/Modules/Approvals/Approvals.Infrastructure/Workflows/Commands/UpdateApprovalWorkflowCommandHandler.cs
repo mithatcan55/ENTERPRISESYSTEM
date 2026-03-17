@@ -23,6 +23,23 @@ public sealed class UpdateApprovalWorkflowCommandHandler(ApprovalsDbContext dbCo
             });
         }
 
+        if (request.Steps.Any(x => x.DecisionDeadlineHours.HasValue && x.DecisionDeadlineHours.Value <= 0))
+        {
+            throw new ValidationAppException("Workflow guncelleme istegi gecersiz.", new Dictionary<string, string[]>
+            {
+                ["steps.decisionDeadlineHours"] = ["Deadline saat degeri sifirdan buyuk olmalidir."]
+            });
+        }
+
+        if (request.Steps.Any(x => !string.IsNullOrWhiteSpace(x.TimeoutDecision)
+                                   && x.TimeoutDecision.Trim().ToLowerInvariant() is not ("reject" or "approve")))
+        {
+            throw new ValidationAppException("Workflow guncelleme istegi gecersiz.", new Dictionary<string, string[]>
+            {
+                ["steps.timeoutDecision"] = ["Timeout decision sadece approve veya reject olabilir."]
+            });
+        }
+
         workflow.Name = request.Name.Trim();
         workflow.Description = request.Description.Trim();
         workflow.ModuleKey = request.ModuleKey.Trim();
@@ -64,7 +81,11 @@ public sealed class UpdateApprovalWorkflowCommandHandler(ApprovalsDbContext dbCo
                 ApproverValue = step.ApproverValue.Trim(),
                 IsRequired = step.IsRequired,
                 IsParallel = step.IsParallel,
-                MinimumApproverCount = Math.Max(step.MinimumApproverCount, 1)
+                MinimumApproverCount = Math.Max(step.MinimumApproverCount, 1),
+                DecisionDeadlineHours = step.DecisionDeadlineHours,
+                TimeoutDecision = string.IsNullOrWhiteSpace(step.TimeoutDecision)
+                    ? "reject"
+                    : step.TimeoutDecision.Trim().ToLowerInvariant()
             });
         }
 

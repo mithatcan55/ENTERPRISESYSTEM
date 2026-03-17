@@ -16,6 +16,12 @@ public sealed class TCodeAuthorizationHandler(ITCodeAuthorizationService tCodeAu
             return;
         }
 
+        if (context.User.IsInRole("SYS_ADMIN"))
+        {
+            context.Succeed(requirement);
+            return;
+        }
+
         var userIdRaw = context.User.FindFirst(SecurityClaimTypes.UserId)?.Value
                 ?? context.User.FindFirst(SecurityClaimTypes.Subject)?.Value;
         var companyIdRaw = context.User.FindFirst(SecurityClaimTypes.CompanyId)?.Value;

@@ -16,4 +16,6 @@ public sealed class ApprovalWorkflowStep : AuditableIntEntity
     public bool IsRequired { get; set; } = true;
     public bool IsParallel { get; set; }
     public int MinimumApproverCount { get; set; } = 1;
+    public int? DecisionDeadlineHours { get; set; }
+    public string TimeoutDecision { get; set; } = "reject";
 }

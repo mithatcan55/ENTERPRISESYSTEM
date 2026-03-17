@@ -53,6 +53,7 @@ public sealed class ApprovalsDbContext(
             entity.Property(x => x.Name).HasMaxLength(200).IsRequired();
             entity.Property(x => x.ApproverType).HasMaxLength(100).IsRequired();
             entity.Property(x => x.ApproverValue).HasMaxLength(300).IsRequired();
+            entity.Property(x => x.TimeoutDecision).HasMaxLength(50).IsRequired();
             entity.HasOne<ApprovalWorkflowDefinition>().WithMany().HasForeignKey(x => x.ApprovalWorkflowDefinitionId).OnDelete(DeleteBehavior.Restrict);
             entity.HasIndex(x => new { x.ApprovalWorkflowDefinitionId, x.StepOrder }).IsUnique();
         });
@@ -99,6 +100,7 @@ public sealed class ApprovalsDbContext(
             entity.Property(x => x.Comment).HasMaxLength(2000).IsRequired();
             entity.HasOne<ApprovalInstanceStep>().WithMany().HasForeignKey(x => x.ApprovalInstanceStepId).OnDelete(DeleteBehavior.Restrict);
             entity.HasIndex(x => new { x.ApprovalInstanceStepId, x.ActorUserId, x.CreatedAt });
+            entity.HasIndex(x => new { x.IsSystemDecision, x.Decision, x.CreatedAt });
         });
 
         modelBuilder.Entity<DelegationAssignment>(entity =>
@@ -108,8 +110,10 @@ public sealed class ApprovalsDbContext(
             entity.Property(x => x.ScopeType).HasMaxLength(100).IsRequired();
             entity.Property(x => x.IncludedScopesJson).HasColumnType("text").IsRequired();
             entity.Property(x => x.ExcludedScopesJson).HasColumnType("text").IsRequired();
+            entity.Property(x => x.RevokedReason).HasMaxLength(2000).IsRequired();
             entity.Property(x => x.Notes).HasMaxLength(2000).IsRequired();
             entity.HasIndex(x => new { x.DelegatorUserId, x.DelegateUserId, x.IsActive, x.EndsAt });
+            entity.HasIndex(x => new { x.DelegatorUserId, x.IsActive, x.StartsAt, x.EndsAt });
         });
     }
 

@@ -35,6 +35,17 @@ public static class HostServiceCollectionExtensions
         services.AddSingleton<IApiTextLocalizer, ApiTextLocalizer>();
         services.AddSingleton<ISensitiveDataRedactor, SensitiveDataRedactor>();
         services.AddScoped<OperationLoggingFilter>();
+        services.AddCors(options =>
+        {
+            options.AddPolicy("frontend-dev", policy =>
+            {
+                policy
+                    .WithOrigins("http://localhost:4173", "http://localhost:5173")
+                    .AllowAnyHeader()
+                    .AllowAnyMethod()
+                    .AllowCredentials();
+            });
+        });
 
         services.AddOptions<SensitiveDataLoggingOptions>()
             .BindConfiguration(SensitiveDataLoggingOptions.SectionName);

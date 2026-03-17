@@ -1,4 +1,5 @@
 import { Navigate, Route, Routes } from "react-router-dom";
+import { ApprovalsWorkspacePage } from "../../modules/approvals/ApprovalsWorkspacePage";
 import { PermissionGuard } from "../../core/auth/guards";
 import { AuthorizationWorkspacePage } from "../../modules/authorization/AuthorizationWorkspacePage";
 import { DashboardPage } from "../../modules/dashboard/DashboardPage";
@@ -29,6 +30,7 @@ export function AppRouter() {
         <Route path="authorization/*" element={<AuthorizationWorkspacePage />} />
         <Route path="operations/*" element={<OperationsWorkspacePage />} />
         <Route path="integrations/*" element={<IntegrationsWorkspacePage />} />
+        <Route path="approvals/*" element={<ApprovalsWorkspacePage />} />
         <Route path="reports/*" element={<ReportsWorkspacePage />} />
       </Route>
     </Routes>

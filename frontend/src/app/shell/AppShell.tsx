@@ -33,10 +33,10 @@ export function AppShell() {
         <nav className="sidebar__nav">
           {visibleGroups.map((group) => (
             <section key={group.key} className="sidebar__group">
-              <h3>{t(group.titleKey)}</h3>
+              <h3>{t(group.titleKey, { ns: "menu" })}</h3>
               {group.items.map((item) => (
                 <NavLink key={item.key} to={item.to} className="sidebar__link">
-                  {t(item.titleKey)}
+                  {t(item.titleKey, { ns: "menu" })}
                 </NavLink>
               ))}
             </section>

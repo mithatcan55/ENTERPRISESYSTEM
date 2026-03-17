@@ -4,6 +4,7 @@
   "authorization": "Rollen und Berechtigungen",
   "operations": "Audit und Protokolle",
   "integrations": "Integrationen und Outbox",
+  "approvals": "Freigaben und Vertretung",
   "reports": "Berichte",
   "settings": "Einstellungen",
   "users": "Benutzer",
@@ -14,5 +15,8 @@
   "tcode": "T-Code Analyse",
   "audit": "Audit Dashboard",
   "logs": "Protokollansicht",
-  "outbox": "Outbox"
+  "outbox": "Outbox",
+  "approvalWorkflows": "Genehmigungsabläufe",
+  "approvalInbox": "Genehmigungseingang",
+  "delegations": "Vertretungen"
 }

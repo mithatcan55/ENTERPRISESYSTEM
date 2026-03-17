@@ -41,7 +41,9 @@ internal static class ApprovalWorkflowMappingExtensions
             entity.ApproverValue,
             entity.IsRequired,
             entity.IsParallel,
-            entity.MinimumApproverCount);
+            entity.MinimumApproverCount,
+            entity.DecisionDeadlineHours,
+            entity.TimeoutDecision);
 
     public static ApprovalWorkflowConditionDto ToDto(this ApprovalWorkflowCondition entity)
         => new(entity.Id, entity.FieldKey, entity.Operator, entity.Value);

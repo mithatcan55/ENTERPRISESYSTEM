@@ -27,6 +27,8 @@ public sealed class BusinessDbContext(
     public DbSet<UserCompanyPermission> UserCompanyPermissions => Set<UserCompanyPermission>();
     public DbSet<UserPageActionPermission> UserPageActionPermissions => Set<UserPageActionPermission>();
     public DbSet<UserPageConditionPermission> UserPageConditionPermissions => Set<UserPageConditionPermission>();
+    public DbSet<AuthorizationFieldDefinition> AuthorizationFieldDefinitions => Set<AuthorizationFieldDefinition>();
+    public DbSet<AuthorizationFieldPolicy> AuthorizationFieldPolicies => Set<AuthorizationFieldPolicy>();
     public DbSet<User> Users => Set<User>();
     public DbSet<Role> Roles => Set<Role>();
     public DbSet<UserRole> UserRoles => Set<UserRole>();
@@ -159,6 +161,38 @@ public sealed class BusinessDbContext(
                 .HasForeignKey(x => x.SubModulePageId)
                 .OnDelete(DeleteBehavior.Restrict);
             entity.HasIndex(x => new { x.UserId, x.SubModulePageId, x.FieldName, x.Operator, x.Value });
+        });
+
+        modelBuilder.Entity<AuthorizationFieldDefinition>(entity =>
+        {
+            entity.ToTable("AuthorizationFieldDefinitions");
+            entity.HasKey(x => x.Id);
+            entity.Property(x => x.EntityName).HasMaxLength(200).IsRequired();
+            entity.Property(x => x.FieldName).HasMaxLength(200).IsRequired();
+            entity.Property(x => x.DisplayName).HasMaxLength(200).IsRequired();
+            entity.Property(x => x.DataType).HasMaxLength(50).IsRequired();
+            entity.Property(x => x.AllowedSurfaces).HasMaxLength(1000);
+            entity.Property(x => x.Description).HasMaxLength(1000);
+            entity.HasIndex(x => new { x.EntityName, x.FieldName }).IsUnique();
+        });
+
+        modelBuilder.Entity<AuthorizationFieldPolicy>(entity =>
+        {
+            entity.ToTable("AuthorizationFieldPolicies");
+            entity.HasKey(x => x.Id);
+            entity.Property(x => x.Name).HasMaxLength(200).IsRequired();
+            entity.Property(x => x.EntityName).HasMaxLength(200).IsRequired();
+            entity.Property(x => x.FieldName).HasMaxLength(200).IsRequired();
+            entity.Property(x => x.Surface).HasMaxLength(50).IsRequired();
+            entity.Property(x => x.TargetType).HasMaxLength(50).IsRequired();
+            entity.Property(x => x.TargetKey).HasMaxLength(200);
+            entity.Property(x => x.Effect).HasMaxLength(50).IsRequired();
+            entity.Property(x => x.ConditionFieldName).HasMaxLength(200);
+            entity.Property(x => x.ConditionOperator).HasMaxLength(50).IsRequired();
+            entity.Property(x => x.CompareValue).HasMaxLength(500);
+            entity.Property(x => x.MaskingMode).HasMaxLength(50);
+            entity.Property(x => x.Description).HasMaxLength(1000);
+            entity.HasIndex(x => new { x.EntityName, x.FieldName, x.Surface, x.Priority });
         });
 
         modelBuilder.Entity<User>(entity =>

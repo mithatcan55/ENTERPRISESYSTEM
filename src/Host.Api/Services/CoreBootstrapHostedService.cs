@@ -31,6 +31,7 @@ public sealed class CoreBootstrapHostedService(
         var integrationsDbContext = scope.ServiceProvider.GetRequiredService<IntegrationsDbContext>();
         var reportsDbContext = scope.ServiceProvider.GetRequiredService<ReportsDbContext>();
         var approvalsDbContext = scope.ServiceProvider.GetRequiredService<ApprovalsDbContext>();
+        var documentsDbContext = scope.ServiceProvider.GetRequiredService<DocumentsDbContext>();
 
         await EnsureDatabaseAsync(logDbContext, cancellationToken);
         await using var businessDbContext = CreateLegacyBusinessDbContext();
@@ -41,6 +42,7 @@ public sealed class CoreBootstrapHostedService(
         await EnsureDatabaseAsync(integrationsDbContext, cancellationToken);
         await EnsureDatabaseAsync(reportsDbContext, cancellationToken);
         await EnsureDatabaseAsync(approvalsDbContext, cancellationToken);
+        await EnsureDatabaseAsync(documentsDbContext, cancellationToken);
         await EnsureAuthorizationSeedAsync(authorizationDbContext, cancellationToken);
         await EnsureAdminSeedAsync(identityDbContext, authorizationDbContext, cancellationToken);
 
@@ -183,6 +185,27 @@ public sealed class CoreBootstrapHostedService(
 
             identityDbContext.Users.Add(user);
             await identityDbContext.SaveChangesAsync(cancellationToken);
+        }
+        else if (hostEnvironment.IsDevelopment())
+        {
+            // Development ortaminda bootstrap admin kullanicisinin sifresi config ile uyumlu tutulur.
+            // Boylece local reset veya secret degisikliginden sonra eski hash nedeniyle login kilitlenmez.
+            var passwordNeedsRefresh = !BCrypt.Net.BCrypt.Verify(adminPassword, user.PasswordHash);
+            var identityNeedsRefresh =
+                !string.Equals(user.Username, adminUsername, StringComparison.Ordinal) ||
+                !string.Equals(user.Email, adminEmail, StringComparison.OrdinalIgnoreCase);
+
+            if (passwordNeedsRefresh || identityNeedsRefresh)
+            {
+                user.Username = adminUsername;
+                user.Email = adminEmail;
+                user.PasswordHash = BCrypt.Net.BCrypt.HashPassword(adminPassword);
+                user.IsActive = true;
+                user.MustChangePassword = true;
+                user.PasswordExpiresAt = DateTime.UtcNow.AddDays(90);
+
+                await identityDbContext.SaveChangesAsync(cancellationToken);
+            }
         }
 
         var hasAssignment = await identityDbContext.UserRoles.AnyAsync(

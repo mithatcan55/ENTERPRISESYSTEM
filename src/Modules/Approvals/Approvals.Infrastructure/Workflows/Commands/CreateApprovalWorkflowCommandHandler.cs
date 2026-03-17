@@ -60,6 +60,16 @@ public sealed class CreateApprovalWorkflowCommandHandler(ApprovalsDbContext dbCo
         if (string.IsNullOrWhiteSpace(moduleKey)) errors["moduleKey"] = ["Module key zorunludur."];
         if (string.IsNullOrWhiteSpace(documentType)) errors["documentType"] = ["Document type zorunludur."];
         if (steps.Count == 0) errors["steps"] = ["En az bir onay adimi tanimlanmalidir."];
+        if (steps.Any(x => x.DecisionDeadlineHours.HasValue && x.DecisionDeadlineHours.Value <= 0))
+        {
+            errors["steps.decisionDeadlineHours"] = ["Deadline saat degeri sifirdan buyuk olmalidir."];
+        }
+
+        if (steps.Any(x => !string.IsNullOrWhiteSpace(x.TimeoutDecision)
+                           && x.TimeoutDecision.Trim().ToLowerInvariant() is not ("reject" or "approve")))
+        {
+            errors["steps.timeoutDecision"] = ["Timeout decision sadece approve veya reject olabilir."];
+        }
 
         if (errors.Count > 0)
         {
@@ -84,7 +94,11 @@ public sealed class CreateApprovalWorkflowCommandHandler(ApprovalsDbContext dbCo
                 ApproverValue = step.ApproverValue.Trim(),
                 IsRequired = step.IsRequired,
                 IsParallel = step.IsParallel,
-                MinimumApproverCount = Math.Max(step.MinimumApproverCount, 1)
+                MinimumApproverCount = Math.Max(step.MinimumApproverCount, 1),
+                DecisionDeadlineHours = step.DecisionDeadlineHours,
+                TimeoutDecision = string.IsNullOrWhiteSpace(step.TimeoutDecision)
+                    ? "reject"
+                    : step.TimeoutDecision.Trim().ToLowerInvariant()
             });
         }
 

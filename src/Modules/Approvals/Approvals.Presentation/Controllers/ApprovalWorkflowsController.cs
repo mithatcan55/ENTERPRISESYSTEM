@@ -12,6 +12,7 @@ namespace Approvals.Presentation.Controllers;
 public sealed class ApprovalWorkflowsController(
     IListApprovalWorkflowsQueryHandler listApprovalWorkflowsQueryHandler,
     IGetApprovalWorkflowDetailQueryHandler getApprovalWorkflowDetailQueryHandler,
+    IResolveApprovalWorkflowQueryHandler resolveApprovalWorkflowQueryHandler,
     ICreateApprovalWorkflowCommandHandler createApprovalWorkflowCommandHandler,
     IUpdateApprovalWorkflowCommandHandler updateApprovalWorkflowCommandHandler) : ControllerBase
 {
@@ -28,6 +29,14 @@ public sealed class ApprovalWorkflowsController(
     public async Task<ActionResult<ApprovalWorkflowDetailDto>> Get(int approvalWorkflowDefinitionId, CancellationToken cancellationToken)
     {
         var result = await getApprovalWorkflowDetailQueryHandler.HandleAsync(approvalWorkflowDefinitionId, cancellationToken);
+        return Ok(result);
+    }
+
+    [HttpPost("resolve")]
+    [ProducesResponseType(typeof(ResolvedApprovalWorkflowDto), StatusCodes.Status200OK)]
+    public async Task<ActionResult<ResolvedApprovalWorkflowDto>> Resolve([FromBody] ResolveApprovalWorkflowRequest request, CancellationToken cancellationToken)
+    {
+        var result = await resolveApprovalWorkflowQueryHandler.HandleAsync(request, cancellationToken);
         return Ok(result);
     }
 

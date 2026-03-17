@@ -10,6 +10,7 @@ public sealed class ApprovalDecision : AuditableIntEntity
 {
     public int ApprovalInstanceStepId { get; set; }
     public int ActorUserId { get; set; }
+    public bool IsSystemDecision { get; set; }
     public string Decision { get; set; } = string.Empty;
     public string Comment { get; set; } = string.Empty;
 }

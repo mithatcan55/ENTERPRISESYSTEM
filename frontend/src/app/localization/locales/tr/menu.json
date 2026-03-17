@@ -4,6 +4,7 @@
   "authorization": "Rol ve Yetki",
   "operations": "Denetim ve Log",
   "integrations": "Entegrasyon ve Outbox",
+  "approvals": "Onay ve Vekalet",
   "reports": "Raporlar",
   "settings": "Ayarlar",
   "users": "Kullanicilar",
@@ -14,5 +15,8 @@
   "tcode": "T-Code Cozumleme",
   "audit": "Audit Dashboard",
   "logs": "Log Izleme",
-  "outbox": "Outbox"
+  "outbox": "Outbox",
+  "approvalWorkflows": "Onay Akislari",
+  "approvalInbox": "Onay Kutusu",
+  "delegations": "Vekaletler"
 }

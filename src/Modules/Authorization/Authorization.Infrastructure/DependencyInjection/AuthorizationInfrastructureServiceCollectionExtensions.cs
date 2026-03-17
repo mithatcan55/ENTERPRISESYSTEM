@@ -13,6 +13,8 @@ public static class AuthorizationInfrastructureServiceCollectionExtensions
     {
         services.AddScoped<ITCodeAuthorizationService, TCodeAuthorizationService>();
         services.AddScoped<IPermissionAuthorizationService, PermissionAuthorizationService>();
+        services.AddScoped<IAuthorizationFieldPolicyAdminService, AuthorizationFieldPolicyAdminService>();
+        services.AddScoped<IAuthorizationFieldPolicyEvaluator, AuthorizationFieldPolicyEvaluator>();
         services.AddSingleton<IAuthorizationPolicyProvider, TCodeAuthorizationPolicyProvider>();
         services.AddScoped<IAuthorizationHandler, TCodeAuthorizationHandler>();
         services.AddScoped<IAuthorizationHandler, PermissionAuthorizationHandler>();

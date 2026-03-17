@@ -151,6 +151,7 @@ public sealed class TestAuthHandler(
     public const string SchemeName = "TestAuth";
     public const string UserHeaderName = "X-Test-User";
     public const string RoleHeaderName = "X-Test-Role";
+    public const string UserIdHeaderName = "X-Test-UserId";
 
     protected override Task<AuthenticateResult> HandleAuthenticateAsync()
     {
@@ -169,11 +170,18 @@ public sealed class TestAuthHandler(
             ? roleValues.ToString()
             : "SYS_OPERATOR";
 
+        var userId = Request.Headers.TryGetValue(UserIdHeaderName, out var userIdValues)
+            ? userIdValues.ToString()
+            : "1";
+
         var claims = new List<Claim>
         {
             new(ClaimTypes.NameIdentifier, username),
             new(ClaimTypes.Name, username),
-            new(ClaimTypes.Role, role)
+            new(ClaimTypes.Role, role),
+            new("user_id", userId),
+            new("preferred_username", username),
+            new("user_code", username.ToUpperInvariant())
         };
 
         var identity = new ClaimsIdentity(claims, SchemeName);

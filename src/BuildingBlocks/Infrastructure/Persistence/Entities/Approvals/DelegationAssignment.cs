@@ -16,5 +16,8 @@ public sealed class DelegationAssignment : AuditableIntEntity
     public DateTime StartsAt { get; set; }
     public DateTime EndsAt { get; set; }
     public bool IsActive { get; set; } = true;
+    public int? RevokedByUserId { get; set; }
+    public DateTime? RevokedAt { get; set; }
+    public string RevokedReason { get; set; } = string.Empty;
     public string Notes { get; set; } = string.Empty;
 }

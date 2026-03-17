@@ -10,6 +10,9 @@ public sealed record DelegationAssignmentListItemDto(
     DateTime StartsAt,
     DateTime EndsAt,
     bool IsActive,
+    int? RevokedByUserId,
+    DateTime? RevokedAt,
+    string RevokedReason,
     string Notes);
 
 public sealed record DelegationAssignmentDetailDto(
@@ -22,6 +25,9 @@ public sealed record DelegationAssignmentDetailDto(
     DateTime StartsAt,
     DateTime EndsAt,
     bool IsActive,
+    int? RevokedByUserId,
+    DateTime? RevokedAt,
+    string RevokedReason,
     string Notes);
 
 public sealed record CreateDelegationAssignmentRequest(
@@ -33,3 +39,7 @@ public sealed record CreateDelegationAssignmentRequest(
     DateTime StartsAt,
     DateTime EndsAt,
     string Notes);
+
+public sealed record SetDelegationAssignmentStatusRequest(
+    bool IsActive,
+    string Reason);

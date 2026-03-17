@@ -14,6 +14,9 @@ internal static class DelegationMappingExtensions
             entity.StartsAt,
             entity.EndsAt,
             entity.IsActive,
+            entity.RevokedByUserId,
+            entity.RevokedAt,
+            entity.RevokedReason,
             entity.Notes);
 
     public static DelegationAssignmentDetailDto ToDetailDto(this DelegationAssignment entity)
@@ -27,5 +30,8 @@ internal static class DelegationMappingExtensions
             entity.StartsAt,
             entity.EndsAt,
             entity.IsActive,
+            entity.RevokedByUserId,
+            entity.RevokedAt,
+            entity.RevokedReason,
             entity.Notes);
 }

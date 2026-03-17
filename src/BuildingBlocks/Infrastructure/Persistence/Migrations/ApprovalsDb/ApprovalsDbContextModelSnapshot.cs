@@ -52,6 +52,7 @@ partial class ApprovalsDbContextModelSnapshot : ModelSnapshot
             b.Property<string>("ApproverValue").IsRequired().HasMaxLength(300).HasColumnType("character varying(300)");
             b.Property<DateTime>("CreatedAt").HasColumnType("timestamp with time zone");
             b.Property<string>("CreatedBy").HasColumnType("text");
+            b.Property<int?>("DecisionDeadlineHours").HasColumnType("integer");
             b.Property<string>("DeletedBy").HasColumnType("text");
             b.Property<DateTime?>("DeletedAt").HasColumnType("timestamp with time zone");
             b.Property<bool>("IsDeleted").HasColumnType("boolean");
@@ -62,6 +63,7 @@ partial class ApprovalsDbContextModelSnapshot : ModelSnapshot
             b.Property<DateTime?>("ModifiedAt").HasColumnType("timestamp with time zone");
             b.Property<string>("Name").IsRequired().HasMaxLength(200).HasColumnType("character varying(200)");
             b.Property<int>("StepOrder").HasColumnType("integer");
+            b.Property<string>("TimeoutDecision").IsRequired().HasMaxLength(50).HasColumnType("character varying(50)");
             b.HasKey("Id");
             b.HasIndex("ApprovalWorkflowDefinitionId", "StepOrder").IsUnique();
             b.ToTable("ApprovalWorkflowSteps", "authorizeSchema");
@@ -147,11 +149,13 @@ partial class ApprovalsDbContextModelSnapshot : ModelSnapshot
             b.Property<string>("Decision").IsRequired().HasMaxLength(50).HasColumnType("character varying(50)");
             b.Property<string>("DeletedBy").HasColumnType("text");
             b.Property<DateTime?>("DeletedAt").HasColumnType("timestamp with time zone");
+            b.Property<bool>("IsSystemDecision").HasColumnType("boolean");
             b.Property<bool>("IsDeleted").HasColumnType("boolean");
             b.Property<string>("ModifiedBy").HasColumnType("text");
             b.Property<DateTime?>("ModifiedAt").HasColumnType("timestamp with time zone");
             b.HasKey("Id");
             b.HasIndex("ApprovalInstanceStepId", "ActorUserId", "CreatedAt");
+            b.HasIndex("IsSystemDecision", "Decision", "CreatedAt");
             b.ToTable("ApprovalDecisions", "authorizeSchema");
         });
 
@@ -173,10 +177,14 @@ partial class ApprovalsDbContextModelSnapshot : ModelSnapshot
             b.Property<string>("ModifiedBy").HasColumnType("text");
             b.Property<DateTime?>("ModifiedAt").HasColumnType("timestamp with time zone");
             b.Property<string>("Notes").IsRequired().HasMaxLength(2000).HasColumnType("character varying(2000)");
+            b.Property<DateTime?>("RevokedAt").HasColumnType("timestamp with time zone");
+            b.Property<int?>("RevokedByUserId").HasColumnType("integer");
+            b.Property<string>("RevokedReason").IsRequired().HasMaxLength(2000).HasColumnType("character varying(2000)");
             b.Property<string>("ScopeType").IsRequired().HasMaxLength(100).HasColumnType("character varying(100)");
             b.Property<DateTime>("StartsAt").HasColumnType("timestamp with time zone");
             b.HasKey("Id");
             b.HasIndex("DelegatorUserId", "DelegateUserId", "IsActive", "EndsAt");
+            b.HasIndex("DelegatorUserId", "IsActive", "StartsAt", "EndsAt");
             b.ToTable("DelegationAssignments", "authorizeSchema");
         });
 
