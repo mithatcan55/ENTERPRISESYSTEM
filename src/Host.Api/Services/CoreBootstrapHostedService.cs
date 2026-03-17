@@ -3,6 +3,8 @@ using Infrastructure.Persistence.Entities.Authorization;
 using Infrastructure.Persistence.Entities.Identity;
 using Microsoft.EntityFrameworkCore;
 using Infrastructure.Persistence.Auditing;
+using Infrastructure.Observability;
+using Infrastructure.Persistence.Entities;
 using System.Diagnostics;
 
 namespace Host.Api.Services;
@@ -25,9 +27,18 @@ public sealed class CoreBootstrapHostedService(
             return;
         }
 
-        logger.LogInformation("Core bootstrap baslatiliyor.");
-
         using var scope = serviceProvider.CreateScope();
+        var logEventWriter = scope.ServiceProvider.GetRequiredService<ILogEventWriter>();
+        logger.LogInformation("Core bootstrap baslatiliyor.");
+        await WriteLifecycleLogAsync(
+            logEventWriter,
+            "Information",
+            "Core bootstrap baslatiliyor.",
+            "BootstrapStart",
+            cancellationToken,
+            contextName: null,
+            durationMs: null,
+            exception: null);
         var logDbContext = scope.ServiceProvider.GetRequiredService<LogDbContext>();
         var identityDbContext = scope.ServiceProvider.GetRequiredService<IdentityDbContext>();
         var authorizationDbContext = scope.ServiceProvider.GetRequiredService<AuthorizationDbContext>();
@@ -36,26 +47,80 @@ public sealed class CoreBootstrapHostedService(
         var approvalsDbContext = scope.ServiceProvider.GetRequiredService<ApprovalsDbContext>();
         var documentsDbContext = scope.ServiceProvider.GetRequiredService<DocumentsDbContext>();
 
-        await EnsureDatabaseAsync(logDbContext, logger, cancellationToken);
-        await using var businessDbContext = CreateLegacyBusinessDbContext();
-        await EnsureDatabaseAsync(businessDbContext, logger, cancellationToken);
+        try
+        {
+            await EnsureDatabaseAsync(logDbContext, logger, logEventWriter, cancellationToken);
+            await using var businessDbContext = CreateLegacyBusinessDbContext();
+            await EnsureDatabaseAsync(businessDbContext, logger, logEventWriter, cancellationToken);
 
-        await EnsureDatabaseAsync(identityDbContext, logger, cancellationToken);
-        await EnsureDatabaseAsync(authorizationDbContext, logger, cancellationToken);
-        await EnsureDatabaseAsync(integrationsDbContext, logger, cancellationToken);
-        await EnsureDatabaseAsync(reportsDbContext, logger, cancellationToken);
-        await EnsureDatabaseAsync(approvalsDbContext, logger, cancellationToken);
-        await EnsureDatabaseAsync(documentsDbContext, logger, cancellationToken);
+            await EnsureDatabaseAsync(identityDbContext, logger, logEventWriter, cancellationToken);
+            await EnsureDatabaseAsync(authorizationDbContext, logger, logEventWriter, cancellationToken);
+            await EnsureDatabaseAsync(integrationsDbContext, logger, logEventWriter, cancellationToken);
+            await EnsureDatabaseAsync(reportsDbContext, logger, logEventWriter, cancellationToken);
+            await EnsureDatabaseAsync(approvalsDbContext, logger, logEventWriter, cancellationToken);
+            await EnsureDatabaseAsync(documentsDbContext, logger, logEventWriter, cancellationToken);
 
-        logger.LogInformation("Authorization seed kontrolu baslatiliyor.");
-        await EnsureAuthorizationSeedAsync(authorizationDbContext, cancellationToken);
-        logger.LogInformation("Authorization seed kontrolu tamamlandi.");
+            logger.LogInformation("Authorization seed kontrolu baslatiliyor.");
+            await WriteLifecycleLogAsync(
+                logEventWriter,
+                "Information",
+                "Authorization seed kontrolu baslatiliyor.",
+                "AuthorizationSeedStart",
+                cancellationToken,
+                contextName: null,
+                durationMs: null,
+                exception: null);
+            await EnsureAuthorizationSeedAsync(authorizationDbContext, cancellationToken);
+            logger.LogInformation("Authorization seed kontrolu tamamlandi.");
+            await WriteLifecycleLogAsync(
+                logEventWriter,
+                "Information",
+                "Authorization seed kontrolu tamamlandi.",
+                "AuthorizationSeedCompleted",
+                cancellationToken,
+                contextName: null,
+                durationMs: null,
+                exception: null);
 
-        logger.LogInformation("Bootstrap admin kontrolu baslatiliyor.");
-        await EnsureAdminSeedAsync(identityDbContext, authorizationDbContext, cancellationToken);
-        logger.LogInformation("Bootstrap admin kontrolu tamamlandi.");
+            logger.LogInformation("Bootstrap admin kontrolu baslatiliyor.");
+            await WriteLifecycleLogAsync(
+                logEventWriter,
+                "Information",
+                "Bootstrap admin kontrolu baslatiliyor.",
+                "BootstrapAdminSeedStart",
+                cancellationToken,
+                contextName: null,
+                durationMs: null,
+                exception: null);
+            await EnsureAdminSeedAsync(identityDbContext, authorizationDbContext, cancellationToken);
+            logger.LogInformation("Bootstrap admin kontrolu tamamlandi.");
+            await WriteLifecycleLogAsync(
+                logEventWriter,
+                "Information",
+                "Bootstrap admin kontrolu tamamlandi.",
+                "BootstrapAdminSeedCompleted",
+                cancellationToken,
+                contextName: null,
+                durationMs: null,
+                exception: null);
 
-        logger.LogInformation("Core bootstrap tamamlandi.");
+            logger.LogInformation("Core bootstrap tamamlandi.");
+            await WriteLifecycleLogAsync(
+                logEventWriter,
+                "Information",
+                "Core bootstrap tamamlandi.",
+                "BootstrapCompleted",
+                cancellationToken,
+                contextName: null,
+                durationMs: null,
+                exception: null);
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Core bootstrap basarisiz oldu.");
+            await WriteLifecycleLogAsync(logEventWriter, "Error", "Core bootstrap basarisiz oldu.", "BootstrapFailed", cancellationToken, exception: ex);
+            throw;
+        }
     }
 
     public Task StopAsync(CancellationToken cancellationToken)
@@ -78,31 +143,125 @@ public sealed class CoreBootstrapHostedService(
         return new BusinessDbContext(options, new SystemAuditActorAccessor());
     }
 
-    private static async Task EnsureDatabaseAsync(DbContext dbContext, ILogger logger, CancellationToken cancellationToken)
+    private static async Task EnsureDatabaseAsync(
+        DbContext dbContext,
+        ILogger logger,
+        ILogEventWriter logEventWriter,
+        CancellationToken cancellationToken)
     {
         var contextName = dbContext.GetType().Name;
         var stopwatch = Stopwatch.StartNew();
         logger.LogInformation("Database hazirlaniyor. Context={ContextName}", contextName);
-
-        var hasMigrations = dbContext.Database.GetMigrations().Any();
-
-        if (hasMigrations)
-        {
-            logger.LogInformation("Migration uygulanacak. Context={ContextName}", contextName);
-            await dbContext.Database.MigrateAsync(cancellationToken);
-            logger.LogInformation(
-                "Migration tamamlandi. Context={ContextName}; DurationMs={DurationMs}",
-                contextName,
-                stopwatch.ElapsedMilliseconds);
-            return;
-        }
-
-        logger.LogInformation("Migration yok, EnsureCreated calisacak. Context={ContextName}", contextName);
-        await dbContext.Database.EnsureCreatedAsync(cancellationToken);
-        logger.LogInformation(
-            "EnsureCreated tamamlandi. Context={ContextName}; DurationMs={DurationMs}",
+        await WriteLifecycleLogAsync(
+            logEventWriter,
+            "Information",
+            $"Database hazirlaniyor. Context={contextName}",
+            "DatabaseBootstrapStarted",
+            cancellationToken,
             contextName,
             stopwatch.ElapsedMilliseconds);
+
+        try
+        {
+            var hasMigrations = dbContext.Database.GetMigrations().Any();
+
+            if (hasMigrations)
+            {
+                logger.LogInformation("Migration uygulanacak. Context={ContextName}", contextName);
+                await dbContext.Database.MigrateAsync(cancellationToken);
+                logger.LogInformation(
+                    "Migration tamamlandi. Context={ContextName}; DurationMs={DurationMs}",
+                    contextName,
+                    stopwatch.ElapsedMilliseconds);
+                await WriteLifecycleLogAsync(
+                    logEventWriter,
+                    "Information",
+                    $"Migration tamamlandi. Context={contextName}",
+                    "DatabaseMigrationCompleted",
+                    cancellationToken,
+                    contextName,
+                    stopwatch.ElapsedMilliseconds);
+                return;
+            }
+
+            logger.LogInformation("Migration yok, EnsureCreated calisacak. Context={ContextName}", contextName);
+            await dbContext.Database.EnsureCreatedAsync(cancellationToken);
+            logger.LogInformation(
+                "EnsureCreated tamamlandi. Context={ContextName}; DurationMs={DurationMs}",
+                contextName,
+                stopwatch.ElapsedMilliseconds);
+            await WriteLifecycleLogAsync(
+                logEventWriter,
+                "Information",
+                $"EnsureCreated tamamlandi. Context={contextName}",
+                "DatabaseEnsureCreatedCompleted",
+                cancellationToken,
+                contextName,
+                stopwatch.ElapsedMilliseconds);
+        }
+        catch (Exception ex)
+        {
+            await WriteLifecycleLogAsync(
+                logEventWriter,
+                "Error",
+                $"Database hazirlama basarisiz oldu. Context={contextName}",
+                "DatabaseBootstrapFailed",
+                cancellationToken,
+                contextName,
+                stopwatch.ElapsedMilliseconds,
+                ex);
+            throw;
+        }
+    }
+
+    private static Task WriteLifecycleLogAsync(
+        ILogEventWriter logEventWriter,
+        string level,
+        string message,
+        string operationName,
+        CancellationToken cancellationToken,
+        string? contextName = null,
+        long? durationMs = null,
+        Exception? exception = null)
+    {
+        var properties = new Dictionary<string, object?>
+        {
+            ["OperationName"] = operationName
+        };
+
+        if (!string.IsNullOrWhiteSpace(contextName))
+        {
+            properties["ContextName"] = contextName;
+        }
+
+        if (durationMs.HasValue)
+        {
+            properties["DurationMs"] = durationMs.Value;
+        }
+
+        var log = new SystemLog
+        {
+            Timestamp = DateTimeOffset.UtcNow,
+            TimeZone = TimeZoneInfo.Local.Id,
+            Level = level,
+            Category = "StartupLifecycle",
+            Source = nameof(CoreBootstrapHostedService),
+            Message = message,
+            MessageTemplate = message,
+            Exception = exception?.Message,
+            StackTrace = exception?.ToString(),
+            OperationName = operationName,
+            DurationMs = durationMs,
+            MachineName = Environment.MachineName,
+            Environment = AppContext.GetData("ENVIRONMENT")?.ToString(),
+            ApplicationName = typeof(Program).Assembly.GetName().Name,
+            ApplicationVersion = typeof(Program).Assembly.GetName().Version?.ToString(),
+            ProcessId = Environment.ProcessId,
+            ThreadId = Environment.CurrentManagedThreadId,
+            Properties = System.Text.Json.JsonSerializer.Serialize(properties)
+        };
+
+        return logEventWriter.WriteSystemAsync(log, cancellationToken);
     }
 
     private static async Task EnsureAuthorizationSeedAsync(AuthorizationDbContext authorizationDbContext, CancellationToken cancellationToken)
