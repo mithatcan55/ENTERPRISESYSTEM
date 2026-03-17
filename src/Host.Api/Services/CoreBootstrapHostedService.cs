@@ -3,6 +3,7 @@ using Infrastructure.Persistence.Entities.Authorization;
 using Infrastructure.Persistence.Entities.Identity;
 using Microsoft.EntityFrameworkCore;
 using Infrastructure.Persistence.Auditing;
+using System.Diagnostics;
 
 namespace Host.Api.Services;
 
@@ -24,6 +25,8 @@ public sealed class CoreBootstrapHostedService(
             return;
         }
 
+        logger.LogInformation("Core bootstrap baslatiliyor.");
+
         using var scope = serviceProvider.CreateScope();
         var logDbContext = scope.ServiceProvider.GetRequiredService<LogDbContext>();
         var identityDbContext = scope.ServiceProvider.GetRequiredService<IdentityDbContext>();
@@ -33,18 +36,24 @@ public sealed class CoreBootstrapHostedService(
         var approvalsDbContext = scope.ServiceProvider.GetRequiredService<ApprovalsDbContext>();
         var documentsDbContext = scope.ServiceProvider.GetRequiredService<DocumentsDbContext>();
 
-        await EnsureDatabaseAsync(logDbContext, cancellationToken);
+        await EnsureDatabaseAsync(logDbContext, logger, cancellationToken);
         await using var businessDbContext = CreateLegacyBusinessDbContext();
-        await EnsureDatabaseAsync(businessDbContext, cancellationToken);
+        await EnsureDatabaseAsync(businessDbContext, logger, cancellationToken);
 
-        await EnsureDatabaseAsync(identityDbContext, cancellationToken);
-        await EnsureDatabaseAsync(authorizationDbContext, cancellationToken);
-        await EnsureDatabaseAsync(integrationsDbContext, cancellationToken);
-        await EnsureDatabaseAsync(reportsDbContext, cancellationToken);
-        await EnsureDatabaseAsync(approvalsDbContext, cancellationToken);
-        await EnsureDatabaseAsync(documentsDbContext, cancellationToken);
+        await EnsureDatabaseAsync(identityDbContext, logger, cancellationToken);
+        await EnsureDatabaseAsync(authorizationDbContext, logger, cancellationToken);
+        await EnsureDatabaseAsync(integrationsDbContext, logger, cancellationToken);
+        await EnsureDatabaseAsync(reportsDbContext, logger, cancellationToken);
+        await EnsureDatabaseAsync(approvalsDbContext, logger, cancellationToken);
+        await EnsureDatabaseAsync(documentsDbContext, logger, cancellationToken);
+
+        logger.LogInformation("Authorization seed kontrolu baslatiliyor.");
         await EnsureAuthorizationSeedAsync(authorizationDbContext, cancellationToken);
+        logger.LogInformation("Authorization seed kontrolu tamamlandi.");
+
+        logger.LogInformation("Bootstrap admin kontrolu baslatiliyor.");
         await EnsureAdminSeedAsync(identityDbContext, authorizationDbContext, cancellationToken);
+        logger.LogInformation("Bootstrap admin kontrolu tamamlandi.");
 
         logger.LogInformation("Core bootstrap tamamlandi.");
     }
@@ -69,17 +78,31 @@ public sealed class CoreBootstrapHostedService(
         return new BusinessDbContext(options, new SystemAuditActorAccessor());
     }
 
-    private static async Task EnsureDatabaseAsync(DbContext dbContext, CancellationToken cancellationToken)
+    private static async Task EnsureDatabaseAsync(DbContext dbContext, ILogger logger, CancellationToken cancellationToken)
     {
+        var contextName = dbContext.GetType().Name;
+        var stopwatch = Stopwatch.StartNew();
+        logger.LogInformation("Database hazirlaniyor. Context={ContextName}", contextName);
+
         var hasMigrations = dbContext.Database.GetMigrations().Any();
 
         if (hasMigrations)
         {
+            logger.LogInformation("Migration uygulanacak. Context={ContextName}", contextName);
             await dbContext.Database.MigrateAsync(cancellationToken);
+            logger.LogInformation(
+                "Migration tamamlandi. Context={ContextName}; DurationMs={DurationMs}",
+                contextName,
+                stopwatch.ElapsedMilliseconds);
             return;
         }
 
+        logger.LogInformation("Migration yok, EnsureCreated calisacak. Context={ContextName}", contextName);
         await dbContext.Database.EnsureCreatedAsync(cancellationToken);
+        logger.LogInformation(
+            "EnsureCreated tamamlandi. Context={ContextName}; DurationMs={DurationMs}",
+            contextName,
+            stopwatch.ElapsedMilliseconds);
     }
 
     private static async Task EnsureAuthorizationSeedAsync(AuthorizationDbContext authorizationDbContext, CancellationToken cancellationToken)
