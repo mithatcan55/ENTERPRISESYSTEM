@@ -15,4 +15,5 @@ public sealed class User : AuditableIntEntity
     public bool IsActive { get; set; } = true;
     public bool MustChangePassword { get; set; } = true;
     public DateTime? PasswordExpiresAt { get; set; }
+    public string? ProfileImageUrl { get; set; }
 }

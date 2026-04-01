@@ -900,6 +900,10 @@ namespace Infrastructure.Persistence.Migrations.BusinessDb
                         .HasMaxLength(500)
                         .HasColumnType("character varying(500)");
 
+                    b.Property<string>("ProfileImageUrl")
+                        .HasMaxLength(2000)
+                        .HasColumnType("character varying(2000)");
+
                     b.Property<string>("UserCode")
                         .IsRequired()
                         .HasMaxLength(50)

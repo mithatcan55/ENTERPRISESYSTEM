@@ -1,3 +1,5 @@
+import { useTranslation } from "react-i18next";
+
 type FormFieldOption = {
   value: string;
   label: string;
@@ -6,7 +8,7 @@ type FormFieldOption = {
 export type FormField = {
   key: string;
   label: string;
-  type: "text" | "email" | "password" | "number" | "select" | "switch" | "textarea";
+  type: "text" | "email" | "password" | "number" | "select" | "switch" | "textarea" | "datetime-local";
   value: string | number | boolean;
   placeholder?: string;
   helpText?: string;
@@ -21,6 +23,8 @@ type StandardFormProps = {
 };
 
 export function StandardForm({ fields, onChange, onSubmit, submitLabel }: StandardFormProps) {
+  const { t } = useTranslation(["common"]);
+
   return (
     <div className="standard-form">
       <div className="standard-form__grid">
@@ -49,7 +53,7 @@ export function StandardForm({ fields, onChange, onSubmit, submitLabel }: Standa
                 onClick={() => onChange(field.key, !field.value)}
               >
                 <span />
-                <strong>{field.value ? "Acik" : "Kapali"}</strong>
+                <strong>{field.value ? t("common:on") : t("common:off")}</strong>
               </button>
             ) : (
               <input
@@ -70,7 +74,7 @@ export function StandardForm({ fields, onChange, onSubmit, submitLabel }: Standa
       {onSubmit ? (
         <div className="standard-form__actions">
           <button type="button" onClick={onSubmit}>
-            {submitLabel ?? "Kaydet"}
+            {submitLabel ?? t("common:save")}
           </button>
         </div>
       ) : null}

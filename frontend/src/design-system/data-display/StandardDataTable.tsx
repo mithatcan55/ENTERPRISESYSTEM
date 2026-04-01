@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 import { ChevronDown, ChevronUp, ChevronsUpDown, MoreHorizontal } from "lucide-react";
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 
 export type TableColumn<TItem> = {
   key: string;
@@ -37,6 +38,8 @@ type StandardDataTableProps<TItem> = {
   sortDirection?: "asc" | "desc";
   onSortChange?: (key: string) => void;
   actions?: Array<TableAction<TItem>>;
+  onRowClick?: (item: TItem) => void;
+  selectedRowKey?: string | number | null;
 };
 
 export function StandardDataTable<TItem>({
@@ -56,10 +59,11 @@ export function StandardDataTable<TItem>({
   sortKey,
   sortDirection,
   onSortChange,
-  actions
+  actions,
+  onRowClick,
+  selectedRowKey,
 }: StandardDataTableProps<TItem>) {
-  // Tek tablo bileseni ile liste ekranlarinin ayni davranisi vermesini hedefliyoruz:
-  // arama, sayfalama, row action ve mobil kart gorunumu burada toplanir.
+  const { t } = useTranslation(["common"]);
   const [activeRowMenu, setActiveRowMenu] = useState<string | number | null>(null);
   const pageCount = totalCount ? Math.max(1, Math.ceil(totalCount / pageSize)) : 1;
 
@@ -108,14 +112,14 @@ export function StandardDataTable<TItem>({
                   )}
                 </th>
               ))}
-              {actions?.length ? <th className="table-align-right">Aksiyon</th> : null}
+              {actions?.length ? <th className="table-align-right">{t("common:tableActions")}</th> : null}
             </tr>
           </thead>
           <tbody>
             {loading ? (
               <tr>
                 <td colSpan={columns.length + (actions?.length ? 1 : 0)}>
-                  <div className="standard-table__empty">Yukleniyor...</div>
+                  <div className="standard-table__empty">{t("common:loading")}</div>
                 </td>
               </tr>
             ) : items.length === 0 ? (
@@ -131,16 +135,24 @@ export function StandardDataTable<TItem>({
               items.map((item) => {
                 const key = rowKey(item);
                 const visibleActions = actions?.filter((action) => !action.hidden?.(item)) ?? [];
+                const isSelected = selectedRowKey != null && key === selectedRowKey;
 
                 return (
-                  <tr key={key}>
+                  <tr
+                    key={key}
+                    className={[
+                      onRowClick ? "standard-table__row--clickable" : "",
+                      isSelected ? "standard-table__row--selected" : "",
+                    ].filter(Boolean).join(" ") || undefined}
+                    onClick={onRowClick ? () => onRowClick(item) : undefined}
+                  >
                     {columns.map((column) => (
                       <td key={column.key} className={`table-align-${column.align ?? "left"}`}>
                         {column.cell(item)}
                       </td>
                     ))}
                     {actions?.length ? (
-                      <td className="table-align-right">
+                      <td className="table-align-right" onClick={(e) => e.stopPropagation()}>
                         {visibleActions.length ? (
                           <div className="standard-table__row-menu">
                             <button
@@ -181,7 +193,7 @@ export function StandardDataTable<TItem>({
 
       <div className="standard-table__mobile">
         {loading ? (
-          <div className="standard-table__empty">Yukleniyor...</div>
+          <div className="standard-table__empty">{t("common:loading")}</div>
         ) : items.length === 0 ? (
           <div className="standard-table__empty">
             <strong>{emptyTitle}</strong>
@@ -193,7 +205,11 @@ export function StandardDataTable<TItem>({
             const visibleActions = actions?.filter((action) => !action.hidden?.(item)) ?? [];
 
             return (
-              <article key={key} className="standard-table__mobile-card">
+              <article
+                key={key}
+                className="standard-table__mobile-card"
+                onClick={onRowClick ? () => onRowClick(item) : undefined}
+              >
                 {columns.map((column) => (
                   <div key={column.key} className="standard-table__mobile-row">
                     <span>{column.mobileLabel ?? column.header}</span>
@@ -208,7 +224,10 @@ export function StandardDataTable<TItem>({
                         key={action.key}
                         className={action.tone === "danger" ? "row-action--danger" : undefined}
                         type="button"
-                        onClick={() => action.onClick(item)}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          action.onClick(item);
+                        }}
                       >
                         {action.label}
                       </button>
@@ -224,7 +243,7 @@ export function StandardDataTable<TItem>({
       {onPageChange && pageCount > 1 ? (
         <div className="standard-table__pagination">
           <button type="button" onClick={() => onPageChange(Math.max(1, page - 1))} disabled={page <= 1}>
-            Onceki
+            {t("common:previous")}
           </button>
           <span>
             {page} / {pageCount}
@@ -234,7 +253,7 @@ export function StandardDataTable<TItem>({
             onClick={() => onPageChange(Math.min(pageCount, page + 1))}
             disabled={page >= pageCount}
           >
-            Sonraki
+            {t("common:next")}
           </button>
         </div>
       ) : null}

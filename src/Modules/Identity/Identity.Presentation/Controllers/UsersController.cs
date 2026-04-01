@@ -14,6 +14,7 @@ namespace Identity.Presentation.Controllers;
 public sealed class UsersController(
     IRequestExecutionPipeline requestExecutionPipeline,
     IListUsersQueryHandler listUsersQueryHandler,
+    IGetUserByIdQueryHandler getUserByIdQueryHandler,
     ICreateUserCommandHandler createUserCommandHandler,
     IUpdateUserCommandHandler updateUserCommandHandler,
     IDeactivateUserCommandHandler deactivateUserCommandHandler,
@@ -21,20 +22,53 @@ public sealed class UsersController(
     IDeleteUserCommandHandler deleteUserCommandHandler) : ControllerBase
 {
     [HttpGet]
-    [TCodeAuthorize("SYS03", "READ")]
-    [ProducesResponseType(typeof(IReadOnlyList<UserListItemDto>), StatusCodes.Status200OK)]
+    [TCodeAuthorize("SYS04", "READ")]
+    [ProducesResponseType(typeof(PagedResult<UserListItemDto>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status401Unauthorized)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status403Forbidden)]
-    public async Task<ActionResult<IReadOnlyList<UserListItemDto>>> List(CancellationToken cancellationToken)
+    public async Task<ActionResult<PagedResult<UserListItemDto>>> List(
+        [FromQuery] int page = 1,
+        [FromQuery] int pageSize = 20,
+        [FromQuery] string? search = null,
+        [FromQuery] string? sortBy = null,
+        [FromQuery] string? sortDirection = null,
+        [FromQuery] bool? isActive = null,
+        [FromQuery] bool includeDeleted = false,
+        CancellationToken cancellationToken = default)
     {
-        // Controller burada dogrudan query handler cagirmaz; once pipeline'a girer.
-        // Boylece validation, pre-check ve event uretimi ortak standarda baglanmis olur.
-        var users = await requestExecutionPipeline.ExecuteQueryAsync(
-            new ListUsersQuery(),
-            _ => listUsersQueryHandler.HandleAsync(cancellationToken),
+        var query = new ListUsersQuery
+        {
+            Page = page,
+            PageSize = pageSize,
+            Search = search,
+            SortBy = sortBy,
+            SortDirection = sortDirection,
+            IsActive = isActive,
+            IncludeDeleted = includeDeleted
+        };
+
+        var result = await requestExecutionPipeline.ExecuteQueryAsync(
+            query,
+            _ => listUsersQueryHandler.HandleAsync(query, cancellationToken),
             cancellationToken,
             "Users.List");
-        return Ok(users);
+        return Ok(result);
+    }
+
+    [HttpGet("{userId:int}")]
+    [TCodeAuthorize("SYS03", "READ")]
+    [ProducesResponseType(typeof(UserDetailDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    public async Task<ActionResult<UserDetailDto>> GetById(int userId, CancellationToken cancellationToken)
+    {
+        var user = await requestExecutionPipeline.ExecuteQueryAsync(
+            new GetUserByIdQuery(userId),
+            _ => getUserByIdQueryHandler.HandleAsync(userId, cancellationToken),
+            cancellationToken,
+            "Users.GetById");
+        return Ok(user);
     }
 
     [HttpPost]

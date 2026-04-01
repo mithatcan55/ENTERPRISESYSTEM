@@ -74,8 +74,8 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseExceptionHandler();
-app.UseHttpsRedirection();
 app.UseCors("frontend-dev");
+app.UseHttpsRedirection();
 app.UseRequestLocalization(localizationOptions.Value);
 app.UseMiddleware<CorrelationIdMiddleware>();
 if (!app.Environment.IsEnvironment("Testing"))

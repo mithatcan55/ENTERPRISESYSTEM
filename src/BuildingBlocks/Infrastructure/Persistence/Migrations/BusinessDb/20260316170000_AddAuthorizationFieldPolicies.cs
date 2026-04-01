@@ -1,4 +1,7 @@
 using System;
+using Infrastructure.Persistence;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Migrations;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
@@ -6,6 +9,8 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
 namespace Infrastructure.Persistence.Migrations.BusinessDb
 {
+    [DbContext(typeof(BusinessDbContext))]
+    [Migration("20260316170000_AddAuthorizationFieldPolicies")]
     /// <inheritdoc />
     public partial class AddAuthorizationFieldPolicies : Migration
     {

@@ -303,7 +303,9 @@ public sealed class CoreBootstrapHostedService(
             new { Name = "Create User", Code = "USER_CREATE", TransactionCode = "SYS01", RouteLink = "/system/users/create" },
             new { Name = "Update User", Code = "USER_UPDATE", TransactionCode = "SYS02", RouteLink = "/system/users/update" },
             new { Name = "View User", Code = "USER_VIEW", TransactionCode = "SYS03", RouteLink = "/system/users/view" },
-            new { Name = "User Report", Code = "USER_REPORT", TransactionCode = "SYS04", RouteLink = "/system/users/report" }
+            new { Name = "User Report", Code = "USER_REPORT", TransactionCode = "SYS04", RouteLink = "/system/users/report" },
+            new { Name = "User Roles", Code = "USER_ROLES", TransactionCode = "SYS05", RouteLink = "/system/users/roles" },
+            new { Name = "User Permissions", Code = "USER_PERMISSIONS", TransactionCode = "SYS06", RouteLink = "/system/users/permissions" }
         };
 
         foreach (var pageSeed in requiredPages)
@@ -435,7 +437,7 @@ public sealed class CoreBootstrapHostedService(
 
         var pageIds = await authorizationDbContext.SubModulePages
             .AsNoTracking()
-            .Where(x => !x.IsDeleted && (x.TransactionCode == "SYS01" || x.TransactionCode == "SYS02" || x.TransactionCode == "SYS03" || x.TransactionCode == "SYS04"))
+            .Where(x => !x.IsDeleted && (x.TransactionCode == "SYS01" || x.TransactionCode == "SYS02" || x.TransactionCode == "SYS03" || x.TransactionCode == "SYS04" || x.TransactionCode == "SYS05" || x.TransactionCode == "SYS06"))
             .OrderBy(x => x.TransactionCode)
             .Select(x => x.Id)
             .ToListAsync(cancellationToken);
@@ -465,6 +467,48 @@ public sealed class CoreBootstrapHostedService(
                 CompanyId = 1,
                 AuthorizationLevel = 4
             });
+        }
+
+        // Action permission seed: her T-Code icin admin kullanicisinin gerekli aksiyonlara sahip olmasi saglanir.
+        var requiredActionsByCodes = new Dictionary<string, string[]>(StringComparer.OrdinalIgnoreCase)
+        {
+            ["SYS01"] = ["CREATE", "UPDATE", "DELETE", "DEACTIVATE", "REACTIVATE"],
+            ["SYS02"] = ["UPDATE"],
+            ["SYS03"] = ["READ", "VIEW"],
+            ["SYS04"] = ["READ"],
+            ["SYS05"] = ["MANAGE"],
+            ["SYS06"] = ["MANAGE", "PERMISSIONS_READ"],
+        };
+
+        var actionPages = await authorizationDbContext.SubModulePages
+            .AsNoTracking()
+            .Where(x => !x.IsDeleted && new[] { "SYS01", "SYS02", "SYS03", "SYS04", "SYS05", "SYS06" }.Contains(x.TransactionCode))
+            .Select(x => new { x.Id, x.TransactionCode })
+            .ToListAsync(cancellationToken);
+
+        foreach (var page in actionPages)
+        {
+            if (!requiredActionsByCodes.TryGetValue(page.TransactionCode, out var actions))
+                continue;
+
+            var existingActions = await authorizationDbContext.UserPageActionPermissions
+                .Where(x => x.UserId == user.Id && x.SubModulePageId == page.Id && !x.IsDeleted)
+                .Select(x => x.ActionCode)
+                .ToListAsync(cancellationToken);
+
+            foreach (var actionCode in actions)
+            {
+                if (existingActions.Any(a => string.Equals(a, actionCode, StringComparison.OrdinalIgnoreCase)))
+                    continue;
+
+                authorizationDbContext.UserPageActionPermissions.Add(new UserPageActionPermission
+                {
+                    UserId = user.Id,
+                    SubModulePageId = page.Id,
+                    ActionCode = actionCode,
+                    IsAllowed = true
+                });
+            }
         }
 
         await authorizationDbContext.SaveChangesAsync(cancellationToken);

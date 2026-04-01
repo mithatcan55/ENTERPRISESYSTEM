@@ -56,7 +56,10 @@ export const navigationGroups: NavGroup[] = [
   {
     key: "integrations",
     titleKey: "integrations",
-    items: [{ key: "outbox", titleKey: "outbox", to: "/integrations/outbox", access: { anyRole: ["SYS_ADMIN"] } }]
+    items: [
+      { key: "outbox", titleKey: "outbox", to: "/integrations/outbox", access: { anyRole: ["SYS_ADMIN"] } },
+      { key: "erp", titleKey: "erp", to: "/integrations/erp", access: { anyRole: ["SYS_ADMIN", "SYS_OPERATOR"] } }
+    ]
   },
   {
     key: "approvals",

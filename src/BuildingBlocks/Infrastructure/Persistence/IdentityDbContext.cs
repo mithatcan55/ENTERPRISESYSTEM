@@ -18,13 +18,13 @@ public sealed class IdentityDbContext(
 
     public override int SaveChanges(bool acceptAllChangesOnSuccess)
     {
-        ApplyAuditRules();
+        AuditRulesApplicator.Apply(ChangeTracker, auditActorAccessor);
         return base.SaveChanges(acceptAllChangesOnSuccess);
     }
 
     public override Task<int> SaveChangesAsync(bool acceptAllChangesOnSuccess, CancellationToken cancellationToken = default)
     {
-        ApplyAuditRules();
+        AuditRulesApplicator.Apply(ChangeTracker, auditActorAccessor);
         return base.SaveChangesAsync(acceptAllChangesOnSuccess, cancellationToken);
     }
 
@@ -40,6 +40,7 @@ public sealed class IdentityDbContext(
             entity.Property(x => x.Username).HasMaxLength(200).IsRequired();
             entity.Property(x => x.Email).HasMaxLength(320).IsRequired();
             entity.Property(x => x.PasswordHash).HasMaxLength(500).IsRequired();
+            entity.Property(x => x.ProfileImageUrl).HasMaxLength(2000);
             entity.HasIndex(x => x.UserCode).IsUnique();
             entity.HasIndex(x => x.Username).IsUnique();
             entity.HasIndex(x => x.Email).IsUnique();
@@ -103,38 +104,5 @@ public sealed class IdentityDbContext(
             entity.HasOne<User>().WithMany().HasForeignKey(x => x.UserId).OnDelete(DeleteBehavior.Restrict);
             entity.HasIndex(x => new { x.UserId, x.ChangedAt });
         });
-    }
-
-    private void ApplyAuditRules()
-    {
-        var now = DateTime.UtcNow;
-        var actorId = auditActorAccessor.GetActorId();
-
-        foreach (var entry in ChangeTracker.Entries())
-        {
-            if (entry.Entity is not IAuditableEntity auditableEntity)
-            {
-                continue;
-            }
-
-            if (entry.State == EntityState.Added)
-            {
-                auditableEntity.CreatedAt = now;
-                auditableEntity.CreatedBy ??= actorId;
-            }
-            else if (entry.State == EntityState.Modified)
-            {
-                auditableEntity.ModifiedAt = now;
-                auditableEntity.ModifiedBy = actorId;
-            }
-
-            if (entry.State == EntityState.Deleted && entry.Entity is ISoftDeletable softDeletable)
-            {
-                entry.State = EntityState.Modified;
-                softDeletable.IsDeleted = true;
-                softDeletable.DeletedAt = now;
-                softDeletable.DeletedBy = actorId;
-            }
-        }
     }
 }

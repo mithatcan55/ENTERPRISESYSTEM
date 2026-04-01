@@ -4,5 +4,5 @@ namespace Identity.Application.Users.Queries;
 
 public interface IListUsersQueryHandler
 {
-    Task<IReadOnlyList<UserListItemDto>> HandleAsync(CancellationToken cancellationToken);
+    Task<PagedResult<UserListItemDto>> HandleAsync(ListUsersQuery query, CancellationToken cancellationToken);
 }

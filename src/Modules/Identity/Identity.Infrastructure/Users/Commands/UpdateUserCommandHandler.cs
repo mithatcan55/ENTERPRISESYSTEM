@@ -1,3 +1,4 @@
+using System.Text.RegularExpressions;
 using Application.Exceptions;
 using Identity.Application.Contracts;
 using Identity.Application.Users.Commands;
@@ -6,58 +7,74 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Identity.Infrastructure.Users.Commands;
 
-public sealed class UpdateUserCommandHandler(IdentityDbContext identityDbContext) : IUpdateUserCommandHandler
+public sealed partial class UpdateUserCommandHandler(IdentityDbContext identityDbContext) : IUpdateUserCommandHandler
 {
     public async Task<UserListItemDto> HandleAsync(int userId, UpdateUserRequest request, CancellationToken cancellationToken)
     {
+        // ── Validation ──────────────────────────────────────────────
+        var errors = new Dictionary<string, string[]>();
+
         if (userId <= 0)
-        {
-            throw new ValidationAppException(
-                "Kullanici guncelleme dogrulamasi basarisiz.",
-                new Dictionary<string, string[]>
-                {
-                    ["userId"] = ["Gecerli bir userId zorunludur."]
-                });
-        }
+            errors["userId"] = ["INVALID_USER_ID"];
 
-        if (string.IsNullOrWhiteSpace(request.Username) || string.IsNullOrWhiteSpace(request.Email))
-        {
-            throw new ValidationAppException(
-                "Kullanici guncelleme dogrulamasi basarisiz.",
-                new Dictionary<string, string[]>
-                {
-                    ["username"] = ["Username zorunludur."],
-                    ["email"] = ["Email zorunludur."]
-                });
-        }
+        if (string.IsNullOrWhiteSpace(request.Username))
+            errors["username"] = ["USERNAME_REQUIRED"];
+        else if (request.Username.Trim().Length < 3)
+            errors["username"] = ["USERNAME_TOO_SHORT"];
+        else if (request.Username.Trim().Contains(' '))
+            errors["username"] = ["USERNAME_NO_SPACES"];
 
+        if (string.IsNullOrWhiteSpace(request.Email))
+            errors["email"] = ["EMAIL_REQUIRED"];
+        else if (!EmailRegex().IsMatch(request.Email.Trim()))
+            errors["email"] = ["INVALID_EMAIL"];
+
+        if (!string.IsNullOrWhiteSpace(request.ProfileImageUrl) && !Uri.TryCreate(request.ProfileImageUrl, UriKind.Absolute, out _))
+            errors["profileImageUrl"] = ["INVALID_URL"];
+
+        if (errors.Count > 0)
+            throw new ValidationAppException("USER_UPDATE_VALIDATION_FAILED", errors);
+
+        // ── Fetch ───────────────────────────────────────────────────
         var user = await identityDbContext.Users.FirstOrDefaultAsync(x => x.Id == userId && !x.IsDeleted, cancellationToken);
         if (user is null)
-            throw new NotFoundAppException($"Kullanici bulunamadi. userId={userId}");
+            throw new NotFoundAppException("USER_NOT_FOUND");
 
         var normalizedUsername = request.Username.Trim();
         var normalizedEmail = request.Email.Trim().ToLowerInvariant();
 
-        var duplicateExists = await identityDbContext.Users
+        // ── Uniqueness ──────────────────────────────────────────────
+        var duplicateUsername = await identityDbContext.Users
             .AsNoTracking()
-            .AnyAsync(x => !x.IsDeleted && x.Id != userId && (x.Username == normalizedUsername || x.Email == normalizedEmail), cancellationToken);
+            .AnyAsync(x => !x.IsDeleted && x.Id != userId && x.Username == normalizedUsername, cancellationToken);
 
-        if (duplicateExists)
-        {
-            throw new ValidationAppException(
-                "Kullanici benzersizlik kontrolu basarisiz.",
-                new Dictionary<string, string[]>
-                {
-                    ["user"] = ["Ayni username veya email ile kayit zaten mevcut."]
-                });
-        }
+        if (duplicateUsername)
+            throw new ValidationAppException("USERNAME_TAKEN", new Dictionary<string, string[]>
+            {
+                ["username"] = ["USERNAME_TAKEN"]
+            });
 
+        var duplicateEmail = await identityDbContext.Users
+            .AsNoTracking()
+            .AnyAsync(x => !x.IsDeleted && x.Id != userId && x.Email == normalizedEmail, cancellationToken);
+
+        if (duplicateEmail)
+            throw new ValidationAppException("EMAIL_TAKEN", new Dictionary<string, string[]>
+            {
+                ["email"] = ["EMAIL_TAKEN"]
+            });
+
+        // ── Apply ───────────────────────────────────────────────────
         user.Username = normalizedUsername;
         user.Email = normalizedEmail;
         user.IsActive = request.IsActive;
+        user.ProfileImageUrl = request.ProfileImageUrl?.Trim();
+        user.MustChangePassword = request.MustChangePassword;
+        user.PasswordExpiresAt = request.PasswordExpiresAt;
 
         await identityDbContext.SaveChangesAsync(cancellationToken);
 
+        // ── Return ──────────────────────────────────────────────────
         return await identityDbContext.Users
             .AsNoTracking()
             .Where(x => x.Id == userId)
@@ -69,7 +86,19 @@ public sealed class UpdateUserCommandHandler(IdentityDbContext identityDbContext
                 x.IsActive,
                 x.MustChangePassword,
                 x.PasswordExpiresAt,
-                x.CreatedAt))
+                x.CreatedAt,
+                x.CreatedBy,
+                x.ModifiedBy,
+                x.ModifiedAt,
+                x.IsDeleted,
+                x.DeletedAt,
+                x.DeletedBy,
+                x.ProfileImageUrl,
+                0,
+                null))
             .FirstAsync(cancellationToken);
     }
+
+    [GeneratedRegex(@"^[^@\s]+@[^@\s]+\.[^@\s]+$", RegexOptions.IgnoreCase)]
+    private static partial Regex EmailRegex();
 }

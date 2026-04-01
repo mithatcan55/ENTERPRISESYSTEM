@@ -16,6 +16,7 @@
   "audit": "Audit Dashboard",
   "logs": "Log Monitoring",
   "outbox": "Outbox",
+  "erp": "ERP Data",
   "approvalWorkflows": "Approval Workflows",
   "approvalInbox": "Approval Inbox",
   "delegations": "Delegations"

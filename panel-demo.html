@@ -1,0 +1,832 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Enterprise Panel - T-Code Demo</title>
+<style>
+  :root {
+    --brand-primary: #0c446d;
+    --brand-primaryStrong: #083555;
+    --brand-primaryMid: #1a5f96;
+    --brand-primarySoft: #e8f2fb;
+    --brand-accent: #e00008;
+    --brand-accentSoft: #fff0f0;
+    --brand-success: #16a34a;
+    --brand-warning: #d97706;
+    --brand-danger: #dc2626;
+    --brand-info: #2563eb;
+    --brand-textStrong: #0f172a;
+    --brand-textBase: #1e293b;
+    --brand-textMuted: #64748b;
+    --brand-textFaint: #94a3b8;
+    --surface-0: #ffffff;
+    --surface-50: #f8fafc;
+    --surface-100: #f1f5f9;
+    --surface-200: #e2e8f0;
+    --surface-300: #cbd5e1;
+    --brand-border: #e2e8f0;
+    --shadow-sm: 0 1px 2px rgba(0,0,0,.04);
+    --shadow-md: 0 2px 8px rgba(0,0,0,.06);
+    --shadow-soft: 0 1px 4px rgba(0,0,0,.03);
+    --radius-sm: 6px;
+    --radius-md: 8px;
+    --radius-lg: 12px;
+    --radius-xl: 16px;
+    --sidebar-width: 248px;
+    --topbar-height: 58px;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: var(--surface-100); color: var(--brand-textBase); }
+
+  /* ── Layout ── */
+  .app-layout { display: grid; grid-template-columns: var(--sidebar-width) 1fr; min-height: 100vh; }
+
+  /* ── Sidebar ── */
+  .sidebar { background: var(--brand-primary); color: #fff; padding: 0; display: flex; flex-direction: column; }
+  .sidebar__brand { padding: 18px 20px; border-bottom: 1px solid rgba(255,255,255,.1); display: flex; align-items: center; gap: 12px; min-height: 68px; }
+  .sidebar__brand-icon { width: 34px; height: 34px; background: var(--brand-accent); border-radius: var(--radius-sm); display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 14px; }
+  .sidebar__brand-text { font-size: 14px; font-weight: 600; line-height: 1.3; }
+  .sidebar__brand-sub { font-size: 11px; opacity: .6; font-weight: 400; }
+
+  .sidebar__nav { padding: 12px 10px; flex: 1; overflow-y: auto; }
+  .nav-group { margin-bottom: 16px; }
+  .nav-group__title { font-size: 10px; text-transform: uppercase; letter-spacing: 1.2px; opacity: .45; padding: 4px 10px 6px; font-weight: 600; }
+  .nav-item { display: flex; align-items: center; gap: 10px; padding: 9px 10px; border-radius: var(--radius-sm); font-size: 13px; cursor: pointer; transition: background .15s; color: rgba(255,255,255,.75); text-decoration: none; }
+  .nav-item:hover { background: rgba(255,255,255,.08); color: #fff; }
+  .nav-item--active { background: rgba(255,255,255,.12); color: #fff; font-weight: 500; }
+  .nav-item svg { opacity: .7; flex-shrink: 0; }
+
+  /* ── Topbar ── */
+  .topbar { height: var(--topbar-height); background: var(--surface-0); border-bottom: 1px solid var(--brand-border); display: flex; align-items: center; justify-content: space-between; padding: 0 24px; }
+  .topbar__left { display: flex; align-items: center; gap: 12px; }
+  .topbar__right { display: flex; align-items: center; gap: 16px; }
+
+  .tcode-nav { display: flex; align-items: center; gap: 8px; background: var(--surface-50); border: 1px solid var(--brand-border); border-radius: var(--radius-sm); padding: 0 12px; height: 36px; }
+  .tcode-nav__prefix { font-size: 11px; font-weight: 600; color: var(--brand-primary); letter-spacing: .5px; }
+  .tcode-nav input { border: none; background: none; outline: none; font-size: 13px; font-family: 'JetBrains Mono', monospace; width: 120px; color: var(--brand-textStrong); letter-spacing: .5px; }
+  .tcode-nav input::placeholder { color: var(--brand-textFaint); }
+
+  .topbar-icon { width: 36px; height: 36px; border-radius: var(--radius-sm); display: flex; align-items: center; justify-content: center; cursor: pointer; color: var(--brand-textMuted); transition: all .15s; border: none; background: none; }
+  .topbar-icon:hover { background: var(--surface-100); color: var(--brand-textBase); }
+
+  .topbar-avatar { width: 34px; height: 34px; border-radius: 50%; background: var(--brand-primaryMid); color: #fff; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 600; cursor: pointer; }
+  .topbar-tenant { font-size: 11px; color: var(--brand-textFaint); padding: 0 8px; border-left: 1px solid var(--brand-border); }
+
+  /* ── Main ── */
+  .main { display: flex; flex-direction: column; }
+  .main__content { padding: 24px 28px; max-width: 1600px; flex: 1; }
+
+  /* ── Page Header ── */
+  .page-header { margin-bottom: 24px; }
+  .page-header__eyebrow { font-size: 11px; text-transform: uppercase; letter-spacing: 1.2px; color: var(--brand-accent); font-weight: 600; margin-bottom: 4px; }
+  .page-header__title { font-size: 22px; font-weight: 700; color: var(--brand-textStrong); margin-bottom: 4px; }
+  .page-header__desc { font-size: 13.5px; color: var(--brand-textMuted); }
+
+  /* ── Panel Card ── */
+  .panel-card { background: var(--surface-0); border: 1px solid var(--brand-border); border-radius: var(--radius-xl); box-shadow: var(--shadow-soft); overflow: hidden; }
+  .panel-card__header { padding: 16px 20px; border-bottom: 1px solid var(--surface-200); display: flex; align-items: center; justify-content: space-between; }
+  .panel-card__header h2 { font-size: 15px; font-weight: 600; color: var(--brand-textStrong); }
+  .panel-card__header span { font-size: 12px; color: var(--brand-textMuted); }
+  .panel-card__body { padding: 20px; }
+
+  /* ── T-Code Search Panel ── */
+  .tcode-search__input-row { display: flex; align-items: center; gap: 10px; margin-bottom: 16px; }
+  .tcode-search__input { flex: 1; height: 42px; border: 1.5px solid var(--brand-border); border-radius: var(--radius-md); padding: 0 14px 0 40px; font-size: 14px; font-family: 'JetBrains Mono', monospace; letter-spacing: .5px; outline: none; transition: border-color .15s; background: var(--surface-50) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%2394a3b8' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='11' cy='11' r='8'/%3E%3Cline x1='21' y1='21' x2='16.65' y2='16.65'/%3E%3C/svg%3E") no-repeat 12px center; }
+  .tcode-search__input:focus { border-color: var(--brand-primaryMid); background-color: var(--surface-0); }
+  .tcode-search__btn { height: 42px; padding: 0 20px; background: var(--brand-primary); color: #fff; border: none; border-radius: var(--radius-md); font-size: 13px; font-weight: 500; cursor: pointer; transition: background .15s; white-space: nowrap; }
+  .tcode-search__btn:hover { background: var(--brand-primaryStrong); }
+
+  .tcode-search__results { display: flex; flex-direction: column; gap: 6px; }
+  .tcode-result { display: flex; align-items: center; gap: 14px; padding: 12px 16px; border-radius: var(--radius-md); border: 1px solid var(--brand-border); cursor: pointer; transition: all .15s; }
+  .tcode-result:hover { background: var(--brand-primarySoft); border-color: var(--brand-primaryMid); transform: translateX(2px); }
+  .tcode-result__code { font-family: 'JetBrains Mono', monospace; font-size: 13px; font-weight: 600; color: var(--brand-primary); background: var(--brand-primarySoft); padding: 3px 10px; border-radius: 4px; letter-spacing: .5px; min-width: 64px; text-align: center; }
+  .tcode-result__info { flex: 1; }
+  .tcode-result__name { font-size: 13.5px; font-weight: 500; color: var(--brand-textStrong); }
+  .tcode-result__module { font-size: 11.5px; color: var(--brand-textMuted); margin-top: 1px; }
+  .tcode-result__status { display: flex; align-items: center; gap: 4px; font-size: 11px; font-weight: 500; padding: 3px 10px; border-radius: 20px; }
+  .tcode-result__status--allowed { color: var(--brand-success); background: #f0fdf4; }
+  .tcode-result__status--denied { color: var(--brand-danger); background: var(--brand-accentSoft); }
+  .tcode-result__arrow { color: var(--brand-textFaint); }
+
+  /* ── Module Cards Grid ── */
+  .module-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 16px; }
+
+  .module-card { background: var(--surface-0); border: 1px solid var(--brand-border); border-radius: var(--radius-xl); padding: 20px; cursor: pointer; transition: all .2s; position: relative; overflow: hidden; }
+  .module-card:hover { border-color: var(--brand-primaryMid); box-shadow: var(--shadow-md); transform: translateY(-2px); }
+  .module-card::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 3px; background: var(--brand-primary); opacity: 0; transition: opacity .2s; }
+  .module-card:hover::before { opacity: 1; }
+
+  .module-card__top { display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 14px; }
+  .module-card__icon { width: 42px; height: 42px; border-radius: var(--radius-md); display: flex; align-items: center; justify-content: center; }
+  .module-card__icon--blue { background: var(--brand-primarySoft); color: var(--brand-primary); }
+  .module-card__icon--red { background: var(--brand-accentSoft); color: var(--brand-accent); }
+  .module-card__icon--green { background: #f0fdf4; color: var(--brand-success); }
+  .module-card__icon--orange { background: #fffbeb; color: var(--brand-warning); }
+  .module-card__icon--purple { background: #f5f3ff; color: #7c3aed; }
+  .module-card__icon--teal { background: #f0fdfa; color: #0d9488; }
+
+  .module-card__tcode { font-family: 'JetBrains Mono', monospace; font-size: 11px; font-weight: 600; color: var(--brand-textFaint); background: var(--surface-100); padding: 3px 8px; border-radius: 4px; letter-spacing: .5px; }
+
+  .module-card__title { font-size: 15px; font-weight: 600; color: var(--brand-textStrong); margin-bottom: 4px; }
+  .module-card__desc { font-size: 12.5px; color: var(--brand-textMuted); line-height: 1.5; margin-bottom: 16px; }
+
+  .module-card__actions { display: flex; flex-wrap: wrap; gap: 6px; }
+  .module-card__action { font-size: 11.5px; padding: 5px 12px; border-radius: 20px; border: 1px solid var(--brand-border); background: var(--surface-0); color: var(--brand-textBase); cursor: pointer; transition: all .15s; display: flex; align-items: center; gap: 5px; }
+  .module-card__action:hover { background: var(--brand-primarySoft); border-color: var(--brand-primaryMid); color: var(--brand-primary); }
+  .module-card__action--primary { background: var(--brand-primary); color: #fff; border-color: var(--brand-primary); }
+  .module-card__action--primary:hover { background: var(--brand-primaryStrong); }
+
+  /* ── Stats Row ── */
+  .stats-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-bottom: 20px; }
+  .stat-card { background: var(--surface-0); border: 1px solid var(--brand-border); border-radius: var(--radius-lg); padding: 18px 20px; }
+  .stat-card__label { font-size: 11.5px; color: var(--brand-textMuted); text-transform: uppercase; letter-spacing: .5px; font-weight: 500; margin-bottom: 6px; }
+  .stat-card__value { font-size: 26px; font-weight: 700; color: var(--brand-textStrong); }
+  .stat-card__change { font-size: 11px; margin-top: 4px; display: flex; align-items: center; gap: 4px; }
+  .stat-card__change--up { color: var(--brand-success); }
+  .stat-card__change--down { color: var(--brand-danger); }
+
+  /* ── Recent Activity ── */
+  .activity-list { display: flex; flex-direction: column; gap: 2px; }
+  .activity-item { display: flex; align-items: center; gap: 12px; padding: 10px 14px; border-radius: var(--radius-sm); transition: background .1s; }
+  .activity-item:hover { background: var(--surface-50); }
+  .activity-item__avatar { width: 30px; height: 30px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 600; color: #fff; flex-shrink: 0; }
+  .activity-item__content { flex: 1; min-width: 0; }
+  .activity-item__text { font-size: 13px; color: var(--brand-textBase); }
+  .activity-item__text strong { font-weight: 600; color: var(--brand-textStrong); }
+  .activity-item__time { font-size: 11px; color: var(--brand-textFaint); margin-top: 1px; }
+  .activity-item__badge { font-size: 10px; padding: 2px 8px; border-radius: 20px; font-weight: 500; white-space: nowrap; }
+  .activity-item__badge--create { background: #f0fdf4; color: var(--brand-success); }
+  .activity-item__badge--update { background: var(--brand-primarySoft); color: var(--brand-primary); }
+  .activity-item__badge--delete { background: var(--brand-accentSoft); color: var(--brand-danger); }
+
+  /* ── Tabs ── */
+  .demo-tabs { display: flex; gap: 0; border-bottom: 2px solid var(--surface-200); margin-bottom: 28px; }
+  .demo-tab { padding: 12px 24px; font-size: 13.5px; font-weight: 500; color: var(--brand-textMuted); cursor: pointer; border-bottom: 2px solid transparent; margin-bottom: -2px; transition: all .15s; background: none; border-top: none; border-left: none; border-right: none; }
+  .demo-tab:hover { color: var(--brand-textBase); }
+  .demo-tab--active { color: var(--brand-primary); border-bottom-color: var(--brand-primary); font-weight: 600; }
+
+  .demo-section { display: none; }
+  .demo-section--active { display: block; }
+
+  /* ── Badges ── */
+  .status-badge { font-size: 11px; padding: 3px 10px; border-radius: 20px; font-weight: 500; display: inline-flex; align-items: center; gap: 4px; }
+  .status-badge--active { background: #f0fdf4; color: var(--brand-success); }
+  .status-badge--warning { background: #fffbeb; color: var(--brand-warning); }
+  .status-badge--info { background: var(--brand-primarySoft); color: var(--brand-primary); }
+
+  /* ── Separator ── */
+  .section-gap { height: 20px; }
+
+  /* ── Scrollbar ── */
+  ::-webkit-scrollbar { width: 5px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: var(--surface-300); border-radius: 10px; }
+
+  /* ── SVG helper ── */
+  .icon { display: inline-flex; align-items: center; justify-content: center; }
+</style>
+</head>
+<body>
+
+<div class="app-layout">
+  <!-- Sidebar -->
+  <aside class="sidebar">
+    <div class="sidebar__brand">
+      <div class="sidebar__brand-icon">EP</div>
+      <div>
+        <div class="sidebar__brand-text">Enterprise Platform</div>
+        <div class="sidebar__brand-sub">Modular ERP System</div>
+      </div>
+    </div>
+    <nav class="sidebar__nav">
+      <div class="nav-group">
+        <div class="nav-group__title">Ana Menu</div>
+        <a class="nav-item nav-item--active" href="#">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
+          Dashboard
+        </a>
+      </div>
+      <div class="nav-group">
+        <div class="nav-group__title">Kimlik Yonetimi</div>
+        <a class="nav-item" href="#">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+          Kullanicilar
+        </a>
+        <a class="nav-item" href="#">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+          Roller
+        </a>
+        <a class="nav-item" href="#">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 1 1-7.78 7.78 5.5 5.5 0 0 1 7.78-7.78zm0 0L15.5 7.5m0 0l3 3L22 7l-3-3m-3.5 3.5L19 4"/></svg>
+          Yetkiler
+        </a>
+        <a class="nav-item" href="#">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="6" width="20" height="12" rx="2"/><path d="M12 12h.01"/><path d="M17 12h.01"/><path d="M7 12h.01"/></svg>
+          Oturumlar
+        </a>
+      </div>
+      <div class="nav-group">
+        <div class="nav-group__title">Yetkilendirme</div>
+        <a class="nav-item" href="#">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>
+          T-Code Yonetimi
+        </a>
+        <a class="nav-item" href="#">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+          Denetim Kayitlari
+        </a>
+      </div>
+      <div class="nav-group">
+        <div class="nav-group__title">Malzeme Yonetimi</div>
+        <a class="nav-item" href="#">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/></svg>
+          Malzemeler
+        </a>
+        <a class="nav-item" href="#">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 7h-7m7 10h-7m-4-5v5m0-5L5 7m4 5l-4 5"/></svg>
+          Malzeme Gruplari
+        </a>
+      </div>
+    </nav>
+  </aside>
+
+  <!-- Main -->
+  <div class="main">
+    <!-- Topbar -->
+    <header class="topbar">
+      <div class="topbar__left">
+        <div class="tcode-nav">
+          <span class="tcode-nav__prefix">T-Code</span>
+          <input placeholder="SYS04..." id="tcode-input" />
+        </div>
+      </div>
+      <div class="topbar__right">
+        <div class="topbar-tenant">HM | AYGUN</div>
+        <button class="topbar-icon" title="Bildirimler">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+        </button>
+        <button class="topbar-icon" title="Ayarlar">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+        </button>
+        <div class="topbar-avatar">MC</div>
+      </div>
+    </header>
+
+    <!-- Content -->
+    <div class="main__content">
+      <!-- Page Header -->
+      <div class="page-header">
+        <div class="page-header__eyebrow">Enterprise Platform</div>
+        <h1 class="page-header__title">Is Alani Paneli</h1>
+        <p class="page-header__desc">Modullere hizli erisim, T-Code navigasyonu ve sistem ozeti</p>
+      </div>
+
+      <!-- Tabs -->
+      <div class="demo-tabs">
+        <button class="demo-tab demo-tab--active" onclick="switchTab('overview')">Genel Bakis</button>
+        <button class="demo-tab" onclick="switchTab('tcode')">T-Code Arama</button>
+        <button class="demo-tab" onclick="switchTab('modules')">Modul Kartlari</button>
+      </div>
+
+      <!-- TAB 1: Overview -->
+      <div id="tab-overview" class="demo-section demo-section--active">
+        <!-- Stats -->
+        <div class="stats-row">
+          <div class="stat-card">
+            <div class="stat-card__label">Aktif Kullanicilar</div>
+            <div class="stat-card__value">1,247</div>
+            <div class="stat-card__change stat-card__change--up">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/></svg>
+              +12% bu ay
+            </div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-card__label">Tanimli Roller</div>
+            <div class="stat-card__value">38</div>
+            <div class="stat-card__change stat-card__change--up">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/></svg>
+              +3 yeni
+            </div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-card__label">T-Code Sayisi</div>
+            <div class="stat-card__value">156</div>
+            <div class="stat-card__change" style="color: var(--brand-textFaint)">Toplam islem kodu</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-card__label">Bekleyen Onaylar</div>
+            <div class="stat-card__value">7</div>
+            <div class="stat-card__change stat-card__change--down">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+              3 acil
+            </div>
+          </div>
+        </div>
+
+        <!-- T-Code Quick Access + Recent Activity -->
+        <div style="display: grid; grid-template-columns: 1.7fr 1fr; gap: 16px;">
+          <!-- T-Code Quick Access -->
+          <div class="panel-card">
+            <div class="panel-card__header">
+              <h2>T-Code ile Hizli Erisim</h2>
+              <span>Islem kodu ile dogrudan sayfaya gidin</span>
+            </div>
+            <div class="panel-card__body">
+              <div class="tcode-search__input-row">
+                <input class="tcode-search__input" placeholder="T-Code yazin... (orn: SYS04, MAT01)" id="demo-search" />
+                <button class="tcode-search__btn" onclick="demoSearch()">Ara</button>
+              </div>
+              <div class="tcode-search__results" id="search-results">
+                <div class="tcode-result">
+                  <span class="tcode-result__code">SYS04</span>
+                  <div class="tcode-result__info">
+                    <div class="tcode-result__name">Kullanici Listesi</div>
+                    <div class="tcode-result__module">Kimlik Yonetimi &bull; Identity Module</div>
+                  </div>
+                  <span class="tcode-result__status tcode-result__status--allowed">
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+                    Yetkili
+                  </span>
+                  <span class="tcode-result__arrow">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>
+                  </span>
+                </div>
+                <div class="tcode-result">
+                  <span class="tcode-result__code">SYS01</span>
+                  <div class="tcode-result__info">
+                    <div class="tcode-result__name">Yeni Kullanici Olustur</div>
+                    <div class="tcode-result__module">Kimlik Yonetimi &bull; Identity Module</div>
+                  </div>
+                  <span class="tcode-result__status tcode-result__status--allowed">
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+                    Yetkili
+                  </span>
+                  <span class="tcode-result__arrow">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>
+                  </span>
+                </div>
+                <div class="tcode-result">
+                  <span class="tcode-result__code">MAT01</span>
+                  <div class="tcode-result__info">
+                    <div class="tcode-result__name">Malzeme Listesi</div>
+                    <div class="tcode-result__module">Malzeme Yonetimi &bull; Materials Module</div>
+                  </div>
+                  <span class="tcode-result__status tcode-result__status--denied">
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+                    Yetkisiz
+                  </span>
+                  <span class="tcode-result__arrow">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>
+                  </span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Recent Activity -->
+          <div class="panel-card">
+            <div class="panel-card__header">
+              <h2>Son Aktiviteler</h2>
+              <span class="status-badge status-badge--info">Canli</span>
+            </div>
+            <div class="panel-card__body" style="padding: 8px 12px;">
+              <div class="activity-list">
+                <div class="activity-item">
+                  <div class="activity-item__avatar" style="background: #1a5f96">AY</div>
+                  <div class="activity-item__content">
+                    <div class="activity-item__text"><strong>Ayse Y.</strong> yeni kullanici olusturdu</div>
+                    <div class="activity-item__time">2 dakika once</div>
+                  </div>
+                  <span class="activity-item__badge activity-item__badge--create">Olusturma</span>
+                </div>
+                <div class="activity-item">
+                  <div class="activity-item__avatar" style="background: #7c3aed">MK</div>
+                  <div class="activity-item__content">
+                    <div class="activity-item__text"><strong>Mehmet K.</strong> rol atamasi guncelledi</div>
+                    <div class="activity-item__time">15 dakika once</div>
+                  </div>
+                  <span class="activity-item__badge activity-item__badge--update">Guncelleme</span>
+                </div>
+                <div class="activity-item">
+                  <div class="activity-item__avatar" style="background: #0d9488">FD</div>
+                  <div class="activity-item__content">
+                    <div class="activity-item__text"><strong>Fatma D.</strong> oturumu sonlandirdi</div>
+                    <div class="activity-item__time">1 saat once</div>
+                  </div>
+                  <span class="activity-item__badge activity-item__badge--delete">Silme</span>
+                </div>
+                <div class="activity-item">
+                  <div class="activity-item__avatar" style="background: #d97706">HB</div>
+                  <div class="activity-item__content">
+                    <div class="activity-item__text"><strong>Hasan B.</strong> T-Code izni ekledi</div>
+                    <div class="activity-item__time">2 saat once</div>
+                  </div>
+                  <span class="activity-item__badge activity-item__badge--create">Olusturma</span>
+                </div>
+                <div class="activity-item">
+                  <div class="activity-item__avatar" style="background: #dc2626">SE</div>
+                  <div class="activity-item__content">
+                    <div class="activity-item__text"><strong>Selin E.</strong> kullaniciyi devre disi birakti</div>
+                    <div class="activity-item__time">3 saat once</div>
+                  </div>
+                  <span class="activity-item__badge activity-item__badge--update">Guncelleme</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="section-gap"></div>
+
+        <!-- Module Cards -->
+        <div class="panel-card">
+          <div class="panel-card__header">
+            <h2>Moduller</h2>
+            <span>Hizli erisim kartlari</span>
+          </div>
+          <div class="panel-card__body">
+            <div class="module-grid">
+              <div class="module-card">
+                <div class="module-card__top">
+                  <div class="module-card__icon module-card__icon--blue">
+                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+                  </div>
+                  <span class="module-card__tcode">SYS04</span>
+                </div>
+                <div class="module-card__title">Kullanici Yonetimi</div>
+                <div class="module-card__desc">Kullanici hesaplari, profiller ve erisim yonetimi</div>
+                <div class="module-card__actions">
+                  <button class="module-card__action module-card__action--primary">Listele</button>
+                  <button class="module-card__action">Yeni Olustur</button>
+                  <button class="module-card__action">Roller</button>
+                </div>
+              </div>
+
+              <div class="module-card">
+                <div class="module-card__top">
+                  <div class="module-card__icon module-card__icon--green">
+                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+                  </div>
+                  <span class="module-card__tcode">SYS05</span>
+                </div>
+                <div class="module-card__title">Rol Yonetimi</div>
+                <div class="module-card__desc">Roller, izinler ve yetki gruplari yapilandirmasi</div>
+                <div class="module-card__actions">
+                  <button class="module-card__action module-card__action--primary">Roller</button>
+                  <button class="module-card__action">Yeni Rol</button>
+                  <button class="module-card__action">Izinler</button>
+                </div>
+              </div>
+
+              <div class="module-card">
+                <div class="module-card__top">
+                  <div class="module-card__icon module-card__icon--purple">
+                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>
+                  </div>
+                  <span class="module-card__tcode">AUTH01</span>
+                </div>
+                <div class="module-card__title">T-Code Yonetimi</div>
+                <div class="module-card__desc">Islem kodlari, sayfa erisimleri ve navigasyon kurallari</div>
+                <div class="module-card__actions">
+                  <button class="module-card__action module-card__action--primary">T-Code'lar</button>
+                  <button class="module-card__action">Erisim Kurallari</button>
+                </div>
+              </div>
+
+              <div class="module-card">
+                <div class="module-card__top">
+                  <div class="module-card__icon module-card__icon--orange">
+                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/></svg>
+                  </div>
+                  <span class="module-card__tcode">MAT01</span>
+                </div>
+                <div class="module-card__title">Malzeme Yonetimi</div>
+                <div class="module-card__desc">Malzeme master data, gruplar ve siniflandirma</div>
+                <div class="module-card__actions">
+                  <button class="module-card__action module-card__action--primary">Malzemeler</button>
+                  <button class="module-card__action">Yeni Malzeme</button>
+                  <button class="module-card__action">Gruplar</button>
+                </div>
+              </div>
+
+              <div class="module-card">
+                <div class="module-card__top">
+                  <div class="module-card__icon module-card__icon--red">
+                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+                  </div>
+                  <span class="module-card__tcode">DOC01</span>
+                </div>
+                <div class="module-card__title">Dokuman Yonetimi</div>
+                <div class="module-card__desc">Belgeler, dosya depolama ve versiyon takibi</div>
+                <div class="module-card__actions">
+                  <button class="module-card__action module-card__action--primary">Dokumanlar</button>
+                  <button class="module-card__action">Yukle</button>
+                </div>
+              </div>
+
+              <div class="module-card">
+                <div class="module-card__top">
+                  <div class="module-card__icon module-card__icon--teal">
+                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>
+                  </div>
+                  <span class="module-card__tcode">RPT01</span>
+                </div>
+                <div class="module-card__title">Raporlama</div>
+                <div class="module-card__desc">Sistem raporlari, denetim kayitlari ve analizler</div>
+                <div class="module-card__actions">
+                  <button class="module-card__action module-card__action--primary">Raporlar</button>
+                  <button class="module-card__action">Denetim Logu</button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- TAB 2: T-Code Search -->
+      <div id="tab-tcode" class="demo-section">
+        <div class="panel-card">
+          <div class="panel-card__header">
+            <h2>T-Code Arama ve Navigasyon</h2>
+            <span>Islem kodu ile dogrudan hedef sayfaya yonlendirme</span>
+          </div>
+          <div class="panel-card__body">
+            <div class="tcode-search__input-row">
+              <input class="tcode-search__input" placeholder="T-Code veya anahtar kelime yazin..." style="font-size: 15px; height: 48px;" />
+              <button class="tcode-search__btn" style="height: 48px; padding: 0 28px; font-size: 14px;">Ara ve Git</button>
+            </div>
+
+            <div style="margin: 20px 0 12px; font-size: 12px; color: var(--brand-textMuted); text-transform: uppercase; letter-spacing: .5px; font-weight: 600;">Tum Islem Kodlari</div>
+
+            <div class="tcode-search__results">
+              <div class="tcode-result">
+                <span class="tcode-result__code">SYS01</span>
+                <div class="tcode-result__info">
+                  <div class="tcode-result__name">Kullanici Olustur</div>
+                  <div class="tcode-result__module">Kimlik Yonetimi &bull; /identity/users/create</div>
+                </div>
+                <span class="tcode-result__status tcode-result__status--allowed">
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+                  Yetkili
+                </span>
+                <span class="tcode-result__arrow"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg></span>
+              </div>
+              <div class="tcode-result">
+                <span class="tcode-result__code">SYS02</span>
+                <div class="tcode-result__info">
+                  <div class="tcode-result__name">Kullanici Duzenle</div>
+                  <div class="tcode-result__module">Kimlik Yonetimi &bull; /identity/users/:id/edit</div>
+                </div>
+                <span class="tcode-result__status tcode-result__status--allowed">
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+                  Yetkili
+                </span>
+                <span class="tcode-result__arrow"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg></span>
+              </div>
+              <div class="tcode-result">
+                <span class="tcode-result__code">SYS03</span>
+                <div class="tcode-result__info">
+                  <div class="tcode-result__name">Kullanici Detay</div>
+                  <div class="tcode-result__module">Kimlik Yonetimi &bull; /identity/users/:id</div>
+                </div>
+                <span class="tcode-result__status tcode-result__status--allowed">
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+                  Yetkili
+                </span>
+                <span class="tcode-result__arrow"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg></span>
+              </div>
+              <div class="tcode-result">
+                <span class="tcode-result__code">SYS04</span>
+                <div class="tcode-result__info">
+                  <div class="tcode-result__name">Kullanici Listesi</div>
+                  <div class="tcode-result__module">Kimlik Yonetimi &bull; /identity/users</div>
+                </div>
+                <span class="tcode-result__status tcode-result__status--allowed">
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+                  Yetkili
+                </span>
+                <span class="tcode-result__arrow"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg></span>
+              </div>
+              <div class="tcode-result">
+                <span class="tcode-result__code">SYS05</span>
+                <div class="tcode-result__info">
+                  <div class="tcode-result__name">Rol Yonetimi</div>
+                  <div class="tcode-result__module">Kimlik Yonetimi &bull; /identity/users/:id/roles</div>
+                </div>
+                <span class="tcode-result__status tcode-result__status--allowed">
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+                  Yetkili
+                </span>
+                <span class="tcode-result__arrow"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg></span>
+              </div>
+              <div class="tcode-result">
+                <span class="tcode-result__code">MAT01</span>
+                <div class="tcode-result__info">
+                  <div class="tcode-result__name">Malzeme Listesi</div>
+                  <div class="tcode-result__module">Malzeme Yonetimi &bull; /materials</div>
+                </div>
+                <span class="tcode-result__status tcode-result__status--denied">
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+                  Yetkisiz
+                </span>
+                <span class="tcode-result__arrow"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg></span>
+              </div>
+              <div class="tcode-result">
+                <span class="tcode-result__code">DOC01</span>
+                <div class="tcode-result__info">
+                  <div class="tcode-result__name">Dokuman Listesi</div>
+                  <div class="tcode-result__module">Dokuman Yonetimi &bull; /documents</div>
+                </div>
+                <span class="tcode-result__status tcode-result__status--allowed">
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+                  Yetkili
+                </span>
+                <span class="tcode-result__arrow"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg></span>
+              </div>
+              <div class="tcode-result">
+                <span class="tcode-result__code">RPT01</span>
+                <div class="tcode-result__info">
+                  <div class="tcode-result__name">Raporlar</div>
+                  <div class="tcode-result__module">Raporlama &bull; /reports</div>
+                </div>
+                <span class="tcode-result__status tcode-result__status--allowed">
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+                  Yetkili
+                </span>
+                <span class="tcode-result__arrow"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg></span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- TAB 3: Module Cards -->
+      <div id="tab-modules" class="demo-section">
+        <div class="module-grid">
+          <div class="module-card">
+            <div class="module-card__top">
+              <div class="module-card__icon module-card__icon--blue">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+              </div>
+              <span class="module-card__tcode">SYS04</span>
+            </div>
+            <div class="module-card__title">Kullanici Yonetimi</div>
+            <div class="module-card__desc">Kullanici hesaplari, profil guncelleme, sifre politikalari ve erisim kontrolu</div>
+            <div class="module-card__actions">
+              <button class="module-card__action module-card__action--primary">Kullanici Listesi</button>
+              <button class="module-card__action">Yeni Kullanici</button>
+              <button class="module-card__action">Toplu Islem</button>
+            </div>
+          </div>
+
+          <div class="module-card">
+            <div class="module-card__top">
+              <div class="module-card__icon module-card__icon--green">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+              </div>
+              <span class="module-card__tcode">SYS05</span>
+            </div>
+            <div class="module-card__title">Rol ve Yetki Yonetimi</div>
+            <div class="module-card__desc">Roller, izin gruplari, T-Code erisimleri ve hiyerarsik yetkilendirme</div>
+            <div class="module-card__actions">
+              <button class="module-card__action module-card__action--primary">Rol Listesi</button>
+              <button class="module-card__action">Yeni Rol</button>
+              <button class="module-card__action">Izin Matrisi</button>
+            </div>
+          </div>
+
+          <div class="module-card">
+            <div class="module-card__top">
+              <div class="module-card__icon module-card__icon--purple">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>
+              </div>
+              <span class="module-card__tcode">AUTH01</span>
+            </div>
+            <div class="module-card__title">T-Code Yonetimi</div>
+            <div class="module-card__desc">Islem kodu tanimlari, sayfa baglamalari, modul eslestirmeleri ve navigasyon kurallari</div>
+            <div class="module-card__actions">
+              <button class="module-card__action module-card__action--primary">T-Code Listesi</button>
+              <button class="module-card__action">Yeni T-Code</button>
+              <button class="module-card__action">Erisim Politikalari</button>
+            </div>
+          </div>
+
+          <div class="module-card">
+            <div class="module-card__top">
+              <div class="module-card__icon module-card__icon--orange">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/></svg>
+              </div>
+              <span class="module-card__tcode">MAT01</span>
+            </div>
+            <div class="module-card__title">Malzeme Yonetimi</div>
+            <div class="module-card__desc">Malzeme master data, malzeme gruplari, siniflandirma ve stok bilgileri</div>
+            <div class="module-card__actions">
+              <button class="module-card__action module-card__action--primary">Malzeme Listesi</button>
+              <button class="module-card__action">Yeni Malzeme</button>
+              <button class="module-card__action">Malzeme Gruplari</button>
+            </div>
+          </div>
+
+          <div class="module-card">
+            <div class="module-card__top">
+              <div class="module-card__icon module-card__icon--red">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+              </div>
+              <span class="module-card__tcode">DOC01</span>
+            </div>
+            <div class="module-card__title">Dokuman Yonetimi</div>
+            <div class="module-card__desc">Belge yukleme, versiyon takibi, onay surecleri ve arsiv yonetimi</div>
+            <div class="module-card__actions">
+              <button class="module-card__action module-card__action--primary">Dokumanlar</button>
+              <button class="module-card__action">Yukle</button>
+              <button class="module-card__action">Arsiv</button>
+            </div>
+          </div>
+
+          <div class="module-card">
+            <div class="module-card__top">
+              <div class="module-card__icon module-card__icon--teal">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>
+              </div>
+              <span class="module-card__tcode">RPT01</span>
+            </div>
+            <div class="module-card__title">Raporlama ve Analiz</div>
+            <div class="module-card__desc">Sistem raporlari, denetim kayitlari, kullanici aktivite analizleri</div>
+            <div class="module-card__actions">
+              <button class="module-card__action module-card__action--primary">Rapor Olustur</button>
+              <button class="module-card__action">Denetim Logu</button>
+              <button class="module-card__action">Dashboard</button>
+            </div>
+          </div>
+
+          <div class="module-card">
+            <div class="module-card__top">
+              <div class="module-card__icon" style="background: #fef3c7; color: #b45309;">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+              </div>
+              <span class="module-card__tcode">INT01</span>
+            </div>
+            <div class="module-card__title">Entegrasyon Yonetimi</div>
+            <div class="module-card__desc">Dis sistem entegrasyonlari, API baglantilari ve veri senkronizasyonu</div>
+            <div class="module-card__actions">
+              <button class="module-card__action module-card__action--primary">Entegrasyonlar</button>
+              <button class="module-card__action">API Anahtarlari</button>
+            </div>
+          </div>
+
+          <div class="module-card">
+            <div class="module-card__top">
+              <div class="module-card__icon" style="background: #fce7f3; color: #be185d;">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+              </div>
+              <span class="module-card__tcode">APR01</span>
+            </div>
+            <div class="module-card__title">Onay Surecleri</div>
+            <div class="module-card__desc">Is akisi onaylari, coklu onay seviyeleri ve eskalasyon kurallari</div>
+            <div class="module-card__actions">
+              <button class="module-card__action module-card__action--primary">Bekleyen Onaylar</button>
+              <button class="module-card__action">Is Akislari</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<script>
+  function switchTab(name) {
+    document.querySelectorAll('.demo-section').forEach(s => s.classList.remove('demo-section--active'));
+    document.querySelectorAll('.demo-tab').forEach(t => t.classList.remove('demo-tab--active'));
+    document.getElementById('tab-' + name).classList.add('demo-section--active');
+    event.target.classList.add('demo-tab--active');
+  }
+
+  function demoSearch() {
+    const input = document.getElementById('demo-search');
+    const val = input.value.toUpperCase().trim();
+    const results = document.querySelectorAll('#search-results .tcode-result');
+    if (!val) { results.forEach(r => r.style.display = 'flex'); return; }
+    results.forEach(r => {
+      const code = r.querySelector('.tcode-result__code').textContent;
+      const name = r.querySelector('.tcode-result__name').textContent.toUpperCase();
+      r.style.display = (code.includes(val) || name.includes(val)) ? 'flex' : 'none';
+    });
+  }
+
+  document.getElementById('demo-search')?.addEventListener('input', function() {
+    if (!this.value) {
+      document.querySelectorAll('#search-results .tcode-result').forEach(r => r.style.display = 'flex');
+    }
+  });
+
+  document.getElementById('demo-search')?.addEventListener('keydown', function(e) {
+    if (e.key === 'Enter') demoSearch();
+  });
+</script>
+
+</body>
+</html>

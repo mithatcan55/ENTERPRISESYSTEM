@@ -1,8 +1,7 @@
-import { Route, Routes } from "react-router-dom";
+import { Navigate, Route, Routes } from "react-router-dom";
 import { PermissionsPage } from "./permissions/PermissionsPage";
 import { RolesListPage } from "./roles/RolesListPage";
 import { TCodeResolverPage } from "./tcode/TCodeResolverPage";
-import { PlaceholderModulePage } from "../shared/PlaceholderModulePage";
 
 export function AuthorizationWorkspacePage() {
   return (
@@ -10,15 +9,8 @@ export function AuthorizationWorkspacePage() {
       <Route path="roles" element={<RolesListPage />} />
       <Route path="permissions/actions" element={<PermissionsPage />} />
       <Route path="tcode" element={<TCodeResolverPage />} />
-      <Route
-        path="*"
-        element={
-          <PlaceholderModulePage
-            title="Authorization Workspace"
-            description="Rol, yetki ve T-Code ekranlari bu modulde toplanir."
-          />
-        }
-      />
+      <Route path="" element={<Navigate to="roles" replace />} />
+      <Route path="*" element={<Navigate to="roles" replace />} />
     </Routes>
   );
 }

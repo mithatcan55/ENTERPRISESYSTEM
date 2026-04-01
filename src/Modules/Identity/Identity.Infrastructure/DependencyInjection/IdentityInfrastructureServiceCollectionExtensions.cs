@@ -25,6 +25,7 @@ public static class IdentityInfrastructureServiceCollectionExtensions
     {
         services.AddScoped<IAuthLifecycleService, AuthLifecycleService>();
         services.AddScoped<IListUsersQueryHandler, ListUsersQueryHandler>();
+        services.AddScoped<IGetUserByIdQueryHandler, GetUserByIdQueryHandler>();
         services.AddScoped<ICreateUserCommandHandler, CreateUserCommandHandler>();
         services.AddScoped<IUpdateUserCommandHandler, UpdateUserCommandHandler>();
         services.AddScoped<IDeactivateUserCommandHandler, DeactivateUserCommandHandler>();
@@ -44,6 +45,7 @@ public static class IdentityInfrastructureServiceCollectionExtensions
         services.AddScoped<IRequestValidator<CreateRoleCommand>, CreateRoleCommandValidator>();
         services.AddScoped<IRequestValidator<UpsertUserActionPermissionCommand>, UpsertUserActionPermissionCommandValidator>();
         services.AddScoped<IRequestPreCheck<ListUsersQuery>, TCodeProtectedRequestPreCheck<ListUsersQuery>>();
+        services.AddScoped<IRequestPreCheck<GetUserByIdQuery>, TCodeProtectedRequestPreCheck<GetUserByIdQuery>>();
         services.AddScoped<IRequestPreCheck<CreateUserCommand>, TCodeProtectedRequestPreCheck<CreateUserCommand>>();
         services.AddScoped<IRequestPreCheck<UpdateUserCommand>, TCodeProtectedRequestPreCheck<UpdateUserCommand>>();
         services.AddScoped<IRequestPreCheck<DeactivateUserCommand>, TCodeProtectedRequestPreCheck<DeactivateUserCommand>>();

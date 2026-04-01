@@ -1,0 +1,12 @@
+{
+  "permissions": {
+    "allow": [
+      "Read(//d/CaniasGatewayService/dist/modules/excel/**)",
+      "Read(//d/CaniasGatewayService/dist/modules/gateway/**)",
+      "Bash(npx tsc:*)"
+    ],
+    "additionalDirectories": [
+      "C:\\Users\\mithat.can\\Desktop\\Project\\EnterpriseSystem\\.git"
+    ]
+  }
+}

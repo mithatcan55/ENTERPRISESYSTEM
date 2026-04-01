@@ -21,6 +21,8 @@ export type LogQuery = {
   pageSize?: number;
   search?: string;
   correlationId?: string;
+  startAt?: string;
+  endAt?: string;
 };
 
 export type PagedResult<TItem> = {
@@ -104,6 +106,14 @@ function toQueryString(query: LogQuery) {
     searchParams.set("correlationId", query.correlationId);
   }
 
+  if (query.startAt) {
+    searchParams.set("startAt", query.startAt);
+  }
+
+  if (query.endAt) {
+    searchParams.set("endAt", query.endAt);
+  }
+
   return searchParams.toString();
 }
 
@@ -128,4 +138,31 @@ export async function getEntityChangeLogs(query: LogQuery, signal?: AbortSignal)
     `/api/ops/logs/entity-changes?${toQueryString(query)}`,
     signal
   );
+}
+
+export async function exportEntityChangeLogsCsv(query: LogQuery): Promise<void> {
+  const token = localStorage.getItem("auth_session");
+  const session = token ? JSON.parse(token) : null;
+  const accessToken = session?.accessToken;
+
+  const response = await fetch(
+    `${import.meta.env.VITE_API_BASE_URL ?? "http://localhost:5279"}/api/ops/logs/entity-changes/export?${toQueryString(query)}`,
+    {
+      headers: accessToken ? { Authorization: `Bearer ${accessToken}` } : {},
+    }
+  );
+
+  if (!response.ok) {
+    throw new Error(`Export failed: ${response.status}`);
+  }
+
+  const blob = await response.blob();
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = "entity-change-logs.csv";
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
 }

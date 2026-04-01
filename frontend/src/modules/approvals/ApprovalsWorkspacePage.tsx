@@ -1,5 +1,4 @@
-import { Route, Routes } from "react-router-dom";
-import { PlaceholderModulePage } from "../shared/PlaceholderModulePage";
+import { Navigate, Route, Routes } from "react-router-dom";
 import { ApprovalInboxPage } from "./ApprovalInboxPage";
 import { ApprovalWorkflowsPage } from "./ApprovalWorkflowsPage";
 import { DelegationsPage } from "./DelegationsPage";
@@ -10,15 +9,8 @@ export function ApprovalsWorkspacePage() {
       <Route path="workflows" element={<ApprovalWorkflowsPage />} />
       <Route path="inbox" element={<ApprovalInboxPage />} />
       <Route path="delegations" element={<DelegationsPage />} />
-      <Route
-        path="*"
-        element={
-          <PlaceholderModulePage
-            title="Approvals Workspace"
-            description="Approval workflow, inbox ve delegation ekranlari bu modulde toplanir."
-          />
-        }
-      />
+      <Route path="" element={<Navigate to="inbox" replace />} />
+      <Route path="*" element={<Navigate to="inbox" replace />} />
     </Routes>
   );
 }

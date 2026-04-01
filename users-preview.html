@@ -1,0 +1,695 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Users Module Preview</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;1,9..40,400&family=DM+Mono:wght@400;500&display=swap');
+
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#f4f5f7;
+  --surface:#ffffff;
+  --surface2:#f9fafb;
+  --border:#e8eaee;
+  --border2:#d1d5db;
+  --text:#111827;
+  --text2:#374151;
+  --text3:#6b7280;
+  --text4:#9ca3af;
+  --accent:#1a56db;
+  --accent-bg:#eff6ff;
+  --accent-text:#1e3a8a;
+  --success:#16a34a;
+  --success-bg:#f0fdf4;
+  --success-text:#14532d;
+  --danger:#dc2626;
+  --danger-bg:#fef2f2;
+  --danger-text:#7f1d1d;
+  --warn-bg:#fefce8;
+  --warn-text:#713f12;
+  --mono:'DM Mono',monospace;
+  --sans:'DM Sans',sans-serif;
+  --r:8px;--rl:12px;
+}
+body{font-family:var(--sans);background:var(--bg);color:var(--text);font-size:14px;line-height:1.5}
+button{font-family:var(--sans);cursor:pointer}
+input,select{font-family:var(--sans)}
+
+/* ─ Layout ─ */
+.shell{display:flex;flex-direction:column;min-height:100vh}
+.topbar{background:var(--surface);border-bottom:1px solid var(--border);padding:0 24px;display:flex;align-items:center;gap:0;height:52px;flex-shrink:0}
+.topbar-brand{font-size:14px;font-weight:600;color:var(--text);letter-spacing:-0.02em;padding-right:24px;border-right:1px solid var(--border);margin-right:0}
+.topbar-nav{display:flex;height:100%}
+.topbar-nav a{display:flex;align-items:center;padding:0 16px;font-size:13px;color:var(--text3);text-decoration:none;border-bottom:2px solid transparent;transition:color .12s;white-space:nowrap}
+.topbar-nav a:hover{color:var(--text2)}
+.topbar-nav a.active{color:var(--accent);border-bottom-color:var(--accent);font-weight:500}
+
+.page-wrap{display:flex;flex:1;overflow:hidden}
+.sidebar{width:200px;background:var(--surface);border-right:1px solid var(--border);flex-shrink:0;padding:16px 0}
+.sidebar-item{display:flex;align-items:center;gap:9px;padding:8px 18px;font-size:13px;color:var(--text3);cursor:pointer;transition:background .1s,color .1s;border-radius:0}
+.sidebar-item:hover{background:var(--surface2);color:var(--text2)}
+.sidebar-item.active{background:var(--accent-bg);color:var(--accent);font-weight:500}
+.sidebar-icon{width:15px;height:15px;flex-shrink:0;opacity:.7}
+.sidebar-item.active .sidebar-icon{opacity:1}
+
+.main{flex:1;overflow-y:auto;position:relative}
+.page-head{background:var(--surface);border-bottom:1px solid var(--border);padding:18px 28px;display:flex;align-items:center;justify-content:space-between}
+.page-title{font-size:17px;font-weight:600;color:var(--text);letter-spacing:-0.02em}
+.page-sub{font-size:12px;color:var(--text4);margin-top:3px}
+
+.content{padding:22px 28px;transition:padding-right .25s}
+.content.with-drawer{padding-right:440px}
+
+/* ─ Card ─ */
+.card{background:var(--surface);border:1px solid var(--border);border-radius:var(--rl);overflow:hidden}
+
+/* ─ Filters ─ */
+.filters{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 16px;border-bottom:1px solid var(--border)}
+.filters-l{display:flex;align-items:center;gap:8px}
+.search-wrap{position:relative}
+.search-ico{position:absolute;left:9px;top:50%;transform:translateY(-50%);color:var(--text4);pointer-events:none}
+.search-input{padding:7px 10px 7px 30px;font-size:13px;border:1px solid var(--border);border-radius:var(--r);background:var(--surface2);color:var(--text);outline:none;width:240px;transition:border-color .15s,background .15s}
+.search-input:focus{border-color:var(--accent);background:#fff;box-shadow:0 0 0 3px rgba(26,86,219,.08)}
+.search-input::placeholder{color:var(--text4)}
+.seg{display:flex;gap:2px;background:#f0f2f5;padding:3px;border-radius:var(--r)}
+.seg-btn{padding:5px 12px;font-size:12px;font-weight:500;border:none;border-radius:5px;background:transparent;color:var(--text3);cursor:pointer;transition:all .12s;display:flex;align-items:center;gap:5px}
+.seg-btn:hover{color:var(--text2)}
+.seg-btn.on{background:#fff;color:var(--accent);box-shadow:0 1px 3px rgba(0,0,0,.1)}
+.seg-count{font-size:11px;background:rgba(0,0,0,.06);padding:0 5px;border-radius:8px;line-height:1.7}
+
+/* ─ Table ─ */
+.tbl-wrap{overflow-x:auto}
+table{width:100%;border-collapse:collapse;font-size:13px;min-width:680px}
+thead tr{background:var(--surface2)}
+th{padding:9px 16px;text-align:left;font-size:11px;font-weight:600;color:var(--text4);letter-spacing:.05em;text-transform:uppercase;border-bottom:1px solid var(--border);white-space:nowrap;user-select:none}
+tbody tr{border-bottom:1px solid #f5f6f8;cursor:pointer;transition:background .07s}
+tbody tr:hover{background:#f8f9fb}
+tbody tr.sel{background:#eff6ff}
+tbody tr:last-child{border-bottom:none}
+td{padding:11px 16px;vertical-align:middle;color:var(--text2)}
+
+/* ─ User cell ─ */
+.ucell{display:flex;align-items:center;gap:10px}
+.av{width:30px;height:30px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:10.5px;font-weight:700;flex-shrink:0;letter-spacing:.03em}
+.av-a{background:#dbeafe;color:#1e40af}
+.av-i{background:#f3f4f6;color:#9ca3af}
+.av-lg{width:44px;height:44px;font-size:14px}
+.uname{font-size:13px;font-weight:500;color:var(--text);line-height:1.25}
+.usub{font-size:11.5px;color:var(--text4);margin-top:1px}
+.mono{font-family:var(--mono);font-size:11.5px;background:#f3f4f6;border:1px solid var(--border);padding:2px 7px;border-radius:4px;color:var(--text2)}
+.email-cell{color:var(--text3);max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:12.5px}
+.date-cell{color:var(--text4);white-space:nowrap;font-size:12px}
+.dim{color:#d1d5db}
+
+/* ─ Badges ─ */
+.badge{display:inline-flex;align-items:center;gap:4px;padding:3px 8px;border-radius:10px;font-size:11px;font-weight:500;white-space:nowrap}
+.badge-dot{width:5px;height:5px;border-radius:50%;background:currentColor;flex-shrink:0}
+.ba{background:#dcfce7;color:#15803d}
+.bi{background:#f3f4f6;color:#6b7280}
+.bw{background:#fef9c3;color:#a16207}
+.bd{background:#fee2e2;color:#b91c1c}
+.bn{background:var(--accent-bg);color:var(--accent-text)}
+
+/* ─ Row actions ─ */
+.row-acts{display:flex;align-items:center;justify-content:flex-end;gap:4px;opacity:0;transition:opacity .1s}
+tr:hover .row-acts,tr.sel .row-acts{opacity:1}
+.act-btn{width:27px;height:27px;display:flex;align-items:center;justify-content:center;border:1px solid var(--border);border-radius:6px;background:#fff;cursor:pointer;color:var(--text3);transition:all .12s;flex-shrink:0}
+.act-btn:hover{background:var(--surface2);border-color:var(--border2);color:var(--text)}
+.act-btn.danger:hover{background:var(--danger-bg);border-color:#fca5a5;color:var(--danger)}
+.act-btn.success:hover{background:var(--success-bg);border-color:#86efac;color:var(--success)}
+.acts-col{width:70px;text-align:right;padding-right:12px!important}
+
+/* ─ Pagination ─ */
+.pager{display:flex;align-items:center;justify-content:space-between;padding:10px 16px;border-top:1px solid var(--border)}
+.pager-info{font-size:12px;color:var(--text4)}
+.pager-btns{display:flex;gap:3px}
+.pg-btn{min-width:29px;height:29px;padding:0 7px;display:inline-flex;align-items:center;justify-content:center;font-size:12px;font-weight:500;border:1px solid var(--border);border-radius:6px;background:#fff;color:var(--text2);cursor:pointer;transition:all .1s;font-family:var(--sans)}
+.pg-btn:disabled{opacity:.35;cursor:default}
+.pg-btn.cur{background:var(--accent);color:#fff;border-color:var(--accent)}
+.pg-btn:not(.cur):not(:disabled):hover{background:var(--surface2)}
+
+/* ─ Drawer ─ */
+.drawer{position:fixed;top:0;right:-415px;width:405px;height:100vh;background:var(--surface);border-left:1px solid var(--border);z-index:50;display:flex;flex-direction:column;transition:right .26s cubic-bezier(.4,0,.2,1);overflow:hidden}
+.drawer.open{right:0}
+.drawer-bd{position:fixed;inset:0;background:rgba(0,0,0,.2);z-index:40;display:none}
+.drawer-hd{display:flex;align-items:center;justify-content:space-between;padding:13px 16px;border-bottom:1px solid var(--border);flex-shrink:0}
+.drawer-hd-title{font-size:11px;font-weight:600;color:var(--text4);text-transform:uppercase;letter-spacing:.07em}
+.drawer-body{flex:1;overflow-y:auto;padding:18px}
+.d-user-hd{display:flex;align-items:flex-start;gap:12px;margin-bottom:14px}
+.d-user-name{font-size:15px;font-weight:600;color:var(--text);margin-bottom:2px}
+.d-user-sub{font-size:12px;color:var(--text4);margin-bottom:7px}
+.d-badges{display:flex;gap:5px;flex-wrap:wrap}
+.d-acts{display:flex;gap:7px;flex-wrap:wrap;margin-bottom:2px}
+.divider{height:1px;background:var(--border);margin:14px 0}
+.sec-title{font-size:10px;font-weight:600;color:#c0c6d0;text-transform:uppercase;letter-spacing:.08em;margin-bottom:9px}
+.fl{display:flex;flex-direction:column}
+.fi{display:flex;justify-content:space-between;align-items:flex-start;gap:10px;padding:6px 0;border-bottom:1px solid #f7f8fa}
+.fi:last-child{border-bottom:none}
+.fi dt{font-size:12px;color:var(--text4);flex-shrink:0;padding-top:1px}
+.fi dd{font-size:12px;color:var(--text);font-weight:500;text-align:right;margin:0;word-break:break-word}
+.email-lnk{color:var(--accent);text-decoration:none}
+.stat-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:14px}
+.stat-card{background:var(--surface2);border-radius:var(--r);padding:9px 12px}
+.stat-v{font-size:20px;font-weight:600;color:var(--text)}
+.stat-l{font-size:11px;color:var(--text4);margin-top:1px}
+.sess-list{display:flex;flex-direction:column;gap:5px}
+.sess-item{padding:7px 10px;background:var(--surface2);border-radius:6px;border:1px solid var(--border)}
+.sess-ip{font-size:11.5px;font-weight:500;font-family:var(--mono)}
+.sess-dt{font-size:11px;color:var(--text4);margin-top:2px}
+
+/* ─ Modal ─ */
+.modal-ov{position:fixed;inset:0;background:rgba(17,24,39,.42);z-index:100;display:flex;align-items:center;justify-content:center;padding:20px;animation:fi .15s ease}
+@keyframes fi{from{opacity:0}to{opacity:1}}
+.modal{background:#fff;border-radius:var(--rl);width:100%;max-width:540px;max-height:90vh;display:flex;flex-direction:column;overflow:hidden;box-shadow:0 4px 6px rgba(0,0,0,.04),0 20px 48px rgba(0,0,0,.14);animation:su .2s cubic-bezier(.34,1.56,.64,1)}
+@keyframes su{from{transform:translateY(12px);opacity:0}to{transform:translateY(0);opacity:1}}
+.modal-sm{max-width:400px}
+.modal-hd{display:flex;align-items:center;justify-content:space-between;padding:15px 18px;border-bottom:1px solid var(--border);flex-shrink:0}
+.modal-title{font-size:14px;font-weight:600;color:var(--text);margin:0}
+.modal-body{flex:1;overflow-y:auto;padding:18px;display:flex;flex-direction:column;gap:18px}
+.modal-ft{display:flex;gap:8px;justify-content:flex-end;padding:12px 18px;border-bottom:0;border-top:1px solid var(--border);flex-shrink:0;background:var(--surface2)}
+.f-sec-title{font-size:10px;font-weight:600;color:#b0b7c3;text-transform:uppercase;letter-spacing:.07em;margin-bottom:11px}
+.f-grid{display:grid;grid-template-columns:1fr 1fr;gap:11px}
+.f-full{grid-column:span 2}
+.f-field{display:flex;flex-direction:column;gap:4px}
+.f-label{font-size:12px;font-weight:500;color:var(--text2)}
+.req{color:var(--danger)}
+.f-input{padding:7px 10px;font-size:13px;border:1px solid var(--border2);border-radius:var(--r);background:#fff;color:var(--text);outline:none;transition:border-color .15s,box-shadow .15s;font-family:var(--sans)}
+.f-input:focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba(26,86,219,.08)}
+.f-input::placeholder{color:var(--text4)}
+.f-input.ro{background:var(--surface2);color:var(--text3);cursor:default;border-color:var(--border)}
+.f-hint{font-size:11px;color:var(--text4)}
+.f-err{font-size:11.5px;color:var(--danger)}
+.sw-group{display:flex;flex-direction:column;gap:13px}
+.sw-row{display:flex;align-items:center;justify-content:space-between;gap:14px;cursor:pointer}
+.sw-lbl{display:flex;flex-direction:column;gap:2px}
+.sw-main{font-size:13px;color:var(--text2);font-weight:500}
+.toggle{width:36px;height:20px;border-radius:10px;background:#d1d5db;position:relative;flex-shrink:0;transition:background .2s}
+.toggle.on{background:var(--accent)}
+.toggle-th{position:absolute;top:2px;left:2px;width:16px;height:16px;border-radius:50%;background:#fff;box-shadow:0 1px 4px rgba(0,0,0,.18);transition:transform .18s cubic-bezier(.34,1.56,.64,1)}
+.toggle.on .toggle-th{transform:translateX(16px)}
+
+/* ─ Confirm dialog ─ */
+.conf-body{display:flex;flex-direction:column;align-items:center;padding:28px 22px 22px;text-align:center}
+.conf-ico{width:50px;height:50px;border-radius:50%;display:flex;align-items:center;justify-content:center;margin-bottom:14px;flex-shrink:0;background:var(--danger-bg);color:var(--danger)}
+.conf-title{font-size:15px;font-weight:600;margin:0 0 7px}
+.conf-msg{font-size:13px;color:var(--text3);line-height:1.6;margin:0 0 20px;max-width:280px}
+.conf-acts{display:flex;gap:9px}
+
+/* ─ Buttons ─ */
+.btn-p{display:inline-flex;align-items:center;gap:6px;padding:7px 15px;font-size:13px;font-weight:500;background:var(--accent);color:#fff;border:none;border-radius:var(--r);cursor:pointer;transition:background .15s,transform .1s;white-space:nowrap;font-family:var(--sans)}
+.btn-p:hover{background:#1447ba}
+.btn-p.danger{background:var(--danger)}
+.btn-p.danger:hover{background:#b91c1c}
+.btn-p:active{transform:scale(.98)}
+.btn-p:disabled{opacity:.55;cursor:default;transform:none}
+.btn-g{display:inline-flex;align-items:center;gap:6px;padding:7px 15px;font-size:13px;font-weight:500;background:transparent;color:var(--text2);border:1px solid var(--border2);border-radius:var(--r);cursor:pointer;transition:all .15s;white-space:nowrap;font-family:var(--sans)}
+.btn-g:hover{background:var(--surface2);border-color:#9ca3af}
+.btn-o{display:inline-flex;align-items:center;gap:5px;padding:5px 12px;font-size:12px;font-weight:500;background:transparent;color:var(--text2);border:1px solid var(--border);border-radius:6px;cursor:pointer;transition:all .15s;white-space:nowrap;font-family:var(--sans)}
+.btn-o:hover{background:var(--surface2);border-color:var(--border2)}
+.btn-o.danger{color:var(--danger);border-color:#fca5a5}
+.btn-o.danger:hover{background:var(--danger-bg)}
+.btn-o.success{color:var(--success);border-color:#86efac}
+.btn-o.success:hover{background:var(--success-bg)}
+.ico-btn{width:29px;height:29px;display:flex;align-items:center;justify-content:center;background:none;border:none;cursor:pointer;color:var(--text4);border-radius:6px;transition:all .12s}
+.ico-btn:hover{background:var(--surface2);color:var(--text2)}
+
+/* ─ Screen tabs (preview only) ─ */
+.screen-tabs{display:flex;gap:6px;padding:12px 28px;background:var(--surface);border-bottom:1px solid var(--border)}
+.stab{padding:5px 12px;font-size:12px;font-weight:500;border:1px solid var(--border);border-radius:6px;background:transparent;color:var(--text3);cursor:pointer;font-family:var(--sans);transition:all .12s}
+.stab:hover{background:var(--surface2)}
+.stab.on{background:var(--accent-bg);color:var(--accent);border-color:transparent}
+
+/* ─ Skeleton ─ */
+.sk{height:14px;border-radius:4px;background:linear-gradient(90deg,#f0f2f5 25%,#e8eaed 50%,#f0f2f5 75%);background-size:200% 100%;animation:sk 1.6s ease-in-out infinite}
+@keyframes sk{0%{background-position:200% 0}100%{background-position:-200% 0}}
+</style>
+</head>
+<body>
+<div class="shell">
+
+<!-- Top bar -->
+<div class="topbar">
+  <div class="topbar-brand">ERMS Admin</div>
+  <nav class="topbar-nav">
+    <a href="#">Dashboard</a>
+    <a href="#" class="active">Kullanıcılar</a>
+    <a href="#">Roller</a>
+    <a href="#">Yetki Matrisi</a>
+    <a href="#">Sistem</a>
+  </nav>
+</div>
+
+<!-- Screen tabs (preview nav) -->
+<div class="screen-tabs">
+  <button class="stab on" onclick="showScreen('list')">Liste</button>
+  <button class="stab" onclick="showScreen('create')">Kullanıcı ekle</button>
+  <button class="stab" onclick="showScreen('detail')">Detay paneli</button>
+  <button class="stab" onclick="showScreen('edit')">Düzenle</button>
+  <button class="stab" onclick="showScreen('confirm')">Durum değiştir</button>
+</div>
+
+<div class="page-wrap">
+
+<!-- Sidebar -->
+<div class="sidebar">
+  <div class="sidebar-item">
+    <svg class="sidebar-icon" viewBox="0 0 16 16" fill="none"><rect x="1" y="1" width="6" height="6" rx="1.5" stroke="currentColor" stroke-width="1.3"/><rect x="9" y="1" width="6" height="6" rx="1.5" stroke="currentColor" stroke-width="1.3"/><rect x="1" y="9" width="6" height="6" rx="1.5" stroke="currentColor" stroke-width="1.3"/><rect x="9" y="9" width="6" height="6" rx="1.5" stroke="currentColor" stroke-width="1.3"/></svg>
+    Dashboard
+  </div>
+  <div class="sidebar-item active">
+    <svg class="sidebar-icon" viewBox="0 0 16 16" fill="none"><circle cx="6" cy="5" r="3" stroke="currentColor" stroke-width="1.3"/><path d="M1 14c0-3 2.2-5 5-5s5 2 5 5" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/><path d="M12 7v4m2-2h-4" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>
+    Kullanıcılar
+  </div>
+  <div class="sidebar-item">
+    <svg class="sidebar-icon" viewBox="0 0 16 16" fill="none"><circle cx="6" cy="5" r="3" stroke="currentColor" stroke-width="1.3"/><path d="M1 14c0-3 2.2-5 5-5h2" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/><rect x="9" y="9" width="6" height="6" rx="1.5" stroke="currentColor" stroke-width="1.3"/></svg>
+    Roller
+  </div>
+  <div class="sidebar-item">
+    <svg class="sidebar-icon" viewBox="0 0 16 16" fill="none"><path d="M2 4h12M2 8h8M2 12h5" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>
+    Yetki Matrisi
+  </div>
+  <div class="sidebar-item">
+    <svg class="sidebar-icon" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="8" r="6" stroke="currentColor" stroke-width="1.3"/><path d="M8 5v3l2 1.5" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>
+    İzin Geçmişi
+  </div>
+</div>
+
+<!-- Main area -->
+<div class="main" id="main-area">
+
+  <!-- ══════════════════ LIST SCREEN ══════════════════ -->
+  <div id="s-list">
+    <div class="page-head">
+      <div>
+        <div class="page-title">Kullanıcılar</div>
+        <div class="page-sub">Toplam 18 kullanıcı</div>
+      </div>
+    </div>
+    <div class="content" id="list-content">
+      <div class="card">
+        <div class="filters">
+          <div class="filters-l">
+            <div class="search-wrap">
+              <svg class="search-ico" width="14" height="14" viewBox="0 0 14 14" fill="none"><circle cx="6" cy="6" r="4" stroke="currentColor" stroke-width="1.4"/><path d="M9.5 9.5L13 13" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>
+              <input class="search-input" type="text" placeholder="Ad, kullanıcı adı veya e-posta...">
+            </div>
+            <div class="seg">
+              <button class="seg-btn on">Tümü <span class="seg-count">18</span></button>
+              <button class="seg-btn">Aktif</button>
+              <button class="seg-btn">Pasif</button>
+            </div>
+          </div>
+          <button class="btn-p" onclick="showScreen('create')">
+            <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M6 1v10M1 6h10" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+            Yeni kullanıcı
+          </button>
+        </div>
+
+        <div class="tbl-wrap">
+          <table>
+            <thead><tr>
+              <th>Kullanıcı</th><th>Kod</th><th>E-posta</th><th>Durum</th><th>Şifre</th><th>Oluşturulma</th><th class="acts-col"></th>
+            </tr></thead>
+            <tbody id="user-tbody">
+            </tbody>
+          </table>
+        </div>
+
+        <div class="pager">
+          <span class="pager-info">1–7 / 18 kullanıcı</span>
+          <div class="pager-btns">
+            <button class="pg-btn" disabled>
+              <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M7.5 9L4 6l3.5-3" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            </button>
+            <button class="pg-btn cur">1</button>
+            <button class="pg-btn">2</button>
+            <button class="pg-btn">3</button>
+            <button class="pg-btn">
+              <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M4.5 3L8 6l-3.5 3" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════════ CREATE SCREEN ══════════════════ -->
+  <div id="s-create" style="display:none">
+    <div class="page-head">
+      <div>
+        <div class="page-title">Yeni kullanıcı oluştur</div>
+        <div class="page-sub">Kimlik bilgileri ve hesap ayarlarını girin</div>
+      </div>
+    </div>
+    <div class="content">
+      <div class="card" style="max-width:580px">
+        <div style="padding:18px;display:flex;flex-direction:column;gap:20px">
+
+          <div>
+            <div class="f-sec-title">Kimlik bilgileri</div>
+            <div class="f-grid">
+              <div class="f-field">
+                <label class="f-label">Kullanıcı kodu <span class="req">*</span></label>
+                <input class="f-input" placeholder="örn. USR001" value="USR018">
+              </div>
+              <div class="f-field">
+                <label class="f-label">Kullanıcı adı <span class="req">*</span></label>
+                <input class="f-input" placeholder="ahmet.celik" value="selin.kaya">
+              </div>
+              <div class="f-field f-full">
+                <label class="f-label">E-posta <span class="req">*</span></label>
+                <input class="f-input" type="email" placeholder="kullanici@sirket.com" value="selin.kaya@hmuller.com">
+              </div>
+              <div class="f-field">
+                <label class="f-label">Ad</label>
+                <input class="f-input" placeholder="Ad" value="Selin">
+              </div>
+              <div class="f-field">
+                <label class="f-label">Soyad</label>
+                <input class="f-input" placeholder="Soyad" value="Kaya">
+              </div>
+            </div>
+          </div>
+
+          <div style="height:1px;background:var(--border)"></div>
+
+          <div>
+            <div class="f-sec-title">Hesap ayarları</div>
+            <div class="sw-group">
+              <div class="sw-row" onclick="toggleSw(this)">
+                <div class="sw-lbl">
+                  <span class="sw-main">Aktif hesap</span>
+                  <span class="f-hint">Kullanıcı sisteme giriş yapabilir</span>
+                </div>
+                <div class="toggle on"><div class="toggle-th"></div></div>
+              </div>
+              <div class="sw-row" onclick="toggleSw(this)">
+                <div class="sw-lbl">
+                  <span class="sw-main">Şifre değiştirme zorunlu</span>
+                  <span class="f-hint">İlk girişte şifre değiştirmesi istenir</span>
+                </div>
+                <div class="toggle on"><div class="toggle-th"></div></div>
+              </div>
+            </div>
+          </div>
+
+          <div style="height:1px;background:var(--border)"></div>
+
+          <div>
+            <div class="f-sec-title">Başlangıç şifresi</div>
+            <div class="f-grid">
+              <div class="f-field f-full">
+                <label class="f-label">Şifre <span class="req">*</span></label>
+                <input class="f-input" type="password" placeholder="Minimum 8 karakter" value="Temp1234!">
+                <span class="f-hint">Kullanıcı ilk girişte değiştirmek zorunda kalacak</span>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="modal-ft">
+          <button class="btn-g" onclick="showScreen('list')">İptal</button>
+          <button class="btn-p">Kullanıcı oluştur</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════════ EDIT SCREEN ══════════════════ -->
+  <div id="s-edit" style="display:none">
+    <div class="page-head">
+      <div>
+        <div class="page-title">Kullanıcıyı düzenle</div>
+        <div class="page-sub">Mevcut kullanıcı bilgilerini güncelleyin</div>
+      </div>
+      <div style="display:flex;gap:8px">
+        <button class="btn-g" style="font-size:12px">Değişiklik geçmişi</button>
+        <button class="btn-g" style="font-size:12px">Klonla</button>
+      </div>
+    </div>
+    <div class="content">
+      <div class="card" style="max-width:580px">
+        <div style="padding:18px;display:flex;flex-direction:column;gap:20px">
+          <div>
+            <div class="f-sec-title">Kimlik bilgileri</div>
+            <div class="f-grid">
+              <div class="f-field">
+                <label class="f-label">Kullanıcı kodu</label>
+                <input class="f-input ro" value="USR004" readonly>
+                <span class="f-hint">Kod değiştirilemez — referans bütünlüğü</span>
+              </div>
+              <div class="f-field">
+                <label class="f-label">Kullanıcı adı <span class="req">*</span></label>
+                <input class="f-input" value="mehmet.koc">
+              </div>
+              <div class="f-field f-full">
+                <label class="f-label">E-posta <span class="req">*</span></label>
+                <input class="f-input" value="mehmet.koc@hmuller.com">
+              </div>
+              <div class="f-field">
+                <label class="f-label">Ad</label>
+                <input class="f-input" value="Mehmet">
+              </div>
+              <div class="f-field">
+                <label class="f-label">Soyad</label>
+                <input class="f-input" value="Koç">
+              </div>
+            </div>
+          </div>
+          <div style="height:1px;background:var(--border)"></div>
+          <div>
+            <div class="f-sec-title">Hesap ayarları</div>
+            <div class="sw-group">
+              <div class="sw-row" onclick="toggleSw(this)">
+                <div class="sw-lbl"><span class="sw-main">Aktif hesap</span><span class="f-hint">Kullanıcı sisteme giriş yapabilir</span></div>
+                <div class="toggle on"><div class="toggle-th"></div></div>
+              </div>
+              <div class="sw-row" onclick="toggleSw(this)">
+                <div class="sw-lbl"><span class="sw-main">Şifre değiştirme zorunlu</span></div>
+                <div class="toggle"><div class="toggle-th"></div></div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="modal-ft" style="justify-content:space-between">
+          <button class="btn-g" style="color:var(--danger);border-color:#fca5a5" onclick="showScreen('confirm')">Kullanıcıyı pasife al</button>
+          <div style="display:flex;gap:8px">
+            <button class="btn-g" onclick="showScreen('list')">İptal</button>
+            <button class="btn-p">Değişiklikleri kaydet</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════════ CONFIRM SCREEN ══════════════════ -->
+  <div id="s-confirm" style="display:none">
+    <div class="page-head"><div><div class="page-title">Durum değiştir</div></div></div>
+    <div class="content">
+      <div class="card" style="max-width:400px;padding:32px 24px;text-align:center">
+        <div class="conf-body">
+          <div class="conf-ico">
+            <svg width="22" height="22" viewBox="0 0 22 22" fill="none"><path d="M11 7v5m0 4v.5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><circle cx="11" cy="11" r="9" stroke="currentColor" stroke-width="1.5"/></svg>
+          </div>
+          <div class="conf-title">Kullanıcıyı pasife al?</div>
+          <p class="conf-msg">"mehmet.koc" kullanıcısı pasife alınacak ve sisteme giriş yapamayacak.</p>
+          <div class="conf-acts">
+            <button class="btn-g" onclick="showScreen('list')">İptal</button>
+            <button class="btn-p danger">Pasife al</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div><!-- /main -->
+</div><!-- /page-wrap -->
+
+</div><!-- /shell -->
+
+<!-- ══════ Detail Drawer ══════ -->
+<div class="drawer-bd" id="drawer-bd" onclick="closeDrawer()"></div>
+<aside class="drawer" id="detail-drawer">
+  <div class="drawer-hd">
+    <span class="drawer-hd-title">Kullanıcı detayı</span>
+    <button class="ico-btn" onclick="closeDrawer()">
+      <svg width="15" height="15" viewBox="0 0 15 15" fill="none"><path d="M2.5 2.5l10 10M12.5 2.5l-10 10" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
+    </button>
+  </div>
+  <div class="drawer-body">
+    <div class="d-user-hd">
+      <div class="av av-lg av-a">AÇ</div>
+      <div>
+        <div class="d-user-name">Ali Çelik</div>
+        <div class="d-user-sub">@ali.celik</div>
+        <div class="d-badges">
+          <span class="badge ba"><span class="badge-dot"></span>Aktif</span>
+          <span class="badge bn">Normal</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="d-acts">
+      <button class="btn-o" onclick="showScreen('edit')">Düzenle</button>
+      <button class="btn-o danger" onclick="showScreen('confirm')">Pasife al</button>
+      <button class="btn-o">Şifre yönet</button>
+    </div>
+
+    <div class="divider"></div>
+
+    <div class="stat-grid">
+      <div class="stat-card"><div class="stat-v">42</div><div class="stat-l">İzin günü</div></div>
+      <div class="stat-card"><div class="stat-v">3</div><div class="stat-l">Aktif oturum</div></div>
+      <div class="stat-card"><div class="stat-v">1</div><div class="stat-l">Rol</div></div>
+      <div class="stat-card"><div class="stat-v">0</div><div class="stat-l">Bekleyen</div></div>
+    </div>
+
+    <div class="divider"></div>
+
+    <div class="sec-title">Kimlik bilgileri</div>
+    <dl class="fl">
+      <div class="fi"><dt>Kullanıcı kodu</dt><dd><span class="mono">USR001</span></dd></div>
+      <div class="fi"><dt>Kullanıcı adı</dt><dd>@ali.celik</dd></div>
+      <div class="fi"><dt>Ad</dt><dd>Ali</dd></div>
+      <div class="fi"><dt>Soyad</dt><dd>Çelik</dd></div>
+      <div class="fi"><dt>E-posta</dt><dd><a class="email-lnk" href="#">ali.celik@hmuller.com</a></dd></div>
+    </dl>
+
+    <div class="divider"></div>
+
+    <div class="sec-title">Hesap bilgileri</div>
+    <dl class="fl">
+      <div class="fi"><dt>Şifre durumu</dt><dd><span class="badge bn">Normal</span></dd></div>
+      <div class="fi"><dt>Şifre geçerlilik</dt><dd>15 Haz 2026</dd></div>
+      <div class="fi"><dt>Oluşturulma</dt><dd>12 Oca 2025</dd></div>
+      <div class="fi"><dt>Son güncelleme</dt><dd>20 Mar 2026</dd></div>
+    </dl>
+
+    <div class="divider"></div>
+
+    <div class="sec-title">Aktif oturumlar (3)</div>
+    <div class="sess-list">
+      <div class="sess-item"><div class="sess-ip">192.168.1.44</div><div class="sess-dt">23 Mar 2026, 09:15</div></div>
+      <div class="sess-item"><div class="sess-ip">10.0.0.12</div><div class="sess-dt">22 Mar 2026, 14:30</div></div>
+      <div class="sess-item"><div class="sess-ip">172.16.0.5</div><div class="sess-dt">21 Mar 2026, 17:48</div></div>
+    </div>
+  </div>
+</aside>
+
+<script>
+// ─ Mock data ─
+const USERS = [
+  {id:'1',code:'USR001',fn:'Ali',ln:'Çelik',un:'ali.celik',email:'ali.celik@hmuller.com',active:true,pw:'normal',date:'12 Oca 2025'},
+  {id:'2',code:'USR002',fn:'Selin',ln:'Yıldız',un:'selin.yildiz',email:'selin.yildiz@hmuller.com',active:true,pw:'warn',date:'18 Şub 2025'},
+  {id:'3',code:'USR003',fn:'Murat',ln:'Kaya',un:'murat.kaya',email:'murat.kaya@aygun.com.tr',active:false,pw:'normal',date:'3 Mar 2025'},
+  {id:'4',code:'USR004',fn:'Mehmet',ln:'Koç',un:'mehmet.koc',email:'mehmet.koc@hmuller.com',active:true,pw:'normal',date:'5 Mar 2025'},
+  {id:'5',code:'USR005',fn:null,ln:null,un:'teknik.destek',email:'teknik@hmuller.com',active:true,pw:'danger',date:'10 Mar 2025'},
+  {id:'6',code:'USR006',fn:'Zeynep',ln:'Arslan',un:'zeynep.arslan',email:'zeynep.arslan@aygun.com.tr',active:true,pw:'normal',date:'14 Mar 2025'},
+  {id:'7',code:'USR007',fn:'Emre',ln:'Demir',un:'emre.demir',email:'emre.demir@hmuller.com',active:false,pw:'normal',date:'20 Mar 2025'},
+];
+
+function initials(fn,ln,un){
+  if(fn&&ln) return (fn[0]+ln[0]).toUpperCase();
+  if(fn) return fn.slice(0,2).toUpperCase();
+  return un.slice(0,2).toUpperCase();
+}
+function fullName(fn,ln,un){
+  if(fn||ln) return [fn,ln].filter(Boolean).join(' ');
+  return null;
+}
+
+function renderTable(){
+  const tbody = document.getElementById('user-tbody');
+  tbody.innerHTML = USERS.map(u => {
+    const inits = initials(u.fn,u.ln,u.un);
+    const name = fullName(u.fn,u.ln,u.un);
+    const avCls = u.active ? 'av-a' : 'av-i';
+    let pwBadge = '';
+    if(u.pw==='warn') pwBadge='<span class="badge bw">Değiştirilmeli</span>';
+    else if(u.pw==='danger') pwBadge='<span class="badge bd">Süresi doldu</span>';
+    else pwBadge='<span class="badge bn">Normal</span>';
+    return `<tr onclick="openDrawer('${u.id}')" id="row-${u.id}">
+      <td><div class="ucell"><div class="av ${avCls}">${inits}</div><div>
+        <div class="uname">${name ?? '<span class="dim">—</span>'}</div>
+        <div class="usub">@${u.un}</div>
+      </div></div></td>
+      <td><span class="mono">${u.code}</span></td>
+      <td class="email-cell">${u.email}</td>
+      <td>${u.active ? '<span class="badge ba"><span class="badge-dot"></span>Aktif</span>' : '<span class="badge bi"><span class="badge-dot"></span>Pasif</span>'}</td>
+      <td>${pwBadge}</td>
+      <td class="date-cell">${u.date}</td>
+      <td class="acts-col" onclick="event.stopPropagation()">
+        <div class="row-acts">
+          <button class="act-btn" title="Düzenle" onclick="showScreen('edit')">
+            <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M7.5 1.5L10.5 4.5L4.5 10.5H1.5V7.5L7.5 1.5Z" stroke="currentColor" stroke-width="1.2" stroke-linejoin="round"/></svg>
+          </button>
+          <button class="act-btn ${u.active ? 'danger' : 'success'}" title="${u.active ? 'Pasife al':'Aktifleştir'}" onclick="showScreen('confirm')">
+            ${u.active
+              ? `<svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M3 6.5L4.5 8 9 4" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/><circle cx="6" cy="6" r="5" stroke="currentColor" stroke-width="1.2"/></svg>`
+              : `<svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M4 4l4 4M8 4L4 8" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/><circle cx="6" cy="6" r="5" stroke="currentColor" stroke-width="1.2"/></svg>`}
+          </button>
+        </div>
+      </td>
+    </tr>`;
+  }).join('');
+}
+
+// ─ Drawer ─
+let openDrawerId = null;
+function openDrawer(id){
+  USERS.forEach(u => document.getElementById('row-'+u.id)?.classList.remove('sel'));
+  const row = document.getElementById('row-'+id);
+  if(row) row.classList.add('sel');
+  document.getElementById('detail-drawer').classList.add('open');
+  document.getElementById('list-content').classList.add('with-drawer');
+  openDrawerId = id;
+}
+function closeDrawer(){
+  document.getElementById('detail-drawer').classList.remove('open');
+  document.getElementById('list-content').classList.remove('with-drawer');
+  USERS.forEach(u => document.getElementById('row-'+u.id)?.classList.remove('sel'));
+  openDrawerId = null;
+}
+
+// ─ Screen routing ─
+const screens = ['list','create','edit','confirm','detail'];
+function showScreen(name){
+  screens.forEach(s => {
+    const el = document.getElementById('s-'+s);
+    if(el) el.style.display = s===name ? 'block' : 'none';
+  });
+  document.querySelectorAll('.stab').forEach((b,i) => {
+    const map = ['list','create','detail','edit','confirm'];
+    b.classList.toggle('on', map[i]===name);
+  });
+  if(name==='detail'){
+    // open drawer in list view
+    showScreen('list');
+    setTimeout(()=>openDrawer('1'),50);
+    document.querySelectorAll('.stab')[2].classList.add('on');
+    document.querySelectorAll('.stab')[0].classList.remove('on');
+    return;
+  }
+  if(name!=='list') closeDrawer();
+}
+
+// ─ Toggle switch ─
+function toggleSw(row){
+  const t = row.querySelector('.toggle');
+  t.classList.toggle('on');
+}
+
+// ─ Segment filter buttons ─
+document.querySelectorAll('.seg-btn').forEach(b=>{
+  b.addEventListener('click',function(){
+    this.closest('.seg').querySelectorAll('.seg-btn').forEach(x=>x.classList.remove('on'));
+    this.classList.add('on');
+  });
+});
+
+// ─ Init ─
+renderTable();
+</script>
+</body>
+</html>

@@ -51,5 +51,13 @@
   "userId": "Benutzer-Id",
   "companyId": "Firmen-Id",
   "amount": "Betrag",
-  "denyOnUnsatisfiedConditions": "Bei unerfullten Conditions deny"
+  "denyOnUnsatisfiedConditions": "Bei unerfullten Conditions deny",
+  "createdAt": "Erstellt am",
+  "deleteRole": "Rolle loeschen",
+  "deleteRoleConfirm": "Rolle \"{{code}}\" wird dauerhaft geloescht. Fortfahren?",
+  "deleteRoleSuccess": "Rolle erfolgreich geloescht.",
+  "searchRolesPlaceholder": "Rollen suchen...",
+  "selectUserFirst": "Geben Sie eine Benutzer-ID ein, um Berechtigungen anzuzeigen.",
+  "deletePermissionConfirm": "Diese Permission wird dauerhaft geloescht. Fortfahren?",
+  "deletePermissionSuccess": "Permission erfolgreich geloescht."
 }

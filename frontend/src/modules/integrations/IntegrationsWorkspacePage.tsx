@@ -1,20 +1,14 @@
-import { Route, Routes } from "react-router-dom";
+import { Navigate, Route, Routes } from "react-router-dom";
 import { OutboxPage } from "./outbox/OutboxPage";
-import { PlaceholderModulePage } from "../shared/PlaceholderModulePage";
+import { ErpQueryPage } from "./erp/ErpQueryPage";
 
 export function IntegrationsWorkspacePage() {
   return (
     <Routes>
       <Route path="outbox" element={<OutboxPage />} />
-      <Route
-        path="*"
-        element={
-          <PlaceholderModulePage
-            title="Integrations Workspace"
-            description="Outbox ve entegrasyon operasyon ekranlari burada toplanir."
-          />
-        }
-      />
+      <Route path="erp" element={<ErpQueryPage />} />
+      <Route path="" element={<Navigate to="erp" replace />} />
+      <Route path="*" element={<Navigate to="erp" replace />} />
     </Routes>
   );
 }

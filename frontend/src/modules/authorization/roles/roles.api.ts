@@ -22,3 +22,7 @@ export async function listRoles(signal?: AbortSignal) {
 export async function createRole(payload: CreateRolePayload, signal?: AbortSignal) {
   return httpClient.post<RoleListItem>("/api/roles", payload, signal);
 }
+
+export async function deleteRole(roleId: number, signal?: AbortSignal) {
+  return httpClient.delete<void>(`/api/roles/${roleId}`, signal);
+}

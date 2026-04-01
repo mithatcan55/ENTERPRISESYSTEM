@@ -13,9 +13,11 @@ public sealed class DeleteUserCommandHandler(IdentityDbContext identityDbContext
         if (user is null)
             throw new NotFoundAppException($"Kullanici bulunamadi. userId={userId}");
 
+        // EF Remove() kullanilmasi zorunludur: manuel IsDeleted=true atamasi EF durumunu
+        // Modified'e cekmekte, bu durumda ApplyAuditRules icindeki Deleted dali calismaz
+        // ve DeletedBy asla doldurulmaz. Remove() ile Deleted durumu tetiklenir.
         user.IsActive = false;
-        user.IsDeleted = true;
-        user.DeletedAt = DateTime.UtcNow;
+        identityDbContext.Users.Remove(user);
 
         await identityDbContext.SaveChangesAsync(cancellationToken);
     }

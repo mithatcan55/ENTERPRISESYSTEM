@@ -29,6 +29,17 @@ public static class IntegrationsInfrastructureServiceCollectionExtensions
             client.Timeout = TimeSpan.FromSeconds(options.ReferenceApi.TimeoutSeconds <= 0 ? 5 : options.ReferenceApi.TimeoutSeconds);
         });
 
+        // CaniasGateway HttpClient — ERP verisi icin proxy
+        services.AddScoped<ICaniasGatewayClient, CaniasGatewayClient>();
+        services.AddSingleton<IExcelExporter, DynamicExcelExporter>();
+        services.AddHttpClient("canias-gateway", (serviceProvider, client) =>
+        {
+            var options = serviceProvider.GetRequiredService<IOptions<Integrations.Application.Configuration.ExternalServicesOptions>>().Value;
+            client.BaseAddress = new Uri(options.CaniasGateway.BaseUrl);
+            client.Timeout = TimeSpan.FromSeconds(options.CaniasGateway.TimeoutSeconds <= 0 ? 30 : options.CaniasGateway.TimeoutSeconds);
+            client.DefaultRequestHeaders.Add("Accept", "application/json");
+        });
+
         services.AddHostedService<ExternalOutboxDispatcherService>();
 
         return services;

@@ -16,6 +16,7 @@
   "audit": "Audit Dashboard",
   "logs": "Protokollansicht",
   "outbox": "Outbox",
+  "erp": "ERP-Daten",
   "approvalWorkflows": "Genehmigungsabläufe",
   "approvalInbox": "Genehmigungseingang",
   "delegations": "Vertretungen"

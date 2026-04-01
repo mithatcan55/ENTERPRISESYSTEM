@@ -16,6 +16,7 @@
   "audit": "Audit Dashboard",
   "logs": "Log Izleme",
   "outbox": "Outbox",
+  "erp": "ERP Verisi",
   "approvalWorkflows": "Onay Akislari",
   "approvalInbox": "Onay Kutusu",
   "delegations": "Vekaletler"

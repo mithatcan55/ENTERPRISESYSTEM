@@ -51,5 +51,13 @@
   "userId": "Kullanici Id",
   "companyId": "Sirket Id",
   "amount": "Tutar",
-  "denyOnUnsatisfiedConditions": "Saglanmayan conditionlarda deny"
+  "denyOnUnsatisfiedConditions": "Saglanmayan conditionlarda deny",
+  "createdAt": "Olusturulma",
+  "deleteRole": "Rolu Sil",
+  "deleteRoleConfirm": "\"{{code}}\" rolu kalici olarak silinecek. Devam edilsin mi?",
+  "deleteRoleSuccess": "Rol basariyla silindi.",
+  "searchRolesPlaceholder": "Rol ara...",
+  "selectUserFirst": "Izinleri gormek icin Kullanici ID girin.",
+  "deletePermissionConfirm": "Bu permission kalici olarak silinecek. Devam edilsin mi?",
+  "deletePermissionSuccess": "Permission basariyla silindi."
 }

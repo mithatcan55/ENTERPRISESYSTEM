@@ -23,13 +23,13 @@ public sealed class AuthorizationDbContext(
 
     public override int SaveChanges(bool acceptAllChangesOnSuccess)
     {
-        ApplyAuditRules();
+        AuditRulesApplicator.Apply(ChangeTracker, auditActorAccessor);
         return base.SaveChanges(acceptAllChangesOnSuccess);
     }
 
     public override Task<int> SaveChangesAsync(bool acceptAllChangesOnSuccess, CancellationToken cancellationToken = default)
     {
-        ApplyAuditRules();
+        AuditRulesApplicator.Apply(ChangeTracker, auditActorAccessor);
         return base.SaveChangesAsync(acceptAllChangesOnSuccess, cancellationToken);
     }
 
@@ -155,38 +155,5 @@ public sealed class AuthorizationDbContext(
             entity.Property(x => x.Description).HasMaxLength(1000);
             entity.HasIndex(x => new { x.EntityName, x.FieldName, x.Surface, x.Priority });
         });
-    }
-
-    private void ApplyAuditRules()
-    {
-        var now = DateTime.UtcNow;
-        var actorId = auditActorAccessor.GetActorId();
-
-        foreach (var entry in ChangeTracker.Entries())
-        {
-            if (entry.Entity is not IAuditableEntity auditableEntity)
-            {
-                continue;
-            }
-
-            if (entry.State == EntityState.Added)
-            {
-                auditableEntity.CreatedAt = now;
-                auditableEntity.CreatedBy ??= actorId;
-            }
-            else if (entry.State == EntityState.Modified)
-            {
-                auditableEntity.ModifiedAt = now;
-                auditableEntity.ModifiedBy = actorId;
-            }
-
-            if (entry.State == EntityState.Deleted && entry.Entity is ISoftDeletable softDeletable)
-            {
-                entry.State = EntityState.Modified;
-                softDeletable.IsDeleted = true;
-                softDeletable.DeletedAt = now;
-                softDeletable.DeletedBy = actorId;
-            }
-        }
     }
 }

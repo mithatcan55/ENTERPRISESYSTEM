@@ -51,5 +51,13 @@
   "userId": "User Id",
   "companyId": "Company Id",
   "amount": "Amount",
-  "denyOnUnsatisfiedConditions": "Deny on unsatisfied conditions"
+  "denyOnUnsatisfiedConditions": "Deny on unsatisfied conditions",
+  "createdAt": "Created At",
+  "deleteRole": "Delete Role",
+  "deleteRoleConfirm": "Role \"{{code}}\" will be permanently deleted. Continue?",
+  "deleteRoleSuccess": "Role deleted successfully.",
+  "searchRolesPlaceholder": "Search roles...",
+  "selectUserFirst": "Enter a User ID to view permissions.",
+  "deletePermissionConfirm": "This permission will be permanently deleted. Continue?",
+  "deletePermissionSuccess": "Permission deleted successfully."
 }

@@ -1,0 +1,9 @@
+{
+  "permissions": {
+    "allow": [
+      "Read(//c/Users/mithat.can/Desktop/Project/canias-gateway/CaniasGateway.Api/Reports/Engine/**)",
+      "Read(//c/Users/mithat.can/Desktop/Project/canias-gateway/CaniasGateway.Api/Infrastructure/Errors/**)",
+      "Read(//c/Users/mithat.can/Desktop/Project/canias-gateway/CaniasGateway.Api/Reports/Services/**)"
+    ]
+  }
+}
