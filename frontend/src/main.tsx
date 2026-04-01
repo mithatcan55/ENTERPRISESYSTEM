@@ -1,14 +1,16 @@
 import React from "react";
 import ReactDOM from "react-dom/client";
-import { AppProviders } from "./app/providers/AppProviders";
-import { AppRouter } from "./app/routing/AppRouter";
-import "./app/localization/i18n";
-import "./styles/global.css";
+
+function App() {
+  return (
+    <div style={{ display: "flex", alignItems: "center", justifyContent: "center", minHeight: "100vh", fontFamily: "sans-serif" }}>
+      <h1>Enterprise System — Bootstrap tema uygulanacak</h1>
+    </div>
+  );
+}
 
 ReactDOM.createRoot(document.getElementById("root")!).render(
   <React.StrictMode>
-    <AppProviders>
-      <AppRouter />
-    </AppProviders>
+    <App />
   </React.StrictMode>
 );
