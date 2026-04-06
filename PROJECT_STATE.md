@@ -1,7 +1,7 @@
 # PROJECT STATE — AYGÜN ERP FRONTEND
 
 ## Last Updated
-2026-04-05 14:00 UTC
+2026-04-05 16:30 UTC
 
 ## Professional Standards (NON-NEGOTIABLE)
 
@@ -92,6 +92,9 @@ One commit per logical task. Conventional Commits format. Always push.
 - [x] UserFormPage.tsx — 3-tab form (Bilgiler / Rol / Yetki)
 - [x] UserCode auto-generator (Ad+Soyad algorithm, Turkish char normalize)
 - [x] PasswordField component integrated in create form
+- [x] ProfileImageEditor (crop + upload + URL) — commit: 7b6bc5d9
+- [x] ProfileImageDisplay (read-only avatar) in table, detail, sidebar — commit: 7b6bc5d9
+- [x] DetailPage Düzenle button navigates to /users/:id/edit — commit: 7b6bc5d9
 
 ### Phase 5b — Backend: User Entity Updates
 - [x] Added FirstName + LastName to User entity
@@ -103,6 +106,11 @@ One commit per logical task. Conventional Commits format. Always push.
 - [x] Added GET /api/users/:id/permissions/summary endpoint
 - [x] Added POST /api/users/:id/permissions/grant endpoint
 - [x] DI registration for new handlers
+- [x] Username made optional in UpdateUserRequest — commit: fd2d9663
+- [x] PasswordExpiresAt removed from UpdateUserRequest (system-managed) — commit: fd2d9663
+- [x] PasswordPolicyOptions: PasswordExpiryDays + ExpiryWarningDays — commit: fd2d9663
+- [x] LoginResponseDto: IsPasswordExpiringSoon + DaysUntilPasswordExpiry — commit: fd2d9663
+- [x] CreateUserCommandHandler uses policy ExpiryDays — commit: fd2d9663
 
 ## IN PROGRESS 🔄
 
