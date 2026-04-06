@@ -31,6 +31,8 @@ public static class IdentityInfrastructureServiceCollectionExtensions
         services.AddScoped<IDeactivateUserCommandHandler, DeactivateUserCommandHandler>();
         services.AddScoped<IReactivateUserCommandHandler, ReactivateUserCommandHandler>();
         services.AddScoped<IDeleteUserCommandHandler, DeleteUserCommandHandler>();
+        services.AddScoped<IGetUserPermissionSummaryQueryHandler, GetUserPermissionSummaryQueryHandler>();
+        services.AddScoped<IGrantUserPermissionsCommandHandler, GrantUserPermissionsCommandHandler>();
         services.AddScoped<IListRolesQueryHandler, ListRolesQueryHandler>();
         services.AddScoped<IListUserRolesQueryHandler, ListUserRolesQueryHandler>();
         services.AddScoped<ICreateRoleCommandHandler, CreateRoleCommandHandler>();

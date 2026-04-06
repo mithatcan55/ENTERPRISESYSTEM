@@ -4,6 +4,9 @@ public sealed record UserListItemDto(
     int Id,
     string UserCode,
     string Username,
+    string? FirstName,
+    string? LastName,
+    string DisplayName,
     string Email,
     bool IsActive,
     bool MustChangePassword,
@@ -23,6 +26,9 @@ public sealed record UserDetailDto(
     int Id,
     string UserCode,
     string Username,
+    string? FirstName,
+    string? LastName,
+    string DisplayName,
     string Email,
     bool IsActive,
     bool MustChangePassword,
@@ -40,6 +46,8 @@ public sealed record CreatedUserDto(
     int Id,
     string UserCode,
     string Username,
+    string? FirstName,
+    string? LastName,
     string Email,
     bool MustChangePassword,
     DateTime? PasswordExpiresAt);
@@ -47,6 +55,8 @@ public sealed record CreatedUserDto(
 public sealed class UpdateUserRequest
 {
     public string Username { get; set; } = string.Empty;
+    public string? FirstName { get; set; }
+    public string? LastName { get; set; }
     public string Email { get; set; } = string.Empty;
     public bool IsActive { get; set; } = true;
     public string? ProfileImageUrl { get; set; }
@@ -59,4 +69,3 @@ public sealed record PagedResult<T>(
     int TotalCount,
     int Page,
     int PageSize);
-

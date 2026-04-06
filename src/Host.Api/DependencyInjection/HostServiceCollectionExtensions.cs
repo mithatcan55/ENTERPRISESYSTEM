@@ -40,7 +40,7 @@ public static class HostServiceCollectionExtensions
             options.AddPolicy("frontend-dev", policy =>
             {
                 policy
-                    .WithOrigins("http://localhost:4173", "http://localhost:4174", "http://localhost:5173")
+                    .WithOrigins("http://localhost:4173", "http://localhost:4174", "http://localhost:4175", "http://localhost:5173")
                     .AllowAnyHeader()
                     .AllowAnyMethod()
                     .AllowCredentials();

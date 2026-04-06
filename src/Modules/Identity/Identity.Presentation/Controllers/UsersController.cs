@@ -19,7 +19,9 @@ public sealed class UsersController(
     IUpdateUserCommandHandler updateUserCommandHandler,
     IDeactivateUserCommandHandler deactivateUserCommandHandler,
     IReactivateUserCommandHandler reactivateUserCommandHandler,
-    IDeleteUserCommandHandler deleteUserCommandHandler) : ControllerBase
+    IDeleteUserCommandHandler deleteUserCommandHandler,
+    IGetUserPermissionSummaryQueryHandler getUserPermissionSummaryQueryHandler,
+    IGrantUserPermissionsCommandHandler grantUserPermissionsCommandHandler) : ControllerBase
 {
     [HttpGet]
     [TCodeAuthorize("SYS04", "READ")]
@@ -152,6 +154,30 @@ public sealed class UsersController(
             _ => deleteUserCommandHandler.HandleAsync(userId, cancellationToken),
             cancellationToken,
             "Users.Delete");
+        return NoContent();
+    }
+
+    [HttpGet("{userId:int}/permissions/summary")]
+    [Authorize(Roles = "SYS_ADMIN")]
+    [ProducesResponseType(typeof(UserPermissionSummaryDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    public async Task<ActionResult<UserPermissionSummaryDto>> GetPermissionSummary(int userId, CancellationToken cancellationToken)
+    {
+        var summary = await getUserPermissionSummaryQueryHandler.HandleAsync(userId, cancellationToken);
+        return Ok(summary);
+    }
+
+    [HttpPost("{userId:int}/permissions/grant")]
+    [Authorize(Roles = "SYS_ADMIN")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> GrantPermissions(int userId, [FromBody] GrantUserPermissionsRequest request, CancellationToken cancellationToken)
+    {
+        await grantUserPermissionsCommandHandler.HandleAsync(userId, request, cancellationToken);
         return NoContent();
     }
 }

@@ -72,10 +72,17 @@ public sealed class ListUsersQueryHandler(IdentityDbContext identityDbContext) :
             var roleCount = roles.Count;
             var primaryRole = roles.FirstOrDefault()?.Name;
 
+            var displayName = string.IsNullOrWhiteSpace(x.FirstName) && string.IsNullOrWhiteSpace(x.LastName)
+                ? x.Username
+                : $"{x.FirstName} {x.LastName}".Trim();
+
             return new UserListItemDto(
                 x.Id,
                 x.UserCode,
                 x.Username,
+                x.FirstName,
+                x.LastName,
+                displayName,
                 x.Email,
                 x.IsActive,
                 x.MustChangePassword,

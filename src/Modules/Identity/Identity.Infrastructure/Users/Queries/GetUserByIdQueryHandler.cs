@@ -17,6 +17,11 @@ public sealed class GetUserByIdQueryHandler(IdentityDbContext identityDbContext)
                 x.Id,
                 x.UserCode,
                 x.Username,
+                x.FirstName,
+                x.LastName,
+                string.IsNullOrWhiteSpace(x.FirstName) && string.IsNullOrWhiteSpace(x.LastName)
+                    ? x.Username
+                    : ((x.FirstName ?? "") + " " + (x.LastName ?? "")).Trim(),
                 x.Email,
                 x.IsActive,
                 x.MustChangePassword,

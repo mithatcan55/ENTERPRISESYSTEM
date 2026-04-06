@@ -877,6 +877,9 @@ namespace Infrastructure.Persistence.Migrations.BusinessDb
                         .HasMaxLength(320)
                         .HasColumnType("character varying(320)");
 
+                    b.Property<string>("FirstName")
+                        .HasColumnType("text");
+
                     b.Property<bool>("IsActive")
                         .HasColumnType("boolean");
 
@@ -899,6 +902,9 @@ namespace Infrastructure.Persistence.Migrations.BusinessDb
                         .IsRequired()
                         .HasMaxLength(500)
                         .HasColumnType("character varying(500)");
+
+                    b.Property<string>("LastName")
+                        .HasColumnType("text");
 
                     b.Property<string>("ProfileImageUrl")
                         .HasMaxLength(2000)

@@ -77,6 +77,8 @@ public sealed class CreateUserCommandHandler(
         {
             UserCode = normalizedUserCode,
             Username = normalizedUsername,
+            FirstName = request.FirstName?.Trim(),
+            LastName = request.LastName?.Trim(),
             Email = normalizedEmail,
             PasswordHash = BCrypt.Net.BCrypt.HashPassword(request.Password),
             IsActive = true,
@@ -134,6 +136,8 @@ public sealed class CreateUserCommandHandler(
             user.Id,
             user.UserCode,
             user.Username,
+            user.FirstName,
+            user.LastName,
             user.Email,
             user.MustChangePassword,
             user.PasswordExpiresAt);

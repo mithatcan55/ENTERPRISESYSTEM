@@ -66,6 +66,8 @@ public sealed partial class UpdateUserCommandHandler(IdentityDbContext identityD
 
         // ── Apply ───────────────────────────────────────────────────
         user.Username = normalizedUsername;
+        user.FirstName = request.FirstName?.Trim();
+        user.LastName = request.LastName?.Trim();
         user.Email = normalizedEmail;
         user.IsActive = request.IsActive;
         user.ProfileImageUrl = request.ProfileImageUrl?.Trim();
@@ -82,6 +84,11 @@ public sealed partial class UpdateUserCommandHandler(IdentityDbContext identityD
                 x.Id,
                 x.UserCode,
                 x.Username,
+                x.FirstName,
+                x.LastName,
+                string.IsNullOrWhiteSpace(x.FirstName) && string.IsNullOrWhiteSpace(x.LastName)
+                    ? x.Username
+                    : ((x.FirstName ?? "") + " " + (x.LastName ?? "")).Trim(),
                 x.Email,
                 x.IsActive,
                 x.MustChangePassword,
