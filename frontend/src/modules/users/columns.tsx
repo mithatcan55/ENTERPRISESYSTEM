@@ -4,6 +4,7 @@ import { tr } from "date-fns/locale";
 import type { UserListItem } from "./api";
 import { StatusBadge } from "@/components/ui/StatusBadge";
 import { ActionMenu } from "@/components/ui/ActionMenu";
+import { ProfileImageDisplay } from "@/components/ui/ProfileImage";
 import { Pencil, Eye, UserX, UserCheck, Trash2 } from "lucide-react";
 
 const mono = "'JetBrains Mono', monospace";
@@ -35,17 +36,10 @@ export function getUserColumns(cb: ColumnCallbacks): ColumnDef<UserListItem>[] {
       meta: { sortKey: "username" },
       cell: ({ row }) => {
         const u = row.original;
-        const display = u.primaryRoleName
-          ? `${u.username}`
-          : u.username;
-        const initials = u.username.slice(0, 2).toUpperCase();
         return (
           <div className="flex items-center gap-2">
-            <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full"
-              style={{ background: "#EAF1FA", color: "#2E6DA4", fontSize: 10, fontWeight: 600 }}>
-              {initials}
-            </div>
-            <span style={{ fontSize: 13, fontWeight: 500, color: "#1B3A5C" }}>{display}</span>
+            <ProfileImageDisplay src={u.profileImageUrl} displayName={u.username} size={28} />
+            <span style={{ fontSize: 13, fontWeight: 500, color: "#1B3A5C" }}>{u.username}</span>
           </div>
         );
       },

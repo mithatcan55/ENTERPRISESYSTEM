@@ -12,6 +12,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAuthStore } from "@/store/auth-store";
+import { ProfileImageDisplay } from "@/components/ui/ProfileImage";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem,
@@ -194,18 +195,15 @@ function SidebarNavContent({ collapsed, onNavigate }: { collapsed: boolean; onNa
 function SidebarUserFooter({ collapsed }: { collapsed: boolean }) {
   const { user, clear } = useAuthStore();
   const navigate = useNavigate();
-  const initials = user?.displayName
-    ? user.displayName.split(" ").map((n) => n[0]).join("").toUpperCase().slice(0, 2)
-    : "U";
 
   if (collapsed) {
     return (
       <div className="flex justify-center py-3" style={{ borderTop: "1px solid rgba(255,255,255,0.07)" }}>
         <Tooltip delayDuration={0}>
           <TooltipTrigger asChild>
-            <div className="flex h-8 w-8 items-center justify-center rounded-full text-[11px] font-semibold cursor-pointer"
-              style={{ background: "rgba(91,155,213,0.3)", color: "#5B9BD5" }}
-              onClick={() => { clear(); navigate("/login", { replace: true }); }}>{initials}</div>
+            <div className="cursor-pointer" onClick={() => { clear(); navigate("/login", { replace: true }); }}>
+              <ProfileImageDisplay src={null} displayName={user?.displayName ?? "U"} size={32} />
+            </div>
           </TooltipTrigger>
           <TooltipContent side="right">{user?.displayName ?? "Kullanıcı"}</TooltipContent>
         </Tooltip>
@@ -217,8 +215,7 @@ function SidebarUserFooter({ collapsed }: { collapsed: boolean }) {
 
   return (
     <div className="flex items-center gap-2.5 px-3 py-3" style={{ borderTop: "1px solid rgba(255,255,255,0.07)" }}>
-      <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-[11px] font-semibold"
-        style={{ background: "rgba(91,155,213,0.3)", color: "#5B9BD5" }}>{initials}</div>
+      <ProfileImageDisplay src={null} displayName={user?.displayName ?? "U"} size={32} />
       <div className="flex-1 min-w-0">
         <div className="truncate text-[12px] font-medium" style={{ color: "rgba(255,255,255,0.8)", fontFamily: sans }}>{user?.displayName ?? "Kullanıcı"}</div>
         <div className="truncate text-[10px]" style={{ color: "rgba(255,255,255,0.35)", fontFamily: mono }}>{roleLabel}</div>

@@ -16,6 +16,7 @@ import {
   Loader2, Check, ArrowLeft, Wand2, Pencil,
 } from "lucide-react";
 import { PasswordField as PasswordFieldComponent } from "@/components/ui/PasswordField";
+import { ProfileImageEditor } from "@/components/ui/ProfileImage";
 
 /* ═══════════════════════════════════════ */
 /*  TYPES                                  */
@@ -239,7 +240,7 @@ function InfoTab({ mode, user, onSaved }: { mode: "create" | "edit"; user: UserD
   }
 
   // EDIT mode
-  const { register, handleSubmit, setValue, formState: { errors } } = editForm;
+  const { register, handleSubmit, setValue, watch, formState: { errors } } = editForm;
   return (
     <form onSubmit={handleSubmit((d) => updateMut.mutate(d))} className="space-y-6">
       <div style={{ borderBottom: "1px solid #F0F4F8" }} className={sectionCls}>
@@ -260,12 +261,16 @@ function InfoTab({ mode, user, onSaved }: { mode: "create" | "edit"; user: UserD
           {errors.email && <p style={{ color: "#E05252" }} className={errCls}>{errors.email.message}</p>}
         </div>
         <div>
-          <label style={{ color: "#2C4A6B" }} className={labelCls}>Profil Resmi URL</label>
-          <input {...register("profileImageUrl")} className={inputCls} placeholder="https://..." />
-        </div>
-        <div>
           <label style={{ color: "#2C4A6B" }} className={labelCls}>Şifre Sona Eriş</label>
           <input {...register("passwordExpiresAt")} type="date" className={inputCls} style={{ fontFamily: mono }} />
+        </div>
+        <div className="sm:col-span-2">
+          <label style={{ color: "#2C4A6B", fontSize: 12, fontWeight: 500, marginBottom: 8, display: "block" }}>Profil Fotoğrafı</label>
+          <ProfileImageEditor
+            value={watch("profileImageUrl") ?? null}
+            displayName={`${watch("firstName") ?? ""} ${watch("lastName") ?? ""}`.trim() || user?.userCode}
+            onChange={(val) => setValue("profileImageUrl", val ?? "")}
+          />
         </div>
       </div>
 

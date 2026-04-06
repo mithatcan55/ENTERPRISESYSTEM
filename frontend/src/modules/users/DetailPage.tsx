@@ -3,8 +3,10 @@ import { useQuery } from "@tanstack/react-query";
 import { format } from "date-fns";
 import { tr } from "date-fns/locale";
 import { usersApi } from "./api";
+import type { UserDetail } from "./api";
 import { PageHeader, PageAction } from "@/components/ui/PageHeader";
 import { StatusBadge } from "@/components/ui/StatusBadge";
+import { ProfileImageDisplay } from "@/components/ui/ProfileImage";
 import { ArrowLeft, Pencil } from "lucide-react";
 
 const mono = "'JetBrains Mono', monospace";
@@ -27,6 +29,12 @@ function Card({ title, children }: { title: string; children: React.ReactNode })
   );
 }
 
+function getDisplayName(user: UserDetail): string {
+  const u = user as unknown as { firstName?: string; lastName?: string };
+  const full = [u.firstName, u.lastName].filter(Boolean).join(" ").trim();
+  return full || user.userCode;
+}
+
 export default function UserDetailPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
@@ -40,27 +48,25 @@ export default function UserDetailPage() {
   if (isLoading) return <p style={{ color: "#7A96B0" }}>Yükleniyor...</p>;
   if (!user) return <p style={{ color: "#7A96B0" }}>Kullanıcı bulunamadı.</p>;
 
+  const display = getDisplayName(user);
   const fmtDate = (d: string | null) => d ? format(new Date(d), "dd.MM.yyyy HH:mm", { locale: tr }) : "—";
 
   return (
     <div className="flex flex-col gap-4">
-      <PageHeader title={user.userCode} subtitle={user.email}
+      <PageHeader title={display} subtitle={user.email}
         actions={
           <div className="flex gap-2 w-full sm:w-auto">
             <PageAction variant="ghost" onClick={() => navigate(-1)}><ArrowLeft size={14} /> Geri</PageAction>
-            <PageAction onClick={() => navigate(`/users`)}><Pencil size={14} /> Düzenle</PageAction>
+            <PageAction onClick={() => navigate(`/users/${user.id}/edit`)}><Pencil size={14} /> Düzenle</PageAction>
           </div>
         }
       />
 
       {/* Top — Avatar + Status */}
       <div className="rounded-xl p-5 flex items-center gap-4" style={{ background: "#FFFFFF", border: "1px solid #E2EBF3" }}>
-        <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full"
-          style={{ background: "#EAF1FA", color: "#2E6DA4", fontSize: 18, fontWeight: 600 }}>
-          {user.username.slice(0, 2).toUpperCase()}
-        </div>
+        <ProfileImageDisplay src={user.profileImageUrl} displayName={display} size={64} />
         <div>
-          <div className="text-[18px] font-semibold" style={{ color: "#1B3A5C" }}>{user.userCode}</div>
+          <div className="text-[18px] font-semibold" style={{ color: "#1B3A5C" }}>{display}</div>
           <div className="text-[13px]" style={{ color: "#7A96B0", fontFamily: mono }}>{user.email}</div>
           <div className="flex gap-2 mt-2">
             <StatusBadge status={user.isActive ? "active" : "inactive"} />
