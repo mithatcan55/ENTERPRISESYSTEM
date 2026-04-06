@@ -26,9 +26,6 @@ public sealed class CreateUserCommandHandler(
         if (string.IsNullOrWhiteSpace(request.UserCode))
             validationErrors["userCode"] = ["UserCode zorunludur."];
 
-        if (string.IsNullOrWhiteSpace(request.Username))
-            validationErrors["username"] = ["Username zorunludur."];
-
         if (string.IsNullOrWhiteSpace(request.Email))
             validationErrors["email"] = ["Email zorunludur."];
 
@@ -45,7 +42,9 @@ public sealed class CreateUserCommandHandler(
             throw new ValidationAppException("Kullanici olusturma dogrulamasi basarisiz.", validationErrors);
 
         var normalizedUserCode = request.UserCode.Trim().ToUpperInvariant();
-        var normalizedUsername = request.Username.Trim();
+        var normalizedUsername = string.IsNullOrWhiteSpace(request.Username)
+            ? normalizedUserCode.ToLowerInvariant()
+            : request.Username.Trim();
         var normalizedEmail = request.Email.Trim().ToLowerInvariant();
 
         // Sifre karmasikligi teknik bir input kontrolu degil, merkezi policy kuralidir.

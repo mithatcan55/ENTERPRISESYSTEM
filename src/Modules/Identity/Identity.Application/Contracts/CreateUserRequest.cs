@@ -3,7 +3,7 @@ namespace Identity.Application.Contracts;
 public sealed class CreateUserRequest
 {
     public string UserCode { get; set; } = string.Empty;
-    public string Username { get; set; } = string.Empty;
+    public string? Username { get; set; }
     public string? FirstName { get; set; }
     public string? LastName { get; set; }
     public string Email { get; set; } = string.Empty;

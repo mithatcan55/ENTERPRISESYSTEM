@@ -15,9 +15,6 @@ public sealed class CreateUserCommandValidator : IRequestValidator<CreateUserCom
         if (string.IsNullOrWhiteSpace(request.Request.UserCode))
             errors["userCode"] = ["UserCode zorunludur."];
 
-        if (string.IsNullOrWhiteSpace(request.Request.Username))
-            errors["username"] = ["Username zorunludur."];
-
         if (string.IsNullOrWhiteSpace(request.Request.Email))
             errors["email"] = ["Email zorunludur."];
 

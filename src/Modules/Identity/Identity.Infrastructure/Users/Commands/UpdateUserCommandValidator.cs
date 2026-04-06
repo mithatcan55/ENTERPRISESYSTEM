@@ -13,9 +13,6 @@ public sealed class UpdateUserCommandValidator : IRequestValidator<UpdateUserCom
         if (request.UserId <= 0)
             errors["userId"] = ["Gecerli bir userId zorunludur."];
 
-        if (string.IsNullOrWhiteSpace(request.Request.Username))
-            errors["username"] = ["Username zorunludur."];
-
         if (string.IsNullOrWhiteSpace(request.Request.Email))
             errors["email"] = ["Email zorunludur."];
 

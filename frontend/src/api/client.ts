@@ -7,7 +7,9 @@ const apiClient = axios.create({
 });
 
 apiClient.interceptors.request.use((config) => {
-  const token = useAuthStore.getState().accessToken;
+  const state = useAuthStore.getState();
+  const token = state.accessToken;
+  console.log("[AXIOS] Request:", config.method?.toUpperCase(), config.url, "Token:", token ? token.slice(0, 20) + "..." : "NONE");
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;
   }
