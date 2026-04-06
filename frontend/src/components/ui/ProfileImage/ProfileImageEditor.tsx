@@ -35,9 +35,22 @@ export default function ProfileImageEditor({ value, displayName, onChange }: Pro
     e.target.value = "";
   }
 
+  const cropAreaRef = useRef<HTMLDivElement>(null);
+
   function onImageLoad(e: React.SyntheticEvent<HTMLImageElement>) {
-    const { width, height } = e.currentTarget;
-    const c = centerCrop(makeAspectCrop({ unit: "%", width: 80 }, 1, width, height), width, height);
+    const img = e.currentTarget;
+    const ratio = img.naturalHeight / img.naturalWidth;
+    const outerW = Math.min(cropAreaRef.current?.offsetWidth || 480, 480);
+
+    let dispW = outerW;
+    let dispH = Math.round(outerW * ratio);
+    if (dispH > 220) { dispH = 220; dispW = Math.round(dispH / ratio); }
+    if (dispW > 480) { dispW = 480; dispH = Math.round(dispW * ratio); }
+
+    img.style.width = dispW + "px";
+    img.style.height = dispH + "px";
+
+    const c = centerCrop(makeAspectCrop({ unit: "%", width: 65 }, 1, dispW, dispH), dispW, dispH);
     setCrop(c);
   }
 
@@ -108,10 +121,12 @@ export default function ProfileImageEditor({ value, displayName, onChange }: Pro
 
           {/* Crop editor */}
           {activeTab === "file" && imgSrc && (
-            <div>
-              <ReactCrop crop={crop} onChange={setCrop} onComplete={setCompletedCrop} aspect={1} circularCrop style={{ maxHeight: 300 }}>
-                <img ref={imgRef} src={imgSrc} onLoad={onImageLoad} style={{ maxHeight: 300 }} alt="Crop" />
-              </ReactCrop>
+            <div ref={cropAreaRef}>
+              <div style={{ maxHeight: 220, maxWidth: 480, overflow: "hidden" }}>
+                <ReactCrop crop={crop} onChange={setCrop} onComplete={setCompletedCrop} aspect={1} circularCrop>
+                  <img ref={imgRef} src={imgSrc} onLoad={onImageLoad} alt="Crop" />
+                </ReactCrop>
+              </div>
               <canvas ref={canvasRef} style={{ display: "none" }} />
               <div className="flex gap-2 mt-3 justify-end">
                 <button type="button" onClick={() => setImgSrc("")}
