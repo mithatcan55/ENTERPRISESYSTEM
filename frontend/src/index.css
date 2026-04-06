@@ -1,0 +1,149 @@
+@import "tailwindcss";
+
+/* ─── Global font override (BEFORE everything else) ─── */
+
+*, *::before, *::after {
+  font-family: 'Plus Jakarta Sans', ui-sans-serif, system-ui, sans-serif;
+}
+
+code, pre, kbd, samp, .font-mono {
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
+}
+
+/* ─── Tailwind theme tokens ─── */
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+
+  --font-sans: 'Plus Jakarta Sans', ui-sans-serif, system-ui, sans-serif;
+  --font-mono: 'JetBrains Mono', ui-monospace, monospace;
+
+  /* Corporate light-blue palette */
+  --color-page-bg: #F0F4F8;
+  --color-surface: #FFFFFF;
+  --color-surface-alt: #F7FAFD;
+  --color-border-default: #E2EBF3;
+  --color-border-mid: #D6E4F0;
+  --color-navy: #1B3A5C;
+  --color-corp-primary: #2E6DA4;
+  --color-corp-accent: #5B9BD5;
+  --color-corp-light: #A8C8E8;
+  --color-info-bg: #EAF1FA;
+  --color-text-primary: #1B3A5C;
+  --color-text-body: #2C4A6B;
+  --color-text-muted: #7A96B0;
+  --color-text-hint: #B0BEC5;
+  --color-danger: #E05252;
+  --color-danger-bg: #FDECEA;
+  --color-danger-border: #F5C6C2;
+  --color-success: #1E8A6E;
+  --color-success-bg: #E8F5EE;
+  --color-success-border: #C3E6D0;
+  --color-warning: #D4891A;
+  --color-warning-bg: #FEF3E2;
+  --color-warning-border: #F5D99A;
+}
+
+:root {
+  --font-sans: 'Plus Jakarta Sans', ui-sans-serif, system-ui, sans-serif;
+  --font-mono: 'JetBrains Mono', ui-monospace, monospace;
+
+  --background: #F0F4F8;
+  --foreground: #1B3A5C;
+  --card: #FFFFFF;
+  --card-foreground: #1B3A5C;
+  --popover: #FFFFFF;
+  --popover-foreground: #1B3A5C;
+  --primary: #2E6DA4;
+  --primary-foreground: #FFFFFF;
+  --secondary: #F7FAFD;
+  --secondary-foreground: #2C4A6B;
+  --muted: #F0F4F8;
+  --muted-foreground: #7A96B0;
+  --accent: #5B9BD5;
+  --accent-foreground: #FFFFFF;
+  --destructive: #E05252;
+  --destructive-foreground: #FFFFFF;
+  --border: #E2EBF3;
+  --input: #E2EBF3;
+  --ring: #5B9BD5;
+  --radius: 0.5rem;
+  --sidebar: #1B3A5C;
+  --sidebar-foreground: rgba(255,255,255,0.55);
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground antialiased;
+    font-family: 'Plus Jakarta Sans', ui-sans-serif, system-ui, sans-serif;
+    font-size: 14px;
+    font-weight: 400;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+    overflow-x: hidden;
+  }
+
+  /* Scrollbar */
+  ::-webkit-scrollbar { width: 6px; height: 6px; }
+  ::-webkit-scrollbar-track { background: #F0F4F8; }
+  ::-webkit-scrollbar-thumb { background: #D6E4F0; border-radius: 3px; }
+  ::-webkit-scrollbar-thumb:hover { background: #A8C8E8; }
+  * { scrollbar-width: thin; scrollbar-color: #D6E4F0 #F0F4F8; -webkit-overflow-scrolling: touch; }
+
+  /* Table typography — soft, non-aggressive */
+  table th {
+    font-weight: 500 !important;
+    text-transform: none !important;
+    letter-spacing: 0.03em !important;
+    font-family: 'Plus Jakarta Sans', sans-serif !important;
+  }
+  table td {
+    font-weight: 400 !important;
+    font-family: 'Plus Jakarta Sans', sans-serif !important;
+  }
+}
+
+/* Login page — force light color-scheme */
+.login-right input,
+.login-right button {
+  color-scheme: light;
+}
+
+@keyframes topbar-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.4; }
+}
+
+@keyframes shimmer {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}

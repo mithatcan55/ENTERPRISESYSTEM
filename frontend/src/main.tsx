@@ -1,16 +1,10 @@
-import React from "react";
-import ReactDOM from "react-dom/client";
+import { StrictMode } from "react";
+import { createRoot } from "react-dom/client";
+import "./index.css";
+import App from "./App";
 
-function App() {
-  return (
-    <div style={{ display: "flex", alignItems: "center", justifyContent: "center", minHeight: "100vh", fontFamily: "sans-serif" }}>
-      <h1>Enterprise System — Bootstrap tema uygulanacak</h1>
-    </div>
-  );
-}
-
-ReactDOM.createRoot(document.getElementById("root")!).render(
-  <React.StrictMode>
+createRoot(document.getElementById("root")!).render(
+  <StrictMode>
     <App />
-  </React.StrictMode>
+  </StrictMode>,
 );
