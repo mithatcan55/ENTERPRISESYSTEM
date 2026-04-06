@@ -54,14 +54,14 @@ public sealed record CreatedUserDto(
 
 public sealed class UpdateUserRequest
 {
-    public string Username { get; set; } = string.Empty;
+    public string? Username { get; set; }
     public string? FirstName { get; set; }
     public string? LastName { get; set; }
     public string Email { get; set; } = string.Empty;
     public bool IsActive { get; set; } = true;
     public string? ProfileImageUrl { get; set; }
     public bool MustChangePassword { get; set; }
-    public DateTime? PasswordExpiresAt { get; set; }
+    // PasswordExpiresAt is system-managed: set automatically on password change
 }
 
 public sealed record PagedResult<T>(

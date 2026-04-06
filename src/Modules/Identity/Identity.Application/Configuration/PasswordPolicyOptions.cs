@@ -19,4 +19,12 @@ public sealed class PasswordPolicyOptions
 
     [Range(0, 1440)]
     public int MinimumPasswordAgeMinutes { get; set; } = 5;
+
+    /// <summary>0 = never expires</summary>
+    [Range(0, 365)]
+    public int PasswordExpiryDays { get; set; } = 90;
+
+    /// <summary>Show warning this many days before expiry</summary>
+    [Range(1, 30)]
+    public int ExpiryWarningDays { get; set; } = 14;
 }

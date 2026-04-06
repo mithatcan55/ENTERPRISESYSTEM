@@ -1,4 +1,5 @@
 using Application.Exceptions;
+using Identity.Application.Configuration;
 using Identity.Application.Contracts;
 using Identity.Application.Services;
 using Identity.Application.Users.Commands;
@@ -6,6 +7,7 @@ using Infrastructure.Persistence;
 using Infrastructure.Persistence.Entities.Authorization;
 using Infrastructure.Persistence.Entities.Identity;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Options;
 
 namespace Identity.Infrastructure.Users.Commands;
 
@@ -13,7 +15,8 @@ public sealed class CreateUserCommandHandler(
     IdentityDbContext identityDbContext,
     AuthorizationDbContext authorizationDbContext,
     IPasswordPolicyService passwordPolicyService,
-    IIdentityNotificationService identityNotificationService) : ICreateUserCommandHandler
+    IIdentityNotificationService identityNotificationService,
+    IOptions<PasswordPolicyOptions> passwordPolicyOptions) : ICreateUserCommandHandler
 {
     public async Task<CreatedUserDto> HandleAsync(CreateUserRequest request, CancellationToken cancellationToken)
     {
@@ -83,7 +86,9 @@ public sealed class CreateUserCommandHandler(
             PasswordHash = BCrypt.Net.BCrypt.HashPassword(request.Password),
             IsActive = true,
             MustChangePassword = true,
-            PasswordExpiresAt = DateTime.UtcNow.AddDays(90)
+            PasswordExpiresAt = passwordPolicyOptions.Value.PasswordExpiryDays > 0
+                ? DateTime.UtcNow.AddDays(passwordPolicyOptions.Value.PasswordExpiryDays)
+                : null
         };
 
         identityDbContext.Users.Add(user);

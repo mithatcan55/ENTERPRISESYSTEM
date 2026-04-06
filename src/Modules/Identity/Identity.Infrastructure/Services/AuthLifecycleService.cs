@@ -153,6 +153,13 @@ public sealed class AuthLifecycleService(
         await LogSecurityEventAsync("Login", true, null, user.UserCode, user.Id, cancellationToken,
             new { session.Id, accessToken.ExpiresAtUtc, refreshTokenExpiresAt, effectiveAuthorization });
 
+        var daysUntilExpiry = user.PasswordExpiresAt.HasValue
+            ? (int?)(user.PasswordExpiresAt.Value - DateTime.UtcNow).TotalDays
+            : null;
+        var expiringSoon = daysUntilExpiry.HasValue
+            && daysUntilExpiry.Value >= 0
+            && daysUntilExpiry.Value <= 14; // ExpiryWarningDays default
+
         return new LoginResponseDto(
             user.Id,
             user.UserCode,
@@ -164,6 +171,8 @@ public sealed class AuthLifecycleService(
             "Bearer",
             user.MustChangePassword,
             user.PasswordExpiresAt,
+            expiringSoon,
+            daysUntilExpiry,
             effectiveAuthorization);
     }
 

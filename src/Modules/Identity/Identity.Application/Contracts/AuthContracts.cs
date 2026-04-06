@@ -17,6 +17,8 @@ public sealed record LoginResponseDto(
     string TokenType,
     bool MustChangePassword,
     DateTime? PasswordExpiresAt,
+    bool IsPasswordExpiringSoon,
+    int? DaysUntilPasswordExpiry,
     EffectiveAuthorizationSummaryDto EffectiveAuthorization);
 
 public sealed record RefreshTokenResponseDto(

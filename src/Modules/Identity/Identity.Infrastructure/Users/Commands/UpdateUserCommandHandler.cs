@@ -17,13 +17,6 @@ public sealed partial class UpdateUserCommandHandler(IdentityDbContext identityD
         if (userId <= 0)
             errors["userId"] = ["INVALID_USER_ID"];
 
-        if (string.IsNullOrWhiteSpace(request.Username))
-            errors["username"] = ["USERNAME_REQUIRED"];
-        else if (request.Username.Trim().Length < 3)
-            errors["username"] = ["USERNAME_TOO_SHORT"];
-        else if (request.Username.Trim().Contains(' '))
-            errors["username"] = ["USERNAME_NO_SPACES"];
-
         if (string.IsNullOrWhiteSpace(request.Email))
             errors["email"] = ["EMAIL_REQUIRED"];
         else if (!EmailRegex().IsMatch(request.Email.Trim()))
@@ -40,20 +33,20 @@ public sealed partial class UpdateUserCommandHandler(IdentityDbContext identityD
         if (user is null)
             throw new NotFoundAppException("USER_NOT_FOUND");
 
-        var normalizedUsername = request.Username.Trim();
         var normalizedEmail = request.Email.Trim().ToLowerInvariant();
 
-        // ── Uniqueness ──────────────────────────────────────────────
-        var duplicateUsername = await identityDbContext.Users
-            .AsNoTracking()
-            .AnyAsync(x => !x.IsDeleted && x.Id != userId && x.Username == normalizedUsername, cancellationToken);
+        // ── Username (optional update) ──────────────────────────────
+        if (!string.IsNullOrWhiteSpace(request.Username))
+        {
+            var normalizedUsername = request.Username.Trim();
+            var duplicateUsername = await identityDbContext.Users
+                .AsNoTracking()
+                .AnyAsync(x => !x.IsDeleted && x.Id != userId && x.Username == normalizedUsername, cancellationToken);
+            if (!duplicateUsername)
+                user.Username = normalizedUsername;
+        }
 
-        if (duplicateUsername)
-            throw new ValidationAppException("USERNAME_TAKEN", new Dictionary<string, string[]>
-            {
-                ["username"] = ["USERNAME_TAKEN"]
-            });
-
+        // ── Email uniqueness ────────────────────────────────────────
         var duplicateEmail = await identityDbContext.Users
             .AsNoTracking()
             .AnyAsync(x => !x.IsDeleted && x.Id != userId && x.Email == normalizedEmail, cancellationToken);
@@ -65,14 +58,13 @@ public sealed partial class UpdateUserCommandHandler(IdentityDbContext identityD
             });
 
         // ── Apply ───────────────────────────────────────────────────
-        user.Username = normalizedUsername;
         user.FirstName = request.FirstName?.Trim();
         user.LastName = request.LastName?.Trim();
         user.Email = normalizedEmail;
         user.IsActive = request.IsActive;
         user.ProfileImageUrl = request.ProfileImageUrl?.Trim();
         user.MustChangePassword = request.MustChangePassword;
-        user.PasswordExpiresAt = request.PasswordExpiresAt;
+        // PasswordExpiresAt is system-managed only (set on password change)
 
         await identityDbContext.SaveChangesAsync(cancellationToken);
 
