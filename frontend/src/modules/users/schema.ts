@@ -18,7 +18,6 @@ export const updateUserSchema = z.object({
   email: z.email("Geçerli e-posta giriniz"),
   isActive: z.boolean(),
   mustChangePassword: z.boolean(),
-  passwordExpiresAt: z.string().nullable().optional(),
   profileImageUrl: z.string().nullable().optional(),
 });
 

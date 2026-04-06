@@ -101,7 +101,7 @@ function InfoTab({ mode, user, onSaved }: { mode: "create" | "edit"; user: UserD
 
   useEffect(() => {
     if (mode === "edit" && user) {
-      editForm.reset({ firstName: (user as unknown as { firstName?: string }).firstName ?? "", lastName: (user as unknown as { lastName?: string }).lastName ?? "", email: user.email, isActive: user.isActive, mustChangePassword: user.mustChangePassword, passwordExpiresAt: user.passwordExpiresAt, profileImageUrl: user.profileImageUrl });
+      editForm.reset({ firstName: (user as unknown as { firstName?: string }).firstName ?? "", lastName: (user as unknown as { lastName?: string }).lastName ?? "", email: user.email, isActive: user.isActive, mustChangePassword: user.mustChangePassword, profileImageUrl: user.profileImageUrl });
       setIsActive(user.isActive);
       setMustChange(user.mustChangePassword);
     }
@@ -260,10 +260,14 @@ function InfoTab({ mode, user, onSaved }: { mode: "create" | "edit"; user: UserD
           <input {...register("email")} type="email" className={inputCls} />
           {errors.email && <p style={{ color: "#E05252" }} className={errCls}>{errors.email.message}</p>}
         </div>
-        <div>
-          <label style={{ color: "#2C4A6B" }} className={labelCls}>Şifre Sona Eriş</label>
-          <input {...register("passwordExpiresAt")} type="date" className={inputCls} style={{ fontFamily: mono }} />
-        </div>
+        {user?.passwordExpiresAt && (
+          <div className="flex items-center" style={{ fontSize: 12, color: "#7A96B0", padding: "8px 12px", background: "#F7FAFD", borderRadius: 8, border: "1px solid #E2EBF3" }}>
+            Şifre geçerliliği:{" "}
+            <strong style={{ color: "#1B3A5C", marginLeft: 4 }}>
+              {new Date(user.passwordExpiresAt).toLocaleDateString("tr-TR")}
+            </strong>
+          </div>
+        )}
         <div className="sm:col-span-2">
           <label style={{ color: "#2C4A6B", fontSize: 12, fontWeight: 500, marginBottom: 8, display: "block" }}>Profil Fotoğrafı</label>
           <ProfileImageEditor

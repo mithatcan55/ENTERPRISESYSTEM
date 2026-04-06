@@ -57,11 +57,11 @@ export interface CreateUserPayload {
 }
 
 export interface UpdateUserPayload {
-  username: string;
+  firstName?: string | null;
+  lastName?: string | null;
   email: string;
   isActive: boolean;
   mustChangePassword: boolean;
-  passwordExpiresAt?: string | null;
   profileImageUrl?: string | null;
 }
 
