@@ -303,7 +303,7 @@ function InfoTab({ mode, user, onSaved }: { mode: "create" | "edit"; user: UserD
 /* ═══════════════════════════════════════ */
 
 function DraggableRole({ role, side }: { role: RoleItem; side: "available" | "assigned" }) {
-  const { attributes, listeners, setNodeRef, isDragging } = useDraggable({ id: `${side}-${role.id}`, data: { role, side } });
+  const { attributes, listeners, setNodeRef, isDragging } = useDraggable({ id: role.id, data: { role, side } });
   return (
     <div ref={setNodeRef} {...listeners} {...attributes}
       className="flex items-center gap-2.5 rounded-lg p-2.5 transition-all"
@@ -414,13 +414,39 @@ function RolesTab({ userId }: { userId: number | null }) {
     }
   }
 
-  function handleDragEnd(e: DragEndEvent) {
+  async function handleDragEnd(e: DragEndEvent) {
     setDraggedRole(null);
     const { active, over } = e;
     if (!over) return;
     const data = active.data.current as { role: RoleItem; side: string };
-    if (data.side === "available" && over.id === "assigned") handleAssign(data.role.id);
-    if (data.side === "assigned" && over.id === "available") handleUnassign(data.role.id);
+    if (data.side === "available" && over.id === "assigned") {
+      const fullRole = allRoles?.find((r) => r.id === active.id);
+      if (!fullRole) return;
+      setAvailableRoles((prev) => prev.filter((r) => r.id !== fullRole.id));
+      setAssignedRoles((prev) => [...prev, fullRole]);
+      try {
+        await apiClient.post(`/api/roles/${fullRole.id}/assign/${userId}`);
+        toast.success(`"${fullRole.name}" rolü atandı`);
+      } catch {
+        setAssignedRoles((prev) => prev.filter((r) => r.id !== fullRole.id));
+        setAvailableRoles((prev) => [...prev, fullRole]);
+        toast.error("Rol ataması başarısız");
+      }
+    }
+    if (data.side === "assigned" && over.id === "available") {
+      const fullRole = allRoles?.find((r) => r.id === active.id);
+      if (!fullRole) return;
+      setAssignedRoles((prev) => prev.filter((r) => r.id !== fullRole.id));
+      setAvailableRoles((prev) => [...prev, fullRole]);
+      try {
+        await apiClient.delete(`/api/roles/${fullRole.id}/assign/${userId}`);
+        toast.success(`"${fullRole.name}" rolü kaldırıldı`);
+      } catch {
+        setAvailableRoles((prev) => prev.filter((r) => r.id !== fullRole.id));
+        setAssignedRoles((prev) => [...prev, fullRole]);
+        toast.error("Rol kaldırma başarısız");
+      }
+    }
   }
 
   return (
