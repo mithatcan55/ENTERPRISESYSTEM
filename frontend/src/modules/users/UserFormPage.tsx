@@ -347,13 +347,17 @@ function RolesTab({ userId }: { userId: number | null }) {
     queryKey: ["roles-all"],
     queryFn: () => apiClient.get<RoleItem[]>("/api/roles").then((r) => r.data),
     enabled: !!userId,
-    staleTime: 30_000,
+    staleTime: Infinity,
+    refetchOnWindowFocus: false,
+    refetchOnMount: false,
   });
   const { data: userRoles } = useQuery({
     queryKey: ["user-roles", userId],
     queryFn: () => apiClient.get<RoleItem[]>(`/api/roles/users/${userId}`).then((r) => r.data),
     enabled: !!userId,
-    staleTime: 30_000,
+    staleTime: Infinity,
+    refetchOnWindowFocus: false,
+    refetchOnMount: false,
   });
 
   // Build full role objects from allRoles — runs only once
@@ -471,6 +475,8 @@ function PermissionsTab({ userId }: { userId: number | null }) {
     queryKey: ["user-permissions", userId],
     queryFn: () => apiClient.get<ActionPerm[]>("/api/permissions/actions", { params: { userId } }).then((r) => r.data),
     enabled: !!userId,
+    staleTime: Infinity,
+    refetchOnWindowFocus: false,
   });
 
   useEffect(() => { if (data) setPerms(data); }, [data]);
@@ -580,8 +586,8 @@ export default function UserFormPage() {
   });
 
   // Role/perm counts for badges
-  const { data: userRoles } = useQuery({ queryKey: ["user-roles", userId], queryFn: () => apiClient.get<RoleItem[]>(`/api/roles/users/${userId}`).then((r) => r.data), enabled: !!userId });
-  const { data: userPerms } = useQuery({ queryKey: ["user-permissions", userId], queryFn: () => apiClient.get<ActionPerm[]>("/api/permissions/actions", { params: { userId } }).then((r) => r.data), enabled: !!userId });
+  const { data: userRoles } = useQuery({ queryKey: ["user-roles", userId], queryFn: () => apiClient.get<RoleItem[]>(`/api/roles/users/${userId}`).then((r) => r.data), enabled: !!userId, staleTime: Infinity, refetchOnWindowFocus: false });
+  const { data: userPerms } = useQuery({ queryKey: ["user-permissions", userId], queryFn: () => apiClient.get<ActionPerm[]>("/api/permissions/actions", { params: { userId } }).then((r) => r.data), enabled: !!userId, staleTime: Infinity, refetchOnWindowFocus: false });
 
   function handleCreated(newId: number) {
     setCreatedUserId(newId);
