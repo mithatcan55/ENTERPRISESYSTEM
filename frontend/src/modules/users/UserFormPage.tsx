@@ -311,10 +311,10 @@ function DraggableRole({ role, side }: { role: RoleItem; side: "available" | "as
       <GripVertical size={14} style={{ color: "#D6E4F0" }} />
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-1.5">
-          <span className="text-[11px]" style={{ fontFamily: mono, color: "#5B9BD5" }}>{role.code}</span>
+          <span className="text-[11px]" style={{ fontFamily: mono, color: "#5B9BD5" }}>{role.code || "KOD YOK"}</span>
           {role.isSystemRole && <span className="text-[10px] px-1.5 py-0.5 rounded" style={{ background: "#EAF1FA", color: "#2E6DA4" }}>Sistem</span>}
         </div>
-        <div className="text-[13px] font-medium" style={{ color: "#1B3A5C" }}>{role.name}</div>
+        <div className="text-[13px] font-medium" style={{ color: "#1B3A5C" }}>{role.name || "İSİM YOK"}</div>
         {role.description && <div className="text-[11px] truncate" style={{ color: "#7A96B0" }}>{role.description}</div>}
       </div>
     </div>
@@ -339,24 +339,35 @@ import React from "react";
 function RolesTab({ userId }: { userId: number | null }) {
   const [search, setSearch] = useState("");
   const [draggedRole, setDraggedRole] = useState<RoleItem | null>(null);
+  const [availableRoles, setAvailableRoles] = useState<RoleItem[]>([]);
+  const [assignedRoles, setAssignedRoles] = useState<RoleItem[]>([]);
 
-  const { data: allRoles } = useQuery({ queryKey: ["roles"], queryFn: () => apiClient.get<RoleItem[]>("/api/roles").then((r) => r.data), enabled: !!userId });
-  const { data: userRoles, refetch: refetchUserRoles } = useQuery({ queryKey: ["user-roles", userId], queryFn: () => apiClient.get<RoleItem[]>(`/api/roles/users/${userId}`).then((r) => r.data), enabled: !!userId });
-
-  const assignedIds = useMemo(() => new Set((userRoles ?? []).map((r) => r.id)), [userRoles]);
-  const available = useMemo(() => (allRoles ?? []).filter((r) => !assignedIds.has(r.id) && (search ? r.name.toLowerCase().includes(search.toLowerCase()) || r.code.toLowerCase().includes(search.toLowerCase()) : true)), [allRoles, assignedIds, search]);
-  const assigned = userRoles ?? [];
-
-  const assignMut = useMutation({
-    mutationFn: (roleId: number) => apiClient.post(`/api/roles/${roleId}/assign/${userId}`),
-    onSuccess: () => { toast.success("Rol atandı"); refetchUserRoles(); },
-    onError: (e) => toast.error(extractErr(e)),
+  const { data: allRoles } = useQuery({
+    queryKey: ["roles"],
+    queryFn: () => apiClient.get<RoleItem[]>("/api/roles").then((r) => r.data),
+    enabled: !!userId,
   });
-  const unassignMut = useMutation({
-    mutationFn: (roleId: number) => apiClient.delete(`/api/roles/${roleId}/assign/${userId}`),
-    onSuccess: () => { toast.success("Rol kaldırıldı"); refetchUserRoles(); },
-    onError: (e) => toast.error(extractErr(e)),
+  const { data: userRoles } = useQuery({
+    queryKey: ["user-roles", userId],
+    queryFn: () => apiClient.get<RoleItem[]>(`/api/roles/users/${userId}`).then((r) => r.data),
+    enabled: !!userId,
   });
+
+  // Build full role objects from allRoles — userRoles may have partial data
+  useEffect(() => {
+    if (!allRoles || !userRoles) return;
+    console.log("[ROLES] allRoles:", allRoles);
+    console.log("[ROLES] userRoles:", userRoles);
+    const assignedIds = new Set(userRoles.map((r) => r.id));
+    setAssignedRoles(allRoles.filter((r) => assignedIds.has(r.id)));
+    setAvailableRoles(allRoles.filter((r) => !assignedIds.has(r.id)));
+  }, [allRoles, userRoles]);
+
+  const filteredAvailable = useMemo(() => {
+    if (!search) return availableRoles;
+    const q = search.toLowerCase();
+    return availableRoles.filter((r) => (r.name || "").toLowerCase().includes(q) || (r.code || "").toLowerCase().includes(q));
+  }, [availableRoles, search]);
 
   if (!userId) return (
     <div className="text-center py-16">
@@ -364,13 +375,45 @@ function RolesTab({ userId }: { userId: number | null }) {
     </div>
   );
 
+  async function handleAssign(roleId: number) {
+    const fullRole = allRoles?.find((r) => r.id === roleId);
+    if (!fullRole) { toast.error("Rol bulunamadı"); return; }
+    // Optimistic
+    setAvailableRoles((prev) => prev.filter((r) => r.id !== roleId));
+    setAssignedRoles((prev) => [...prev, fullRole]);
+    try {
+      await apiClient.post(`/api/roles/${roleId}/assign/${userId}`);
+      toast.success(`"${fullRole.name}" rolü atandı`);
+    } catch (e) {
+      setAssignedRoles((prev) => prev.filter((r) => r.id !== roleId));
+      setAvailableRoles((prev) => [...prev, fullRole]);
+      toast.error(extractErr(e));
+    }
+  }
+
+  async function handleUnassign(roleId: number) {
+    const fullRole = allRoles?.find((r) => r.id === roleId);
+    if (!fullRole) { toast.error("Rol bulunamadı"); return; }
+    // Optimistic
+    setAssignedRoles((prev) => prev.filter((r) => r.id !== roleId));
+    setAvailableRoles((prev) => [...prev, fullRole]);
+    try {
+      await apiClient.delete(`/api/roles/${roleId}/assign/${userId}`);
+      toast.success(`"${fullRole.name}" rolü kaldırıldı`);
+    } catch (e) {
+      setAvailableRoles((prev) => prev.filter((r) => r.id !== roleId));
+      setAssignedRoles((prev) => [...prev, fullRole]);
+      toast.error(extractErr(e));
+    }
+  }
+
   function handleDragEnd(e: DragEndEvent) {
     setDraggedRole(null);
     const { active, over } = e;
     if (!over) return;
     const data = active.data.current as { role: RoleItem; side: string };
-    if (data.side === "available" && over.id === "assigned") assignMut.mutate(data.role.id);
-    if (data.side === "assigned" && over.id === "available") unassignMut.mutate(data.role.id);
+    if (data.side === "available" && over.id === "assigned") handleAssign(data.role.id);
+    if (data.side === "assigned" && over.id === "available") handleUnassign(data.role.id);
   }
 
   return (
@@ -380,11 +423,11 @@ function RolesTab({ userId }: { userId: number | null }) {
         <div className="rounded-xl p-4" style={{ background: "#fff", border: "1px solid #E2EBF3" }}>
           <div className="flex items-center justify-between mb-3">
             <span className="text-[13px] font-semibold" style={{ color: "#1B3A5C" }}>Mevcut Roller</span>
-            <span className="text-[11px] px-2 py-0.5 rounded-full" style={{ background: "#F0F4F8", color: "#7A96B0" }}>{available.length}</span>
+            <span className="text-[11px] px-2 py-0.5 rounded-full" style={{ background: "#F0F4F8", color: "#7A96B0" }}>{filteredAvailable.length}</span>
           </div>
           <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Rol ara..." className={inputCls + " mb-3 h-[32px] text-[12px]"} />
           <DroppableZone id="available" label="Tüm roller atandı">
-            {available.map((r) => <DraggableRole key={r.id} role={r} side="available" />)}
+            {filteredAvailable.map((r) => <DraggableRole key={r.id} role={r} side="available" />)}
           </DroppableZone>
         </div>
 
@@ -392,13 +435,13 @@ function RolesTab({ userId }: { userId: number | null }) {
         <div className="rounded-xl p-4" style={{ background: "#fff", border: "1px solid #E2EBF3" }}>
           <div className="flex items-center justify-between mb-3">
             <span className="text-[13px] font-semibold" style={{ color: "#1B3A5C" }}>Atanmış Roller</span>
-            <span className="text-[11px] px-2 py-0.5 rounded-full" style={{ background: "#EAF1FA", color: "#2E6DA4" }}>{assigned.length}</span>
+            <span className="text-[11px] px-2 py-0.5 rounded-full" style={{ background: "#EAF1FA", color: "#2E6DA4" }}>{assignedRoles.length}</span>
           </div>
           <DroppableZone id="assigned" label="Buraya sürükleyin">
-            {assigned.map((r) => (
+            {assignedRoles.map((r) => (
               <div key={r.id} className="flex items-center gap-2">
                 <div className="flex-1"><DraggableRole role={r} side="assigned" /></div>
-                <button onClick={() => unassignMut.mutate(r.id)} className="shrink-0 p-1 rounded hover:bg-[#FDECEA] transition-colors" style={{ color: "#D6E4F0" }}>
+                <button onClick={() => handleUnassign(r.id)} className="shrink-0 p-1 rounded hover:bg-[#FDECEA] transition-colors" style={{ color: "#D6E4F0" }}>
                   <XIcon size={14} />
                 </button>
               </div>
@@ -407,7 +450,7 @@ function RolesTab({ userId }: { userId: number | null }) {
         </div>
       </div>
       <DragOverlay>{draggedRole && <div className="rounded-lg p-2.5 shadow-lg" style={{ background: "#fff", border: "1px solid #5B9BD5", width: 280 }}>
-        <span className="text-[13px] font-medium" style={{ color: "#1B3A5C" }}>{draggedRole.name}</span>
+        <span className="text-[13px] font-medium" style={{ color: "#1B3A5C" }}>{draggedRole.name || "—"}</span>
       </div>}</DragOverlay>
     </DndContext>
   );
