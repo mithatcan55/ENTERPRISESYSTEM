@@ -57,11 +57,7 @@ public sealed class PermissionsController(
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
     public async Task<IActionResult> Delete(int permissionId, CancellationToken cancellationToken)
     {
-        await requestExecutionPipeline.ExecuteCommandAsync(
-            new DeleteUserActionPermissionCommand(permissionId),
-            _ => deleteUserActionPermissionCommandHandler.HandleAsync(permissionId, cancellationToken),
-            cancellationToken,
-            "Permissions.DeleteActionPermission");
+        await deleteUserActionPermissionCommandHandler.HandleAsync(permissionId, cancellationToken);
         return NoContent();
     }
 }

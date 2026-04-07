@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useForm } from "react-hook-form";
@@ -341,23 +341,26 @@ function RolesTab({ userId }: { userId: number | null }) {
   const [draggedRole, setDraggedRole] = useState<RoleItem | null>(null);
   const [availableRoles, setAvailableRoles] = useState<RoleItem[]>([]);
   const [assignedRoles, setAssignedRoles] = useState<RoleItem[]>([]);
+  const rolesInitialized = useRef(false);
 
   const { data: allRoles } = useQuery({
-    queryKey: ["roles"],
+    queryKey: ["roles-all"],
     queryFn: () => apiClient.get<RoleItem[]>("/api/roles").then((r) => r.data),
     enabled: !!userId,
+    staleTime: 30_000,
   });
   const { data: userRoles } = useQuery({
     queryKey: ["user-roles", userId],
     queryFn: () => apiClient.get<RoleItem[]>(`/api/roles/users/${userId}`).then((r) => r.data),
     enabled: !!userId,
+    staleTime: 30_000,
   });
 
-  // Build full role objects from allRoles — userRoles may have partial data
+  // Build full role objects from allRoles — runs only once
   useEffect(() => {
     if (!allRoles || !userRoles) return;
-    console.log("[ROLES] allRoles:", allRoles);
-    console.log("[ROLES] userRoles:", userRoles);
+    if (rolesInitialized.current) return;
+    rolesInitialized.current = true;
     const assignedIds = new Set(userRoles.map((r) => r.id));
     setAssignedRoles(allRoles.filter((r) => assignedIds.has(r.id)));
     setAvailableRoles(allRoles.filter((r) => !assignedIds.has(r.id)));
