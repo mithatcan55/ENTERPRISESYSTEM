@@ -492,7 +492,7 @@ public sealed class CoreBootstrapHostedService(
                 continue;
 
             var existingActions = await authorizationDbContext.UserPageActionPermissions
-                .Where(x => x.UserId == user.Id && x.SubModulePageId == page.Id && !x.IsDeleted)
+                .Where(x => x.UserId == user.Id && x.SubModulePageId == page.Id)
                 .Select(x => x.ActionCode)
                 .ToListAsync(cancellationToken);
 

@@ -1,4 +1,3 @@
-using Application.Pipeline;
 using Identity.Application.Contracts;
 using Identity.Application.Permissions.Commands;
 using Identity.Application.Permissions.Queries;
@@ -11,25 +10,19 @@ namespace Authorization.Presentation.Controllers;
 [Route("api/permissions/actions")]
 [Authorize(Roles = "SYS_ADMIN")]
 public sealed class PermissionsController(
-    IRequestExecutionPipeline requestExecutionPipeline,
     IListUserActionPermissionsQueryHandler listUserActionPermissionsQueryHandler,
     IUpsertUserActionPermissionCommandHandler upsertUserActionPermissionCommandHandler,
     IDeleteUserActionPermissionCommandHandler deleteUserActionPermissionCommandHandler) : ControllerBase
 {
     [HttpGet]
     [ProducesResponseType(typeof(IReadOnlyList<UserActionPermissionDto>), StatusCodes.Status200OK)]
-    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status401Unauthorized)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status403Forbidden)]
-    public async Task<ActionResult<IReadOnlyList<UserActionPermissionDto>>> List([FromQuery] UserActionPermissionQueryRequest request, CancellationToken cancellationToken)
+    public async Task<ActionResult<IReadOnlyList<UserActionPermissionDto>>> List(
+        [FromQuery] UserActionPermissionQueryRequest request,
+        CancellationToken cancellationToken)
     {
-        // Permission sorgulari da pipeline icinden gecirilir.
-        // Boylece ileride permission listeleme bile ikinci savunma hattina baglanabilir.
-        var permissions = await requestExecutionPipeline.ExecuteQueryAsync(
-            new ListUserActionPermissionsQuery(request),
-            _ => listUserActionPermissionsQueryHandler.HandleAsync(request, cancellationToken),
-            cancellationToken,
-            "Permissions.ListActionPermissions");
+        var permissions = await listUserActionPermissionsQueryHandler.HandleAsync(request, cancellationToken);
         return Ok(permissions);
     }
 
@@ -39,14 +32,11 @@ public sealed class PermissionsController(
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status401Unauthorized)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status403Forbidden)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
-    public async Task<ActionResult<UserActionPermissionDto>> Upsert([FromBody] UpsertUserActionPermissionRequest request, CancellationToken cancellationToken)
+    public async Task<ActionResult<UserActionPermissionDto>> Upsert(
+        [FromBody] UpsertUserActionPermissionRequest request,
+        CancellationToken cancellationToken)
     {
-        // Upsert endpoint'i tek giris noktasiyla hem create hem update niyetini tasir.
-        var permission = await requestExecutionPipeline.ExecuteCommandAsync(
-            new UpsertUserActionPermissionCommand(request),
-            _ => upsertUserActionPermissionCommandHandler.HandleAsync(request, cancellationToken),
-            cancellationToken,
-            "Permissions.UpsertActionPermission");
+        var permission = await upsertUserActionPermissionCommandHandler.HandleAsync(request, cancellationToken);
         return Ok(permission);
     }
 
