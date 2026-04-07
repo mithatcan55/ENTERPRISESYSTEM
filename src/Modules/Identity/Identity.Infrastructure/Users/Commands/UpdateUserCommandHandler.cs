@@ -35,17 +35,6 @@ public sealed partial class UpdateUserCommandHandler(IdentityDbContext identityD
 
         var normalizedEmail = request.Email.Trim().ToLowerInvariant();
 
-        // ── Username (optional update) ──────────────────────────────
-        if (!string.IsNullOrWhiteSpace(request.Username))
-        {
-            var normalizedUsername = request.Username.Trim();
-            var duplicateUsername = await identityDbContext.Users
-                .AsNoTracking()
-                .AnyAsync(x => !x.IsDeleted && x.Id != userId && x.Username == normalizedUsername, cancellationToken);
-            if (!duplicateUsername)
-                user.Username = normalizedUsername;
-        }
-
         // ── Email uniqueness ────────────────────────────────────────
         var duplicateEmail = await identityDbContext.Users
             .AsNoTracking()
