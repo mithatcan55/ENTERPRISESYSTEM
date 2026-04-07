@@ -89,7 +89,7 @@ function Toggle({ checked, onChange, label, color }: { checked: boolean; onChang
 /*  TAB 1: BİLGİLER                        */
 /* ═══════════════════════════════════════ */
 
-function InfoTab({ mode, user, onSaved }: { mode: "create" | "edit"; user: UserDetail | null; onSaved: (id: number) => void }) {
+function InfoTab({ mode, user, onSaved, formRef }: { mode: "create" | "edit"; user: UserDetail | null; onSaved: (id: number) => void; formRef?: React.RefObject<HTMLFormElement | null> }) {
   const [notify, setNotify] = useState(false);
   const [isActive, setIsActive] = useState(true);
   const [mustChange, setMustChange] = useState(false);
@@ -138,7 +138,7 @@ function InfoTab({ mode, user, onSaved }: { mode: "create" | "edit"; user: UserD
     };
 
     return (
-      <form onSubmit={handleSubmit((d) => createMut.mutate(d))} className="space-y-6">
+      <form ref={formRef} onSubmit={handleSubmit((d) => createMut.mutate(d))} className="space-y-6">
         <div style={{ borderBottom: "1px solid #F0F4F8" }} className={sectionCls}>
           <User size={14} style={{ color: "#5B9BD5" }} /><span style={{ color: "#1B3A5C" }}>Temel Bilgiler</span>
         </div>
@@ -242,7 +242,7 @@ function InfoTab({ mode, user, onSaved }: { mode: "create" | "edit"; user: UserD
   // EDIT mode
   const { register, handleSubmit, setValue, watch, formState: { errors } } = editForm;
   return (
-    <form onSubmit={handleSubmit((d) => updateMut.mutate(d))} className="space-y-6">
+    <form ref={formRef} onSubmit={handleSubmit((d) => updateMut.mutate(d))} className="space-y-6">
       <div style={{ borderBottom: "1px solid #F0F4F8" }} className={sectionCls}>
         <User size={14} style={{ color: "#5B9BD5" }} /><span style={{ color: "#1B3A5C" }}>Temel Bilgiler</span>
       </div>
@@ -414,39 +414,13 @@ function RolesTab({ userId }: { userId: number | null }) {
     }
   }
 
-  async function handleDragEnd(e: DragEndEvent) {
+  function handleDragEnd(e: DragEndEvent) {
     setDraggedRole(null);
     const { active, over } = e;
     if (!over) return;
     const data = active.data.current as { role: RoleItem; side: string };
-    if (data.side === "available" && over.id === "assigned") {
-      const fullRole = allRoles?.find((r) => r.id === active.id);
-      if (!fullRole) return;
-      setAvailableRoles((prev) => prev.filter((r) => r.id !== fullRole.id));
-      setAssignedRoles((prev) => [...prev, fullRole]);
-      try {
-        await apiClient.post(`/api/roles/${fullRole.id}/assign/${userId}`);
-        toast.success(`"${fullRole.name}" rolü atandı`);
-      } catch {
-        setAssignedRoles((prev) => prev.filter((r) => r.id !== fullRole.id));
-        setAvailableRoles((prev) => [...prev, fullRole]);
-        toast.error("Rol ataması başarısız");
-      }
-    }
-    if (data.side === "assigned" && over.id === "available") {
-      const fullRole = allRoles?.find((r) => r.id === active.id);
-      if (!fullRole) return;
-      setAssignedRoles((prev) => prev.filter((r) => r.id !== fullRole.id));
-      setAvailableRoles((prev) => [...prev, fullRole]);
-      try {
-        await apiClient.delete(`/api/roles/${fullRole.id}/assign/${userId}`);
-        toast.success(`"${fullRole.name}" rolü kaldırıldı`);
-      } catch {
-        setAvailableRoles((prev) => prev.filter((r) => r.id !== fullRole.id));
-        setAssignedRoles((prev) => [...prev, fullRole]);
-        toast.error("Rol kaldırma başarısız");
-      }
-    }
+    if (data.side === "available" && over.id === "assigned") handleAssign(data.role.id);
+    if (data.side === "assigned" && over.id === "available") handleUnassign(data.role.id);
   }
 
   return (
@@ -602,6 +576,7 @@ export default function UserFormPage() {
   const isEdit = !!id;
   const [activeTab, setActiveTab] = useState<TabKey>("info");
   const [createdUserId, setCreatedUserId] = useState<number | null>(null);
+  const formRef = useRef<HTMLFormElement>(null);
 
   const userId = isEdit ? Number(id) : createdUserId;
 
@@ -623,12 +598,15 @@ export default function UserFormPage() {
   return (
     <div className="flex flex-col gap-4">
       <PageHeader
-        title={isEdit ? `${user?.username ?? "..."} — Düzenle` : "Yeni Kullanıcı"}
+        title={isEdit ? `${user?.userCode ?? "..."} — Düzenle` : "Yeni Kullanıcı"}
         subtitle="Kullanıcı bilgilerini, rollerini ve yetkilerini yönetin"
         actions={
           <div className="flex gap-2 w-full sm:w-auto">
             <PageAction variant="ghost" onClick={() => navigate("/users")}><ArrowLeft size={14} /> İptal</PageAction>
-            {userId && <PageAction onClick={() => navigate(`/users/${userId}`)}><Check size={14} /> Tamamla</PageAction>}
+            <PageAction onClick={() => {
+              if (activeTab === "info") formRef.current?.requestSubmit();
+              else if (userId) navigate(`/users/${userId}`);
+            }}><Check size={14} /> Kaydet</PageAction>
           </div>
         }
       />
@@ -654,7 +632,7 @@ export default function UserFormPage() {
 
       {/* Tab content */}
       <div className="rounded-[10px] p-6 sm:p-8" style={{ background: "#fff", border: "1px solid #E2EBF3" }}>
-        {activeTab === "info" && <InfoTab mode={isEdit ? "edit" : "create"} user={user ?? null} onSaved={handleCreated} />}
+        {activeTab === "info" && <InfoTab mode={isEdit ? "edit" : "create"} user={user ?? null} onSaved={handleCreated} formRef={formRef} />}
         {activeTab === "roles" && <RolesTab userId={userId} />}
         {activeTab === "perms" && <PermissionsTab userId={userId} />}
       </div>
