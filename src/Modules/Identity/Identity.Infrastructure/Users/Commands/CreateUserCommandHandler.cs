@@ -115,7 +115,6 @@ public sealed class CreateUserCommandHandler(
         }
         catch
         {
-            // Ayrik context'ler nedeniyle ikinci yazim patlarsa yarim kaydi manuel olarak geri sarariz.
             await identityDbContext.Database.ExecuteSqlInterpolatedAsync(
                 $"DELETE FROM \"{PersistenceSchemaNames.Business}\".\"UserPasswordHistories\" WHERE \"UserId\" = {user.Id}",
                 cancellationToken);
@@ -123,6 +122,27 @@ public sealed class CreateUserCommandHandler(
                 $"DELETE FROM \"{PersistenceSchemaNames.Business}\".\"Users\" WHERE \"Id\" = {user.Id}",
                 cancellationToken);
             throw;
+        }
+
+        // Assign roles if provided
+        if (request.RoleIds is { Count: > 0 })
+        {
+            var validRoleIds = await identityDbContext.Roles
+                .AsNoTracking()
+                .Where(r => !r.IsDeleted && request.RoleIds.Contains(r.Id))
+                .Select(r => r.Id)
+                .ToListAsync(cancellationToken);
+
+            foreach (var roleId in validRoleIds)
+            {
+                identityDbContext.UserRoles.Add(new UserRole
+                {
+                    UserId = user.Id,
+                    RoleId = roleId
+                });
+            }
+
+            await identityDbContext.SaveChangesAsync(cancellationToken);
         }
 
         if (request.NotifyAdminByMail)

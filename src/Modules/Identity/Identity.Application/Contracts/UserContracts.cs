@@ -62,6 +62,7 @@ public sealed class UpdateUserRequest
     public string? ProfileImageUrl { get; set; }
     public bool MustChangePassword { get; set; }
     // PasswordExpiresAt is system-managed: set automatically on password change
+    public List<int>? RoleIds { get; set; }
 }
 
 public sealed record PagedResult<T>(
@@ -69,3 +70,9 @@ public sealed record PagedResult<T>(
     int TotalCount,
     int Page,
     int PageSize);
+
+public sealed record LookupItemDto(int Id, string Name);
+
+public sealed record UserLookupsDto(
+    IReadOnlyList<LookupItemDto> Roles,
+    IReadOnlyList<LookupItemDto> Permissions);

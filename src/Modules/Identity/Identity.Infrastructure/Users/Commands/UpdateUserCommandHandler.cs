@@ -3,6 +3,7 @@ using Application.Exceptions;
 using Identity.Application.Contracts;
 using Identity.Application.Users.Commands;
 using Infrastructure.Persistence;
+using Infrastructure.Persistence.Entities.Identity;
 using Microsoft.EntityFrameworkCore;
 
 namespace Identity.Infrastructure.Users.Commands;
@@ -56,6 +57,39 @@ public sealed partial class UpdateUserCommandHandler(IdentityDbContext identityD
         // PasswordExpiresAt is system-managed only (set on password change)
 
         await identityDbContext.SaveChangesAsync(cancellationToken);
+
+        // ── Replace roles if provided ───────────────────────────────
+        if (request.RoleIds is not null)
+        {
+            var existingRoles = await identityDbContext.UserRoles
+                .Where(ur => ur.UserId == userId && !ur.IsDeleted)
+                .ToListAsync(cancellationToken);
+
+            // Remove roles not in the new list
+            foreach (var existing in existingRoles)
+            {
+                if (!request.RoleIds.Contains(existing.RoleId))
+                {
+                    existing.IsDeleted = true;
+                    existing.DeletedAt = DateTime.UtcNow;
+                }
+            }
+
+            // Add new roles
+            var existingRoleIds = existingRoles.Where(r => !r.IsDeleted).Select(r => r.RoleId).ToHashSet();
+            var validNewRoleIds = await identityDbContext.Roles
+                .AsNoTracking()
+                .Where(r => !r.IsDeleted && request.RoleIds.Contains(r.Id) && !existingRoleIds.Contains(r.Id))
+                .Select(r => r.Id)
+                .ToListAsync(cancellationToken);
+
+            foreach (var roleId in validNewRoleIds)
+            {
+                identityDbContext.UserRoles.Add(new UserRole { UserId = userId, RoleId = roleId });
+            }
+
+            await identityDbContext.SaveChangesAsync(cancellationToken);
+        }
 
         // ── Return ──────────────────────────────────────────────────
         return await identityDbContext.Users
