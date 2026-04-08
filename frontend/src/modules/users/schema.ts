@@ -10,11 +10,12 @@ export const createUserSchema = z.object({
   notifyAdminByMail: z.boolean(),
   adminEmail: z.string().optional(),
   mustChangePassword: z.boolean().optional(),
+  profileImageUrl: z.string().nullable().optional(),
 });
 
 export const updateUserSchema = z.object({
-  firstName: z.string().optional(),
-  lastName: z.string().optional(),
+  firstName: z.string().min(1, "Ad zorunlu"),
+  lastName: z.string().min(1, "Soyad zorunlu"),
   email: z.email("Geçerli e-posta giriniz"),
   isActive: z.boolean(),
   mustChangePassword: z.boolean(),

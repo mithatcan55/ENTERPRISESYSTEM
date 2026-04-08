@@ -114,29 +114,40 @@ function InfoTab({ mode, user, onSaved, formRef }: {
 
     return (
       <form ref={formRef} onSubmit={handleSubmit(createMut)} className="space-y-6">
-        <div className={sectionCls}><User size={14} className="text-[#5B9BD5]" /> Temel Bilgiler</div>
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-5 gap-y-4">
-          <div>
-            <label className={labelCls}>Ad *</label>
-            <input {...register("firstName")} className={inputCls} placeholder="Mithat" />
-            {errors.firstName && <p className={errCls}>{errors.firstName.message}</p>}
-          </div>
-          <div>
-            <label className={labelCls}>Soyad *</label>
-            <input {...register("lastName")} className={inputCls} placeholder="Can" />
-            {errors.lastName && <p className={errCls}>{errors.lastName.message}</p>}
-          </div>
-          {(wFirst || wLast) && (
-            <div className="sm:col-span-2 flex items-center gap-1.5 text-[11px] text-[#7A96B0]" style={{ marginTop: -8 }}>
-              <Wand2 size={11} className="text-[#B0BEC5]" />
-              <span>Kod: </span>
-              <span style={{ fontFamily: mono, fontWeight: 500, color: "#2E6DA4" }}>{preview || "—"}</span>
-              {preview && wCode !== preview && (
-                <button type="button" onClick={() => { setValue("userCode", preview); setAutoGen(true); toast.success(`Kod: ${preview}`, { duration: 1500 }); }}
-                  className="text-[#5B9BD5] hover:underline" style={{ background: "none", border: "none", cursor: "pointer", padding: 0, fontSize: 11 }}>Uygula</button>
-              )}
+        {/* Profile image + name section */}
+        <div className="flex flex-col sm:flex-row items-start gap-5">
+          <ProfileImageEditor value={watch("profileImageUrl") ?? null}
+            displayName={`${wFirst} ${wLast}`.trim() || undefined}
+            onChange={(val) => setValue("profileImageUrl", val ?? "")} />
+          <div className="flex-1 grid grid-cols-1 sm:grid-cols-2 gap-x-5 gap-y-4 w-full">
+            <div>
+              <label className={labelCls}>Ad *</label>
+              <input {...register("firstName")} className={inputCls} placeholder="Mithat" />
+              {errors.firstName && <p className={errCls}>{errors.firstName.message}</p>}
             </div>
-          )}
+            <div>
+              <label className={labelCls}>Soyad *</label>
+              <input {...register("lastName")} className={inputCls} placeholder="Can" />
+              {errors.lastName && <p className={errCls}>{errors.lastName.message}</p>}
+            </div>
+          </div>
+        </div>
+
+        {/* Code hint */}
+        {(wFirst || wLast) && (
+          <div className="flex items-center gap-1.5 text-[11px] text-[#7A96B0]">
+            <Wand2 size={11} className="text-[#B0BEC5]" />
+            <span>Kod: </span>
+            <span style={{ fontFamily: mono, fontWeight: 500, color: "#2E6DA4" }}>{preview || "—"}</span>
+            {preview && wCode !== preview && (
+              <button type="button" onClick={() => { setValue("userCode", preview); setAutoGen(true); toast.success(`Kod: ${preview}`, { duration: 1500 }); }}
+                className="text-[#5B9BD5] hover:underline" style={{ background: "none", border: "none", cursor: "pointer", padding: 0, fontSize: 11 }}>Uygula</button>
+            )}
+          </div>
+        )}
+
+        <div className={sectionCls}><User size={14} className="text-[#5B9BD5]" /> Hesap Bilgileri</div>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-5 gap-y-4">
           <div>
             <label className={labelCls}>Kod *</label>
             <div className="flex gap-2">
@@ -183,11 +194,6 @@ function InfoTab({ mode, user, onSaved, formRef }: {
             <input {...register("adminEmail")} type="email" className={inputCls} placeholder="admin@firma.com" />
           </div>
         )}
-        <div className="flex justify-end pt-4">
-          <button type="submit" className="flex items-center gap-2 rounded-lg px-5 py-2.5 text-[13px] font-medium bg-[#1B3A5C] text-white hover:bg-[#2E6DA4]">
-            <Check size={14} /> Kaydet ve Devam Et
-          </button>
-        </div>
       </form>
     );
   }
@@ -196,10 +202,27 @@ function InfoTab({ mode, user, onSaved, formRef }: {
   const { register, handleSubmit, setValue, watch, formState: { errors } } = editForm;
   return (
     <form ref={formRef} onSubmit={handleSubmit(updateMut)} className="space-y-6">
-      <div className={sectionCls}><User size={14} className="text-[#5B9BD5]" /> Temel Bilgiler</div>
+      {/* Profile image + name section */}
+      <div className="flex flex-col sm:flex-row items-start gap-5">
+        <ProfileImageEditor value={watch("profileImageUrl") ?? null}
+          displayName={`${watch("firstName") ?? ""} ${watch("lastName") ?? ""}`.trim() || user?.userCode}
+          onChange={(val) => setValue("profileImageUrl", val ?? "")} />
+        <div className="flex-1 grid grid-cols-1 sm:grid-cols-2 gap-x-5 gap-y-4 w-full">
+          <div>
+            <label className={labelCls}>Ad *</label>
+            <input {...register("firstName")} className={inputCls} />
+            {errors.firstName && <p className={errCls}>{errors.firstName.message}</p>}
+          </div>
+          <div>
+            <label className={labelCls}>Soyad *</label>
+            <input {...register("lastName")} className={inputCls} />
+            {errors.lastName && <p className={errCls}>{errors.lastName.message}</p>}
+          </div>
+        </div>
+      </div>
+
+      <div className={sectionCls}><User size={14} className="text-[#5B9BD5]" /> Hesap Bilgileri</div>
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-5 gap-y-4">
-        <div><label className={labelCls}>Ad</label><input {...register("firstName")} className={inputCls} /></div>
-        <div><label className={labelCls}>Soyad</label><input {...register("lastName")} className={inputCls} /></div>
         <div>
           <label className={labelCls}>E-posta *</label>
           <input {...register("email")} type="email" className={inputCls} />
@@ -210,22 +233,11 @@ function InfoTab({ mode, user, onSaved, formRef }: {
             Şifre geçerliliği: <strong className="ml-1 text-[#1B3A5C]">{new Date(user.passwordExpiresAt).toLocaleDateString("tr-TR")}</strong>
           </div>
         )}
-        <div className="sm:col-span-2">
-          <label className="text-[12px] font-medium text-[#4A6580] mb-2 block">Profil Fotoğrafı</label>
-          <ProfileImageEditor value={watch("profileImageUrl") ?? null}
-            displayName={`${watch("firstName") ?? ""} ${watch("lastName") ?? ""}`.trim() || user?.userCode}
-            onChange={(val) => setValue("profileImageUrl", val ?? "")} />
-        </div>
       </div>
       <div className={sectionCls + " mt-6"}><Shield size={14} className="text-[#1E8A6E]" /> Hesap Durumu</div>
       <div className="flex flex-wrap gap-6">
         <Toggle checked={isActive} onChange={(v) => { setIsActive(v); setValue("isActive", v); }} label="Aktif" color={isActive ? "#1E8A6E" : undefined} />
         <Toggle checked={mustChange} onChange={(v) => { setMustChange(v); setValue("mustChangePassword", v); }} label="Şifre değişimi zorunlu" color={mustChange ? "#D4891A" : undefined} />
-      </div>
-      <div className="flex justify-end pt-4">
-        <button type="submit" className="flex items-center gap-2 rounded-lg px-5 py-2.5 text-[13px] font-medium bg-[#1B3A5C] text-white hover:bg-[#2E6DA4]">
-          <Check size={14} /> Kaydet
-        </button>
       </div>
     </form>
   );
