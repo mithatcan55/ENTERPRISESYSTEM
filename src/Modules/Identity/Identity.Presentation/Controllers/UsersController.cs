@@ -1,7 +1,6 @@
 using Authorization.Application.Security;
 using Application.Pipeline;
 using Identity.Application.Contracts;
-using Identity.Application.Roles.Queries;
 using Identity.Application.Users.Commands;
 using Identity.Application.Users.Queries;
 using Microsoft.AspNetCore.Authorization;
@@ -23,7 +22,7 @@ public sealed class UsersController(
     IDeleteUserCommandHandler deleteUserCommandHandler,
     IGetUserPermissionSummaryQueryHandler getUserPermissionSummaryQueryHandler,
     IGrantUserPermissionsCommandHandler grantUserPermissionsCommandHandler,
-    IListRolesQueryHandler listRolesQueryHandler) : ControllerBase
+    IGetUserLookupsQueryHandler getUserLookupsQueryHandler) : ControllerBase
 {
     [HttpGet]
     [TCodeAuthorize("SYS04", "READ")]
@@ -188,8 +187,7 @@ public sealed class UsersController(
     [ProducesResponseType(typeof(UserLookupsDto), StatusCodes.Status200OK)]
     public async Task<ActionResult<UserLookupsDto>> GetLookups(CancellationToken cancellationToken)
     {
-        var roles = await listRolesQueryHandler.HandleAsync(cancellationToken);
-        var roleLookups = roles.Select(r => new LookupItemDto(r.Id, r.Name)).ToList();
-        return Ok(new UserLookupsDto(roleLookups, []));
+        var lookups = await getUserLookupsQueryHandler.HandleAsync(cancellationToken);
+        return Ok(lookups);
     }
 }

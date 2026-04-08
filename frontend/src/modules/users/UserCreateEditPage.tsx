@@ -14,7 +14,8 @@ import {
 /* ─── Types ─── */
 
 interface LookupItem { id: number; name: string; }
-interface LookupsResponse { roles: LookupItem[]; permissions: LookupItem[]; }
+interface PermissionLookup { id: number; transactionCode: string; actionCode: string; displayName: string; }
+interface LookupsResponse { roles: LookupItem[]; permissions: PermissionLookup[]; }
 
 interface UserFormData {
   userCode: string;
@@ -25,6 +26,7 @@ interface UserFormData {
   isActive: boolean;
   companyId: number;
   roleIds: number[];
+  permissionIds: number[];
 }
 
 /* ─── Shared Styles ─── */
@@ -74,7 +76,7 @@ export default function UserCreateEditPage() {
 
   const [form, setForm] = useState<UserFormData>({
     userCode: "", firstName: "", lastName: "", email: "",
-    password: "", isActive: true, companyId: 1, roleIds: [],
+    password: "", isActive: true, companyId: 1, roleIds: [], permissionIds: [],
   });
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [saving, setSaving] = useState(false);
@@ -102,8 +104,13 @@ export default function UserCreateEditPage() {
     const u = user as UserDetail & { firstName?: string; lastName?: string };
     setForm({
       userCode: user.userCode, firstName: u.firstName ?? "", lastName: u.lastName ?? "",
-      email: user.email, password: "", isActive: user.isActive, companyId: 1, roleIds: [],
+      email: user.email, password: "", isActive: user.isActive, companyId: 1, roleIds: [], permissionIds: [],
     });
+    // Prefill permissions from detail
+    const detail = user as unknown as { directPermissions?: { subModulePageId: number }[] };
+    if (detail.directPermissions) {
+      setForm((prev) => ({ ...prev, permissionIds: detail.directPermissions!.map((p) => p.subModulePageId) }));
+    }
   }, [isEdit, user]);
 
   useEffect(() => {
@@ -123,6 +130,15 @@ export default function UserCreateEditPage() {
       roleIds: prev.roleIds.includes(roleId)
         ? prev.roleIds.filter((x) => x !== roleId)
         : [...prev.roleIds, roleId],
+    }));
+  }
+
+  function togglePermission(permId: number) {
+    setForm((prev) => ({
+      ...prev,
+      permissionIds: prev.permissionIds.includes(permId)
+        ? prev.permissionIds.filter((x) => x !== permId)
+        : [...prev.permissionIds, permId],
     }));
   }
 
@@ -146,7 +162,7 @@ export default function UserCreateEditPage() {
         await apiClient.put(`/api/users/${id}`, {
           firstName: form.firstName || null, lastName: form.lastName || null,
           email: form.email, isActive: form.isActive, mustChangePassword: false,
-          profileImageUrl: null, roleIds: form.roleIds,
+          profileImageUrl: null, roleIds: form.roleIds, permissionIds: form.permissionIds,
         });
         toast.success("Kullanıcı güncellendi");
         queryClient.invalidateQueries({ queryKey: ["users"] });
@@ -157,7 +173,7 @@ export default function UserCreateEditPage() {
           username: form.userCode.trim().toLowerCase(),
           firstName: form.firstName || null, lastName: form.lastName || null,
           email: form.email, password: form.password,
-          companyId: form.companyId, notifyAdminByMail: false, roleIds: form.roleIds,
+          companyId: form.companyId, notifyAdminByMail: false, roleIds: form.roleIds, permissionIds: form.permissionIds,
         });
         toast.success("Kullanıcı oluşturuldu");
         queryClient.invalidateQueries({ queryKey: ["users"] });
@@ -330,6 +346,50 @@ export default function UserCreateEditPage() {
                       {selected && <Check size={10} className="text-white" />}
                     </span>
                     {role.name}
+                  </button>
+                );
+              })}
+            </div>
+          )}
+        </div>
+
+        {/* ═══ Section 3: Doğrudan İzinler ═══ */}
+        <div className={`${cardCls} p-6`}>
+          <h3 className={sectionTitleCls}>
+            <SectionIcon icon={KeyRound} />
+            Doğrudan İzinler
+            {form.permissionIds.length > 0 && (
+              <span className="ml-auto text-[11px] font-normal px-2.5 py-1 rounded-full bg-[#FEF3E2] text-[#D4891A]">
+                {form.permissionIds.length} izin seçili
+              </span>
+            )}
+          </h3>
+
+          {!lookups?.permissions?.length ? (
+            <div className="flex flex-col items-center py-8 gap-2">
+              <KeyRound size={28} className="text-[#D6E4F0]" />
+              <p className="text-[13px] text-[#94A3B8]">Tanımlı izin bulunamadı</p>
+            </div>
+          ) : (
+            <div className="flex flex-wrap gap-2">
+              {lookups.permissions.map((perm) => {
+                const selected = form.permissionIds.includes(perm.id);
+                return (
+                  <button key={perm.id} type="button" onClick={() => togglePermission(perm.id)}
+                    className={`flex items-center gap-1.5 rounded-lg px-3.5 py-2 text-[13px] font-medium transition-all border ${
+                      selected
+                        ? "bg-[#FEF3E2] border-[#F5D99A] text-[#D4891A] shadow-[0_0_0_1px_rgba(212,137,26,0.15)]"
+                        : "bg-white border-[#E2EBF3] text-[#7A96B0] hover:border-[#C5D5E3] hover:text-[#4A6580]"
+                    }`}>
+                    <span className={`flex items-center justify-center w-4 h-4 rounded border transition-all ${
+                      selected ? "bg-[#D4891A] border-[#D4891A]" : "bg-white border-[#D6E4F0]"
+                    }`}>
+                      {selected && <Check size={10} className="text-white" />}
+                    </span>
+                    <span className="font-mono text-[11px] mr-1" style={{ color: selected ? "#B8750F" : "#94A3B8" }}>
+                      {perm.transactionCode}
+                    </span>
+                    {perm.displayName}
                   </button>
                 );
               })}

@@ -145,6 +145,29 @@ public sealed class CreateUserCommandHandler(
             await identityDbContext.SaveChangesAsync(cancellationToken);
         }
 
+        // Assign direct permissions if provided (UserPageActionPermission)
+        if (request.PermissionIds is { Count: > 0 })
+        {
+            var validPageIds = await authorizationDbContext.SubModulePages
+                .AsNoTracking()
+                .Where(p => !p.IsDeleted && request.PermissionIds.Contains(p.Id))
+                .Select(p => new { p.Id, p.TransactionCode })
+                .ToListAsync(cancellationToken);
+
+            foreach (var page in validPageIds)
+            {
+                authorizationDbContext.UserPageActionPermissions.Add(new UserPageActionPermission
+                {
+                    UserId = user.Id,
+                    SubModulePageId = page.Id,
+                    ActionCode = "ALL",
+                    IsAllowed = true
+                });
+            }
+
+            await authorizationDbContext.SaveChangesAsync(cancellationToken);
+        }
+
         if (request.NotifyAdminByMail)
         {
             // Bildirim ana veri kaydindan sonra cagriliyor.

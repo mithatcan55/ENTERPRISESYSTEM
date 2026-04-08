@@ -12,4 +12,5 @@ public sealed class CreateUserRequest
     public bool NotifyAdminByMail { get; set; }
     public string? AdminEmail { get; set; }
     public List<int>? RoleIds { get; set; }
+    public List<int>? PermissionIds { get; set; }
 }

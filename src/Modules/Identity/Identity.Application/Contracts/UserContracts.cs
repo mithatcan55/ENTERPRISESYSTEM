@@ -40,7 +40,18 @@ public sealed record UserDetailDto(
     bool IsDeleted,
     DateTime? DeletedAt,
     string? DeletedBy,
-    string? ProfileImageUrl);
+    string? ProfileImageUrl,
+    IReadOnlyList<UserRoleDto> Roles,
+    IReadOnlyList<UserDirectPermissionDto> DirectPermissions);
+
+public sealed record UserRoleDto(int RoleId, string RoleCode, string RoleName);
+
+public sealed record UserDirectPermissionDto(
+    int Id,
+    int SubModulePageId,
+    string TransactionCode,
+    string ActionCode,
+    bool IsAllowed);
 
 public sealed record CreatedUserDto(
     int Id,
@@ -61,8 +72,8 @@ public sealed class UpdateUserRequest
     public bool IsActive { get; set; } = true;
     public string? ProfileImageUrl { get; set; }
     public bool MustChangePassword { get; set; }
-    // PasswordExpiresAt is system-managed: set automatically on password change
     public List<int>? RoleIds { get; set; }
+    public List<int>? PermissionIds { get; set; }
 }
 
 public sealed record PagedResult<T>(
@@ -73,6 +84,12 @@ public sealed record PagedResult<T>(
 
 public sealed record LookupItemDto(int Id, string Name);
 
+public sealed record PermissionLookupItemDto(
+    int Id,
+    string TransactionCode,
+    string ActionCode,
+    string DisplayName);
+
 public sealed record UserLookupsDto(
     IReadOnlyList<LookupItemDto> Roles,
-    IReadOnlyList<LookupItemDto> Permissions);
+    IReadOnlyList<PermissionLookupItemDto> Permissions);

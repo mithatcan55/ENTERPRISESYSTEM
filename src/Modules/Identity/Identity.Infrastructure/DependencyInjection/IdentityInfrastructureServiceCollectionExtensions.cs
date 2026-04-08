@@ -26,6 +26,7 @@ public static class IdentityInfrastructureServiceCollectionExtensions
         services.AddScoped<IAuthLifecycleService, AuthLifecycleService>();
         services.AddScoped<IListUsersQueryHandler, ListUsersQueryHandler>();
         services.AddScoped<IGetUserByIdQueryHandler, GetUserByIdQueryHandler>();
+        services.AddScoped<IGetUserLookupsQueryHandler, GetUserLookupsQueryHandler>();
         services.AddScoped<ICreateUserCommandHandler, CreateUserCommandHandler>();
         services.AddScoped<IUpdateUserCommandHandler, UpdateUserCommandHandler>();
         services.AddScoped<IDeactivateUserCommandHandler, DeactivateUserCommandHandler>();
