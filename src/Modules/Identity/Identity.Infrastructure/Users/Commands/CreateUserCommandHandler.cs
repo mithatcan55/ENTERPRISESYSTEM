@@ -42,19 +42,15 @@ public sealed class CreateUserCommandHandler(
             throw new ValidationAppException("Kullanici olusturma dogrulamasi basarisiz.", validationErrors);
 
         var normalizedUserCode = request.UserCode.Trim().ToUpperInvariant();
-        var normalizedUsername = string.IsNullOrWhiteSpace(request.Username)
-            ? normalizedUserCode.ToLowerInvariant()
-            : request.Username.Trim();
         var normalizedEmail = request.Email.Trim().ToLowerInvariant();
 
         // Sifre karmasikligi teknik bir input kontrolu degil, merkezi policy kuralidir.
-        passwordPolicyService.ValidateComplexityOrThrow(request.Password, normalizedUsername, normalizedEmail);
+        passwordPolicyService.ValidateComplexityOrThrow(request.Password, normalizedUserCode, normalizedEmail);
 
         var duplicateExists = await identityDbContext.Users
             .AsNoTracking()
             .AnyAsync(x => !x.IsDeleted &&
                            (x.UserCode == normalizedUserCode
-                            || x.Username == normalizedUsername
                             || x.Email == normalizedEmail),
                 cancellationToken);
 
@@ -64,7 +60,7 @@ public sealed class CreateUserCommandHandler(
                 "Kullanici benzersizlik kontrolu basarisiz.",
                 new Dictionary<string, string[]>
                 {
-                    ["user"] = ["Ayni userCode, username veya email ile kayit zaten mevcut."]
+                    ["user"] = ["Ayni userCode veya email ile kayit zaten mevcut."]
                 });
         }
 
@@ -78,7 +74,6 @@ public sealed class CreateUserCommandHandler(
         var user = new User
         {
             UserCode = normalizedUserCode,
-            Username = normalizedUsername,
             FirstName = request.FirstName?.Trim(),
             LastName = request.LastName?.Trim(),
             Email = normalizedEmail,
@@ -175,14 +170,13 @@ public sealed class CreateUserCommandHandler(
             await identityNotificationService.QueueAdminMailAsync(
                 request.AdminEmail!.Trim(),
                 $"Yeni kullanici olusturuldu: {user.UserCode}",
-                $"Kullanici olusturuldu. UserCode={user.UserCode}, Username={user.Username}, Email={user.Email}",
+                $"Kullanici olusturuldu. UserCode={user.UserCode}, Email={user.Email}",
                 cancellationToken);
         }
 
         return new CreatedUserDto(
             user.Id,
             user.UserCode,
-            user.Username,
             user.FirstName,
             user.LastName,
             user.Email,

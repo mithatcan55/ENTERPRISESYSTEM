@@ -334,7 +334,6 @@ public sealed class CoreBootstrapHostedService(
     private async Task EnsureAdminSeedAsync(IdentityDbContext identityDbContext, AuthorizationDbContext authorizationDbContext, CancellationToken cancellationToken)
     {
         var adminUserCode = configuration["BootstrapAdmin:UserCode"] ?? "CORE_ADMIN";
-        var adminUsername = configuration["BootstrapAdmin:Username"] ?? "core.admin";
         var adminEmail = configuration["BootstrapAdmin:Email"] ?? "core.admin@local";
         var adminPassword = configuration["BootstrapAdmin:Password"] ?? "CoreAdmin@12345";
 
@@ -359,7 +358,6 @@ public sealed class CoreBootstrapHostedService(
             user = new User
             {
                 UserCode = adminUserCode,
-                Username = adminUsername,
                 Email = adminEmail,
                 PasswordHash = BCrypt.Net.BCrypt.HashPassword(adminPassword),
                 IsActive = true,
@@ -372,16 +370,12 @@ public sealed class CoreBootstrapHostedService(
         }
         else if (hostEnvironment.IsDevelopment())
         {
-            // Development ortaminda bootstrap admin kullanicisinin sifresi config ile uyumlu tutulur.
-            // Boylece local reset veya secret degisikliginden sonra eski hash nedeniyle login kilitlenmez.
             var passwordNeedsRefresh = !BCrypt.Net.BCrypt.Verify(adminPassword, user.PasswordHash);
             var identityNeedsRefresh =
-                !string.Equals(user.Username, adminUsername, StringComparison.Ordinal) ||
                 !string.Equals(user.Email, adminEmail, StringComparison.OrdinalIgnoreCase);
 
             if (passwordNeedsRefresh || identityNeedsRefresh)
             {
-                user.Username = adminUsername;
                 user.Email = adminEmail;
                 user.PasswordHash = BCrypt.Net.BCrypt.HashPassword(adminPassword);
                 user.IsActive = true;

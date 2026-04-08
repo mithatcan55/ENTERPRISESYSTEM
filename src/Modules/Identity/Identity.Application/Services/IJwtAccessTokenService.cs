@@ -3,7 +3,6 @@ namespace Identity.Application.Services;
 public sealed record AccessTokenRequest(
     int UserId,
     string UserCode,
-    string Username,
     int? CompanyId,
     int SessionId,
     IReadOnlyCollection<string> Roles,

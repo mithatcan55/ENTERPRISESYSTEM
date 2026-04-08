@@ -36,13 +36,12 @@ public sealed class GetUserByIdQueryHandler(
         ).ToListAsync(cancellationToken);
 
         var displayName = string.IsNullOrWhiteSpace(userEntity.FirstName) && string.IsNullOrWhiteSpace(userEntity.LastName)
-            ? userEntity.Username
+            ? userEntity.UserCode
             : $"{userEntity.FirstName} {userEntity.LastName}".Trim();
 
         return new UserDetailDto(
             userEntity.Id,
             userEntity.UserCode,
-            userEntity.Username,
             userEntity.FirstName,
             userEntity.LastName,
             displayName,

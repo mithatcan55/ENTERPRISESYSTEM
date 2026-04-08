@@ -109,18 +109,18 @@ export default function UsersListPage() {
 
       <CrudModal mode="delete" title="Kullanıcı Sil" isOpen={modalMode === "delete"} onClose={closeModal}
         onSubmit={() => selectedUser && deleteMut.mutate(selectedUser.id)} isLoading={deleteMut.isPending}>
-        <p style={{ color: "#2C4A6B", fontSize: 14 }}><strong>{selectedUser?.username}</strong> ({selectedUser?.userCode}) kalıcı olarak silinecek.</p>
+        <p style={{ color: "#2C4A6B", fontSize: 14 }}><strong>{selectedUser?.userCode}</strong> ({selectedUser?.userCode}) kalıcı olarak silinecek.</p>
         <p className="mt-2" style={{ color: "#7A96B0", fontSize: 12 }}>Bu işlem geri alınamaz.</p>
       </CrudModal>
 
       <CrudModal mode="delete" title="Kullanıcıyı Pasife Al" isOpen={modalMode === "deactivate"} onClose={closeModal}
         onSubmit={() => selectedUser && deactivateMut.mutate(selectedUser.id)} isLoading={deactivateMut.isPending}>
-        <p style={{ color: "#2C4A6B", fontSize: 14 }}><strong>{selectedUser?.username}</strong> pasife alınacak. Giriş yapamayacak.</p>
+        <p style={{ color: "#2C4A6B", fontSize: 14 }}><strong>{selectedUser?.userCode}</strong> pasife alınacak. Giriş yapamayacak.</p>
       </CrudModal>
 
       <CrudModal mode="create" title="Kullanıcıyı Aktive Et" isOpen={modalMode === "reactivate"} onClose={closeModal}
         onSubmit={() => selectedUser && reactivateMut.mutate(selectedUser.id)} isLoading={reactivateMut.isPending}>
-        <p style={{ color: "#2C4A6B", fontSize: 14 }}><strong>{selectedUser?.username}</strong> tekrar aktive edilecek.</p>
+        <p style={{ color: "#2C4A6B", fontSize: 14 }}><strong>{selectedUser?.userCode}</strong> tekrar aktive edilecek.</p>
       </CrudModal>
     </div>
   );

@@ -200,12 +200,10 @@ public sealed class BusinessDbContext(
             entity.ToTable("Users");
             entity.HasKey(x => x.Id);
             entity.Property(x => x.UserCode).HasMaxLength(50).IsRequired();
-            entity.Property(x => x.Username).HasMaxLength(200).IsRequired();
             entity.Property(x => x.Email).HasMaxLength(320).IsRequired();
             entity.Property(x => x.PasswordHash).HasMaxLength(500).IsRequired();
             entity.Property(x => x.ProfileImageUrl).HasMaxLength(2000);
             entity.HasIndex(x => x.UserCode).IsUnique();
-            entity.HasIndex(x => x.Username).IsUnique();
             entity.HasIndex(x => x.Email).IsUnique();
         });
 

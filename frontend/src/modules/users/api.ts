@@ -5,7 +5,7 @@ import apiClient from "@/api/client";
 export interface UserListItem {
   id: number;
   userCode: string;
-  username: string;
+
   firstName: string | null;
   lastName: string | null;
   displayName: string;
@@ -41,7 +41,7 @@ export interface UserDirectPermissionDto {
 export interface UserDetail {
   id: number;
   userCode: string;
-  username: string;
+
   firstName: string | null;
   lastName: string | null;
   displayName: string;
@@ -73,7 +73,7 @@ export interface UserListParams {
 
 export interface CreateUserPayload {
   userCode: string;
-  username?: string;
+
   firstName?: string | null;
   lastName?: string | null;
   email: string;

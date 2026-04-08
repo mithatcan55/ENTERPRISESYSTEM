@@ -9,7 +9,6 @@ public sealed class LoginRequest
 public sealed record LoginResponseDto(
     int UserId,
     string UserCode,
-    string Username,
     string AccessToken,
     DateTime AccessTokenExpiresAt,
     string RefreshToken,

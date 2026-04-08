@@ -24,9 +24,9 @@ public sealed class JwtAccessTokenService(IOptions<JwtTokenOptions> options) : I
             new(SecurityClaimTypes.Subject, request.UserId.ToString()),
             new(SecurityClaimTypes.UserId, request.UserId.ToString()),
             new(SecurityClaimTypes.UserCode, request.UserCode),
-            new(SecurityClaimTypes.Username, request.Username),
+            new(SecurityClaimTypes.Username, request.UserCode),
             new(SecurityClaimTypes.NameIdentifier, request.UserId.ToString()),
-            new(SecurityClaimTypes.Name, request.Username),
+            new(SecurityClaimTypes.Name, request.UserCode),
             new(SecurityClaimTypes.SessionId, request.SessionId.ToString()),
             new(JwtRegisteredClaimNames.Jti, tokenId)
         };

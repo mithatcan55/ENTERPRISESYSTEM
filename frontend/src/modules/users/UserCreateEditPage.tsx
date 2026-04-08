@@ -170,7 +170,6 @@ export default function UserCreateEditPage() {
       } else {
         const { data } = await apiClient.post("/api/users", {
           userCode: form.userCode.trim().toUpperCase(),
-          username: form.userCode.trim().toLowerCase(),
           firstName: form.firstName || null, lastName: form.lastName || null,
           email: form.email, password: form.password,
           companyId: form.companyId, notifyAdminByMail: false, roleIds: form.roleIds, permissionIds: form.permissionIds,

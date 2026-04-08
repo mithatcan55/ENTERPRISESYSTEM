@@ -17,11 +17,10 @@ export interface AuthUser {
   roles: UserRole[];
 }
 
-/** Matches backend LoginResponseDto exactly */
+/** Matches backend LoginResponseDto */
 export interface LoginResponse {
   userId: number;
   userCode: string;
-  username: string;
   accessToken: string;
   accessTokenExpiresAt: string;
   refreshToken: string;
@@ -29,6 +28,8 @@ export interface LoginResponse {
   tokenType: string;
   mustChangePassword: boolean;
   passwordExpiresAt: string | null;
+  isPasswordExpiringSoon: boolean;
+  daysUntilPasswordExpiry: number | null;
   effectiveAuthorization: {
     roles: string[];
     transactionCodes: string[];

@@ -107,9 +107,9 @@ public sealed class SessionAuthenticationHandler(
             new(SecurityClaimTypes.Subject, user.Id.ToString()),
             new(SecurityClaimTypes.UserId, user.Id.ToString()),
             new(SecurityClaimTypes.UserCode, user.UserCode),
-            new(SecurityClaimTypes.Username, user.Username),
+            new(SecurityClaimTypes.Username, user.UserCode),
             new(SecurityClaimTypes.NameIdentifier, user.Id.ToString()),
-            new(SecurityClaimTypes.Name, user.Username),
+            new(SecurityClaimTypes.Name, user.UserCode),
             new(SecurityClaimTypes.SessionId, session.Id.ToString()),
             new(SecurityClaimTypes.SessionKey, session.SessionKey)
         };

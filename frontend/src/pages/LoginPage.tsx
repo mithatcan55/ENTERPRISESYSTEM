@@ -55,8 +55,8 @@ export default function LoginPage() {
 
       setUser({
         id: String(data.userId ?? jwt.sub ?? ""),
-        userName: data.username ?? (jwt.username as string) ?? "",
-        displayName: data.username ?? (jwt.username as string) ?? "",
+        userName: data.userCode ?? (jwt.user_code as string) ?? "",
+        displayName: data.userCode ?? (jwt.user_code as string) ?? "",
         roles,
       });
       navigate("/dashboard", { replace: true });

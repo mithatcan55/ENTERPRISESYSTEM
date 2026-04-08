@@ -135,11 +135,10 @@ public sealed partial class UpdateUserCommandHandler(
             .Select(x => new UserListItemDto(
                 x.Id,
                 x.UserCode,
-                x.Username,
                 x.FirstName,
                 x.LastName,
                 string.IsNullOrWhiteSpace(x.FirstName) && string.IsNullOrWhiteSpace(x.LastName)
-                    ? x.Username
+                    ? x.UserCode
                     : ((x.FirstName ?? "") + " " + (x.LastName ?? "")).Trim(),
                 x.Email,
                 x.IsActive,

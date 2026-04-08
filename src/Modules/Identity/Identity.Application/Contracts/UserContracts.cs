@@ -3,7 +3,6 @@ namespace Identity.Application.Contracts;
 public sealed record UserListItemDto(
     int Id,
     string UserCode,
-    string Username,
     string? FirstName,
     string? LastName,
     string DisplayName,
@@ -25,7 +24,6 @@ public sealed record UserListItemDto(
 public sealed record UserDetailDto(
     int Id,
     string UserCode,
-    string Username,
     string? FirstName,
     string? LastName,
     string DisplayName,
@@ -56,7 +54,6 @@ public sealed record UserDirectPermissionDto(
 public sealed record CreatedUserDto(
     int Id,
     string UserCode,
-    string Username,
     string? FirstName,
     string? LastName,
     string Email,
@@ -65,7 +62,6 @@ public sealed record CreatedUserDto(
 
 public sealed class UpdateUserRequest
 {
-    public string? Username { get; set; }
     public string? FirstName { get; set; }
     public string? LastName { get; set; }
     public string Email { get; set; } = string.Empty;

@@ -297,7 +297,7 @@ public sealed class OperationsLogQueryService(
             var search = request.Search.Trim().ToLower();
             query = query.Where(x =>
                 (x.user.UserCode ?? string.Empty).ToLower().Contains(search)
-                || (x.user.Username ?? string.Empty).ToLower().Contains(search)
+                || (x.user.UserCode ?? string.Empty).ToLower().Contains(search)
                 || (x.user.Email ?? string.Empty).ToLower().Contains(search)
                 || (x.session.SessionKey ?? string.Empty).ToLower().Contains(search));
         }
@@ -321,7 +321,7 @@ public sealed class OperationsLogQueryService(
                 x.session.ClientIpAddress,
                 x.session.UserAgent,
                 x.user.UserCode,
-                x.user.Username,
+                x.user.UserCode,
                 x.user.Email,
                 x.user.IsActive))
             .ToListAsync(cancellationToken);

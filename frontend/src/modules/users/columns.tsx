@@ -33,13 +33,13 @@ export function getUserColumns(cb: ColumnCallbacks): ColumnDef<UserListItem>[] {
     {
       id: "displayName",
       header: "Ad Soyad",
-      meta: { sortKey: "username" },
+      meta: { sortKey: "usercode" },
       cell: ({ row }) => {
         const u = row.original;
         return (
           <div className="flex items-center gap-2">
-            <ProfileImageDisplay src={u.profileImageUrl} displayName={u.username} size={28} />
-            <span style={{ fontSize: 13, fontWeight: 500, color: "#1B3A5C" }}>{u.username}</span>
+            <ProfileImageDisplay src={u.profileImageUrl} displayName={u.displayName || u.userCode} size={28} />
+            <span style={{ fontSize: 13, fontWeight: 500, color: "#1B3A5C" }}>{u.displayName || u.userCode}</span>
           </div>
         );
       },

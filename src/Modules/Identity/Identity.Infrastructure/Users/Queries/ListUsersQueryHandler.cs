@@ -22,7 +22,6 @@ public sealed class ListUsersQueryHandler(IdentityDbContext identityDbContext) :
             var term = query.Search.Trim().ToLower();
             q = q.Where(x =>
                 x.UserCode.ToLower().Contains(term) ||
-                x.Username.ToLower().Contains(term) ||
                 x.Email.ToLower().Contains(term));
         }
 
@@ -30,8 +29,6 @@ public sealed class ListUsersQueryHandler(IdentityDbContext identityDbContext) :
         {
             ("usercode", "asc") => q.OrderBy(x => x.UserCode),
             ("usercode", _) => q.OrderByDescending(x => x.UserCode),
-            ("username", "asc") => q.OrderBy(x => x.Username),
-            ("username", _) => q.OrderByDescending(x => x.Username),
             ("email", "asc") => q.OrderBy(x => x.Email),
             ("email", _) => q.OrderByDescending(x => x.Email),
             ("createdat", "asc") => q.OrderBy(x => x.CreatedAt),
@@ -73,13 +70,12 @@ public sealed class ListUsersQueryHandler(IdentityDbContext identityDbContext) :
             var primaryRole = roles.FirstOrDefault()?.Name;
 
             var displayName = string.IsNullOrWhiteSpace(x.FirstName) && string.IsNullOrWhiteSpace(x.LastName)
-                ? x.Username
+                ? x.UserCode
                 : $"{x.FirstName} {x.LastName}".Trim();
 
             return new UserListItemDto(
                 x.Id,
                 x.UserCode,
-                x.Username,
                 x.FirstName,
                 x.LastName,
                 displayName,

@@ -77,7 +77,7 @@ function InfoTab({ mode, user, onSaved, formRef }: {
   const createMut = async (d: CreateUserForm) => {
     try {
       const res = await usersApi.create({
-        userCode: d.userCode, username: d.userCode.toLowerCase(),
+        userCode: d.userCode,
         firstName: d.firstName || null, lastName: d.lastName || null,
         email: d.email, password: d.password, companyId: d.companyId,
         notifyAdminByMail: d.notifyAdminByMail, adminEmail: d.adminEmail,

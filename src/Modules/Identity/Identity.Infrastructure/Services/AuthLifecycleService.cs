@@ -48,7 +48,7 @@ public sealed class AuthLifecycleService(
 
         var user = await identityDbContext.Users
             .FirstOrDefaultAsync(x => !x.IsDeleted &&
-                                      (x.UserCode == normalizedCode || x.Username == identifier || x.Email == normalizedEmail),
+                                      (x.UserCode == normalizedCode || x.Email == normalizedEmail),
                 cancellationToken);
 
         if (user is null)
@@ -127,7 +127,6 @@ public sealed class AuthLifecycleService(
         var accessToken = jwtAccessTokenService.CreateToken(new AccessTokenRequest(
             user.Id,
             user.UserCode,
-            user.Username,
             companyId,
             session.Id,
             roles,
@@ -163,7 +162,6 @@ public sealed class AuthLifecycleService(
         return new LoginResponseDto(
             user.Id,
             user.UserCode,
-            user.Username,
             accessToken.Token,
             accessToken.ExpiresAtUtc,
             refreshTokenValue,
@@ -260,7 +258,6 @@ public sealed class AuthLifecycleService(
         var accessToken = jwtAccessTokenService.CreateToken(new AccessTokenRequest(
             user.Id,
             user.UserCode,
-            user.Username,
             companyId,
             session.Id,
             roles,
@@ -341,7 +338,7 @@ public sealed class AuthLifecycleService(
 
         await passwordPolicyService.EnforcePasswordChangePolicyOrThrowAsync(
             user.Id,
-            user.Username,
+            user.UserCode,
             user.Email,
             user.PasswordHash,
             request.NewPassword,
