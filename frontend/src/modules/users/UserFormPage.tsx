@@ -1,76 +1,40 @@
-import { useState, useEffect, useMemo, useRef } from "react";
+import { useState, useEffect, useRef, useMemo } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { useQuery, useMutation } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { toast } from "sonner";
-import { DndContext, DragOverlay, useDroppable, useDraggable, type DragEndEvent } from "@dnd-kit/core";
 import apiClient from "@/api/client";
 import { usersApi } from "./api";
-import type { UserDetail } from "./api";
+import type { UserDetail, LookupItem, PermissionLookupItem } from "./api";
 import { createUserSchema, updateUserSchema } from "./schema";
 import type { CreateUserForm, UpdateUserForm } from "./schema";
 import { PageHeader, PageAction } from "@/components/ui/PageHeader";
-import {
-  User, UserCog, Shield, GripVertical, X as XIcon,
-  Loader2, Check, ArrowLeft, Wand2, Pencil,
-} from "lucide-react";
 import { PasswordField as PasswordFieldComponent } from "@/components/ui/PasswordField";
 import { ProfileImageEditor } from "@/components/ui/ProfileImage";
+import {
+  User, UserCog, Shield, Check, ArrowLeft, Wand2, Pencil,
+} from "lucide-react";
 
 /* ═══════════════════════════════════════ */
-/*  TYPES                                  */
-/* ═══════════════════════════════════════ */
-
-interface RoleItem { id: number; code: string; name: string; description: string | null; isSystemRole: boolean; }
-interface ActionPerm { id: number; userId: number; transactionCode: string; actionCode: string; isAllowed: boolean; }
-
-const TCODE_DEFS = [
-  { code: "SYS01", label: "Kullanıcı İşlemleri", actions: ["CREATE", "UPDATE", "DELETE", "DEACTIVATE", "REACTIVATE"] },
-  { code: "SYS02", label: "Kullanıcı Güncelleme", actions: ["UPDATE"] },
-  { code: "SYS03", label: "Kullanıcı Görüntüleme", actions: ["READ", "VIEW"] },
-  { code: "SYS04", label: "Kullanıcı Listeleme", actions: ["READ"] },
-  { code: "SYS05", label: "Kullanıcı Rolleri", actions: ["MANAGE"] },
-  { code: "SYS06", label: "Kullanıcı Yetkileri", actions: ["MANAGE", "PERMISSIONS_READ"] },
-];
-
-/* ═══════════════════════════════════════ */
-/*  STYLES                                 */
+/*  HELPERS                                */
 /* ═══════════════════════════════════════ */
 
 const mono = "'JetBrains Mono', monospace";
-const inputCls = "w-full rounded-lg h-[40px] px-3 text-[13px] outline-none transition-all bg-[#FAFCFF] border-[1.5px] border-[#E2EBF3] text-[#1B3A5C] placeholder:text-[#B0BEC5] focus:border-[#5B9BD5] focus:ring-2 focus:ring-[#5B9BD5]/12";
-const labelCls = "block mb-1 text-[12px] font-medium";
-const errCls = "mt-1 text-[11px]";
-const sectionCls = "flex items-center gap-2 text-[12px] font-semibold tracking-[0.04em] pb-2.5 mb-4";
+const inputCls = "w-full rounded-lg h-[40px] px-3 text-[13px] outline-none transition-all bg-[#FAFCFF] border border-[#E2EBF3] text-[#1B3A5C] placeholder:text-[#C5CED8] focus:border-[#5B9BD5] focus:bg-white focus:shadow-[0_0_0_3px_rgba(91,155,213,0.08)]";
+const labelCls = "block mb-1 text-[12px] font-medium text-[#4A6580]";
+const errCls = "mt-1 text-[11px] text-[#E05252]";
+const sectionCls = "flex items-center gap-2 text-[12px] font-semibold tracking-[0.04em] pb-2.5 mb-4 border-b border-[#F0F4F8] text-[#1B3A5C]";
 
-function extractErr(e: unknown) {
-  return (e as { response?: { data?: { detail?: string; message?: string } } }).response?.data?.detail ?? "İşlem başarısız";
-}
-
-/* ─── UserCode auto-generator ─── */
-
-const trMap: Record<string, string> = {
-  ç: "C", Ç: "C", ğ: "G", Ğ: "G", ı: "I", İ: "I",
-  ö: "O", Ö: "O", ş: "S", Ş: "S", ü: "U", Ü: "U",
-};
-
+const trMap: Record<string, string> = { ç: "C", Ç: "C", ğ: "G", Ğ: "G", ı: "I", İ: "I", ö: "O", Ö: "O", ş: "S", Ş: "S", ü: "U", Ü: "U" };
 function normalizeTr(str: string): string {
   return str.split("").map((c) => trMap[c] ?? c).join("").toUpperCase().replace(/[^A-Z0-9]/g, "");
 }
-
 function generateUserCode(firstName: string, lastName: string): string {
-  const f = firstName.trim();
-  const l = lastName.trim();
+  const f = firstName.trim(), l = lastName.trim();
   if (!f || !l) return "";
-  const firstChar = normalizeTr(f)[0] ?? "";
-  const firstSurname = normalizeTr(l.split(" ")[0]);
-  return firstChar + firstSurname;
+  return (normalizeTr(f)[0] ?? "") + normalizeTr(l.split(" ")[0]);
 }
-
-/* ═══════════════════════════════════════ */
-/*  TOGGLE SWITCH                          */
-/* ═══════════════════════════════════════ */
 
 function Toggle({ checked, onChange, label, color }: { checked: boolean; onChange: (v: boolean) => void; label: string; color?: string }) {
   return (
@@ -80,7 +44,7 @@ function Toggle({ checked, onChange, label, color }: { checked: boolean; onChang
         <span className="absolute top-0.5 left-0.5 h-4 w-4 rounded-full bg-white transition-transform shadow-sm"
           style={{ transform: checked ? "translateX(16px)" : "translateX(0)" }} />
       </button>
-      <span className="text-[12px] font-medium" style={{ color: "#2C4A6B" }}>{label}</span>
+      <span className="text-[12px] font-medium text-[#2C4A6B]">{label}</span>
     </label>
   );
 }
@@ -89,7 +53,10 @@ function Toggle({ checked, onChange, label, color }: { checked: boolean; onChang
 /*  TAB 1: BİLGİLER                        */
 /* ═══════════════════════════════════════ */
 
-function InfoTab({ mode, user, onSaved, formRef }: { mode: "create" | "edit"; user: UserDetail | null; onSaved: (id: number) => void; formRef?: React.RefObject<HTMLFormElement | null> }) {
+function InfoTab({ mode, user, onSaved, formRef }: {
+  mode: "create" | "edit"; user: UserDetail | null;
+  onSaved: (id: number) => void; formRef?: React.RefObject<HTMLFormElement | null>;
+}) {
   const [notify, setNotify] = useState(false);
   const [isActive, setIsActive] = useState(true);
   const [mustChange, setMustChange] = useState(false);
@@ -101,197 +68,163 @@ function InfoTab({ mode, user, onSaved, formRef }: { mode: "create" | "edit"; us
 
   useEffect(() => {
     if (mode === "edit" && user) {
-      editForm.reset({ firstName: (user as unknown as { firstName?: string }).firstName ?? "", lastName: (user as unknown as { lastName?: string }).lastName ?? "", email: user.email, isActive: user.isActive, mustChangePassword: user.mustChangePassword, profileImageUrl: user.profileImageUrl });
+      editForm.reset({ firstName: user.firstName ?? "", lastName: user.lastName ?? "", email: user.email, isActive: user.isActive, mustChangePassword: user.mustChangePassword, profileImageUrl: user.profileImageUrl });
       setIsActive(user.isActive);
       setMustChange(user.mustChangePassword);
     }
   }, [mode, user, editForm]);
 
-  const createMut = useMutation({
-    mutationFn: (d: CreateUserForm) => usersApi.create(d as unknown as Parameters<typeof usersApi.create>[0]),
-    onSuccess: (res: { id?: number }) => { toast.success("Kullanıcı oluşturuldu"); onSaved(res?.id ?? 0); },
-    onError: (e) => toast.error(extractErr(e)),
-  });
+  const createMut = async (d: CreateUserForm) => {
+    try {
+      const res = await usersApi.create({
+        userCode: d.userCode, username: d.userCode.toLowerCase(),
+        firstName: d.firstName || null, lastName: d.lastName || null,
+        email: d.email, password: d.password, companyId: d.companyId,
+        notifyAdminByMail: d.notifyAdminByMail, adminEmail: d.adminEmail,
+      });
+      toast.success("Kullanıcı oluşturuldu");
+      onSaved(res?.id ?? 0);
+    } catch (e: unknown) {
+      const msg = (e as { response?: { data?: { detail?: string } } }).response?.data?.detail ?? "Oluşturma başarısız";
+      toast.error(msg);
+    }
+  };
 
-  const updateMut = useMutation({
-    mutationFn: (d: UpdateUserForm) => usersApi.update(user!.id, d as unknown as Parameters<typeof usersApi.update>[1]),
-    onSuccess: () => { toast.success("Bilgiler güncellendi"); },
-    onError: (e) => toast.error(extractErr(e)),
-  });
+  const updateMut = async (d: UpdateUserForm) => {
+    if (!user) return;
+    try {
+      await usersApi.update(user.id, {
+        firstName: d.firstName || null, lastName: d.lastName || null,
+        email: d.email, isActive: d.isActive, mustChangePassword: d.mustChangePassword,
+        profileImageUrl: d.profileImageUrl || null,
+      });
+      toast.success("Bilgiler güncellendi");
+    } catch (e: unknown) {
+      const msg = (e as { response?: { data?: { detail?: string } } }).response?.data?.detail ?? "Güncelleme başarısız";
+      toast.error(msg);
+    }
+  };
 
-  const isSaving = createMut.isPending || updateMut.isPending;
-
+  // ─── CREATE ───
   if (mode === "create") {
     const { register, handleSubmit, setValue, watch, formState: { errors } } = createForm;
-    const watchFirst = watch("firstName") ?? "";
-    const watchLast = watch("lastName") ?? "";
-    const watchCode = watch("userCode") ?? "";
-    const watchPw = watch("password") ?? "";
-    const preview = generateUserCode(watchFirst, watchLast);
-    const isAutoMatch = preview && watchCode === preview;
-
-    const handleGenerate = () => {
-      if (!preview) return;
-      setValue("userCode", preview);
-      setAutoGen(true);
-      toast.success(`Kod oluşturuldu: ${preview}`, { duration: 2000 });
-    };
+    const wFirst = watch("firstName") ?? "", wLast = watch("lastName") ?? "";
+    const wCode = watch("userCode") ?? "", wPw = watch("password") ?? "";
+    const preview = generateUserCode(wFirst, wLast);
 
     return (
-      <form ref={formRef} onSubmit={handleSubmit((d) => createMut.mutate(d))} className="space-y-6">
-        <div style={{ borderBottom: "1px solid #F0F4F8" }} className={sectionCls}>
-          <User size={14} style={{ color: "#5B9BD5" }} /><span style={{ color: "#1B3A5C" }}>Temel Bilgiler</span>
-        </div>
+      <form ref={formRef} onSubmit={handleSubmit(createMut)} className="space-y-6">
+        <div className={sectionCls}><User size={14} className="text-[#5B9BD5]" /> Temel Bilgiler</div>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-5 gap-y-4">
-          {/* Row 1: Ad + Soyad */}
           <div>
-            <label style={{ color: "#2C4A6B" }} className={labelCls}>Ad *</label>
+            <label className={labelCls}>Ad *</label>
             <input {...register("firstName")} className={inputCls} placeholder="Mithat" />
-            {errors.firstName && <p style={{ color: "#E05252" }} className={errCls}>{errors.firstName.message}</p>}
+            {errors.firstName && <p className={errCls}>{errors.firstName.message}</p>}
           </div>
           <div>
-            <label style={{ color: "#2C4A6B" }} className={labelCls}>Soyad *</label>
+            <label className={labelCls}>Soyad *</label>
             <input {...register("lastName")} className={inputCls} placeholder="Can" />
-            {errors.lastName && <p style={{ color: "#E05252" }} className={errCls}>{errors.lastName.message}</p>}
+            {errors.lastName && <p className={errCls}>{errors.lastName.message}</p>}
           </div>
-
-          {/* Live preview hint */}
-          {(watchFirst || watchLast) && (
-            <div className="sm:col-span-2 flex items-center gap-1.5" style={{ fontSize: 11, color: "#7A96B0", marginTop: -8 }}>
-              <Wand2 size={11} style={{ color: "#B0BEC5" }} />
-              <span>Otomatik kod: </span>
+          {(wFirst || wLast) && (
+            <div className="sm:col-span-2 flex items-center gap-1.5 text-[11px] text-[#7A96B0]" style={{ marginTop: -8 }}>
+              <Wand2 size={11} className="text-[#B0BEC5]" />
+              <span>Kod: </span>
               <span style={{ fontFamily: mono, fontWeight: 500, color: "#2E6DA4" }}>{preview || "—"}</span>
-              {preview && watchCode !== preview && (
-                <button type="button" onClick={handleGenerate} style={{ fontSize: 11, color: "#5B9BD5", background: "none", border: "none", cursor: "pointer", padding: 0 }}>Uygula</button>
+              {preview && wCode !== preview && (
+                <button type="button" onClick={() => { setValue("userCode", preview); setAutoGen(true); toast.success(`Kod: ${preview}`, { duration: 1500 }); }}
+                  className="text-[#5B9BD5] hover:underline" style={{ background: "none", border: "none", cursor: "pointer", padding: 0, fontSize: 11 }}>Uygula</button>
               )}
             </div>
           )}
-
-          {/* Row 2: Kod + E-posta */}
           <div>
-            <label style={{ color: "#2C4A6B" }} className={labelCls}>Kod *</label>
+            <label className={labelCls}>Kod *</label>
             <div className="flex gap-2">
               <div className="relative flex-1">
-                <input {...register("userCode")} className={inputCls + " pr-16"} placeholder="Örn: MCAN"
-                  style={{ fontFamily: mono, fontSize: 14, letterSpacing: "0.05em", textTransform: "uppercase" }}
+                <input {...register("userCode")} className={inputCls + " pr-16"} placeholder="MCAN"
+                  style={{ fontFamily: mono, letterSpacing: "0.05em", textTransform: "uppercase" }}
                   onChange={(e) => { setValue("userCode", normalizeTr(e.target.value)); setAutoGen(false); }} />
-                <div className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-1">
-                  {isAutoMatch && autoGen ? (<><Check size={12} style={{ color: "#1E8A6E" }} /><span className="text-[10px] px-1.5 py-0.5 rounded-full" style={{ background: "#E8F5EE", color: "#1E8A6E" }}>otomatik</span></>)
-                    : watchCode ? <Pencil size={12} style={{ color: "#B0BEC5" }} /> : null}
-                </div>
+                {wCode && (
+                  <div className="absolute right-2 top-1/2 -translate-y-1/2">
+                    {preview && wCode === preview && autoGen
+                      ? <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-[#E8F5EE] text-[#1E8A6E]">otomatik</span>
+                      : <Pencil size={12} className="text-[#B0BEC5]" />}
+                  </div>
+                )}
               </div>
-              <button type="button" onClick={handleGenerate} disabled={!preview}
-                className="flex items-center gap-1.5 shrink-0 rounded-lg px-3.5 h-[40px] text-[12px] font-medium transition-all disabled:opacity-40 disabled:cursor-not-allowed"
-                style={{ background: "#EAF1FA", border: "1px solid #BDD5EC", color: "#2E6DA4" }}
-                onMouseEnter={(e) => { if (preview) { e.currentTarget.style.background = "#2E6DA4"; e.currentTarget.style.color = "#fff"; } }}
-                onMouseLeave={(e) => { e.currentTarget.style.background = "#EAF1FA"; e.currentTarget.style.color = "#2E6DA4"; }}
-                title={!preview ? "Önce Ad ve Soyad girin" : undefined}>
-                <Wand2 size={14} /> Oluştur
+              <button type="button" disabled={!preview} onClick={() => { if (preview) { setValue("userCode", preview); setAutoGen(true); toast.success(`Kod: ${preview}`, { duration: 1500 }); } }}
+                className="shrink-0 rounded-lg px-3.5 h-[40px] text-[12px] font-medium transition-all disabled:opacity-40 bg-[#EAF1FA] border border-[#BDD5EC] text-[#2E6DA4] hover:bg-[#2E6DA4] hover:text-white">
+                <Wand2 size={14} />
               </button>
             </div>
-            {errors.userCode && <p style={{ color: "#E05252" }} className={errCls}>{errors.userCode.message}</p>}
+            {errors.userCode && <p className={errCls}>{errors.userCode.message}</p>}
           </div>
           <div>
-            <label style={{ color: "#2C4A6B" }} className={labelCls}>E-posta *</label>
+            <label className={labelCls}>E-posta *</label>
             <input {...register("email")} type="email" className={inputCls} placeholder="kullanici@firma.com" />
-            {errors.email && <p style={{ color: "#E05252" }} className={errCls}>{errors.email.message}</p>}
+            {errors.email && <p className={errCls}>{errors.email.message}</p>}
           </div>
-
-          {/* Row 3: Password (full width) */}
           <div className="sm:col-span-2">
-            <PasswordFieldComponent value={watchPw} onChange={(v) => setValue("password", v, { shouldValidate: true })}
+            <PasswordFieldComponent value={wPw} onChange={(v) => setValue("password", v, { shouldValidate: true })}
               error={errors.password?.message} isTemporary={isTemporary}
               onTemporaryChange={(v) => { setIsTemporary(v); setValue("mustChangePassword", v); }} />
           </div>
-
-          {/* Row 4: Şirket ID + Profil */}
           <div>
-            <label style={{ color: "#2C4A6B" }} className={labelCls}>Şirket ID *</label>
+            <label className={labelCls}>Şirket ID *</label>
             <input {...register("companyId", { valueAsNumber: true })} type="number" className={inputCls} defaultValue={1} />
-            {errors.companyId && <p style={{ color: "#E05252" }} className={errCls}>{errors.companyId.message}</p>}
-          </div>
-          <div>
-            <label style={{ color: "#2C4A6B" }} className={labelCls}>Profil Resmi URL</label>
-            <input className={inputCls} placeholder="https://..." disabled />
+            {errors.companyId && <p className={errCls}>{errors.companyId.message}</p>}
           </div>
         </div>
-
-        <div style={{ borderBottom: "1px solid #F0F4F8" }} className={sectionCls + " mt-8"}>
-          <Shield size={14} style={{ color: "#D4891A" }} /><span style={{ color: "#1B3A5C" }}>Bildirim Ayarları</span>
-        </div>
-        <Toggle checked={notify} onChange={(v) => { setNotify(v); setValue("notifyAdminByMail", v); }} label="Yeni kullanıcı için admin'e bildirim e-postası gönder" />
+        <div className={sectionCls + " mt-6"}><Shield size={14} className="text-[#D4891A]" /> Bildirim</div>
+        <Toggle checked={notify} onChange={(v) => { setNotify(v); setValue("notifyAdminByMail", v); }} label="Admin'e bildirim gönder" />
         {notify && (
           <div className="max-w-sm">
-            <label style={{ color: "#2C4A6B" }} className={labelCls}>Admin E-posta</label>
+            <label className={labelCls}>Admin E-posta</label>
             <input {...register("adminEmail")} type="email" className={inputCls} placeholder="admin@firma.com" />
           </div>
         )}
-
         <div className="flex justify-end pt-4">
-          <button type="submit" disabled={isSaving}
-            className="flex items-center gap-2 rounded-lg px-5 py-2.5 text-[13px] font-medium transition-colors disabled:opacity-60"
-            style={{ background: "#1B3A5C", color: "#fff" }}>
-            {isSaving ? <Loader2 size={14} className="animate-spin" /> : <Check size={14} />}
-            {isSaving ? "Kaydediliyor..." : "Kaydet ve Devam Et"}
+          <button type="submit" className="flex items-center gap-2 rounded-lg px-5 py-2.5 text-[13px] font-medium bg-[#1B3A5C] text-white hover:bg-[#2E6DA4]">
+            <Check size={14} /> Kaydet ve Devam Et
           </button>
         </div>
       </form>
     );
   }
 
-  // EDIT mode
+  // ─── EDIT ───
   const { register, handleSubmit, setValue, watch, formState: { errors } } = editForm;
   return (
-    <form ref={formRef} onSubmit={handleSubmit((d) => updateMut.mutate(d))} className="space-y-6">
-      <div style={{ borderBottom: "1px solid #F0F4F8" }} className={sectionCls}>
-        <User size={14} style={{ color: "#5B9BD5" }} /><span style={{ color: "#1B3A5C" }}>Temel Bilgiler</span>
-      </div>
+    <form ref={formRef} onSubmit={handleSubmit(updateMut)} className="space-y-6">
+      <div className={sectionCls}><User size={14} className="text-[#5B9BD5]" /> Temel Bilgiler</div>
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-5 gap-y-4">
+        <div><label className={labelCls}>Ad</label><input {...register("firstName")} className={inputCls} /></div>
+        <div><label className={labelCls}>Soyad</label><input {...register("lastName")} className={inputCls} /></div>
         <div>
-          <label style={{ color: "#2C4A6B" }} className={labelCls}>Ad</label>
-          <input {...register("firstName")} className={inputCls} placeholder="Mithat" />
-        </div>
-        <div>
-          <label style={{ color: "#2C4A6B" }} className={labelCls}>Soyad</label>
-          <input {...register("lastName")} className={inputCls} placeholder="Can" />
-        </div>
-        <div>
-          <label style={{ color: "#2C4A6B" }} className={labelCls}>E-posta *</label>
+          <label className={labelCls}>E-posta *</label>
           <input {...register("email")} type="email" className={inputCls} />
-          {errors.email && <p style={{ color: "#E05252" }} className={errCls}>{errors.email.message}</p>}
+          {errors.email && <p className={errCls}>{errors.email.message}</p>}
         </div>
         {user?.passwordExpiresAt && (
-          <div className="flex items-center" style={{ fontSize: 12, color: "#7A96B0", padding: "8px 12px", background: "#F7FAFD", borderRadius: 8, border: "1px solid #E2EBF3" }}>
-            Şifre geçerliliği:{" "}
-            <strong style={{ color: "#1B3A5C", marginLeft: 4 }}>
-              {new Date(user.passwordExpiresAt).toLocaleDateString("tr-TR")}
-            </strong>
+          <div className="flex items-center text-[12px] text-[#7A96B0] px-3 py-2 rounded-lg bg-[#F7FAFD] border border-[#E2EBF3]">
+            Şifre geçerliliği: <strong className="ml-1 text-[#1B3A5C]">{new Date(user.passwordExpiresAt).toLocaleDateString("tr-TR")}</strong>
           </div>
         )}
         <div className="sm:col-span-2">
-          <label style={{ color: "#2C4A6B", fontSize: 12, fontWeight: 500, marginBottom: 8, display: "block" }}>Profil Fotoğrafı</label>
-          <ProfileImageEditor
-            value={watch("profileImageUrl") ?? null}
+          <label className="text-[12px] font-medium text-[#4A6580] mb-2 block">Profil Fotoğrafı</label>
+          <ProfileImageEditor value={watch("profileImageUrl") ?? null}
             displayName={`${watch("firstName") ?? ""} ${watch("lastName") ?? ""}`.trim() || user?.userCode}
-            onChange={(val) => setValue("profileImageUrl", val ?? "")}
-          />
+            onChange={(val) => setValue("profileImageUrl", val ?? "")} />
         </div>
       </div>
-
-      <div style={{ borderBottom: "1px solid #F0F4F8" }} className={sectionCls + " mt-8"}>
-        <Shield size={14} style={{ color: "#1E8A6E" }} /><span style={{ color: "#1B3A5C" }}>Hesap Durumu</span>
-      </div>
+      <div className={sectionCls + " mt-6"}><Shield size={14} className="text-[#1E8A6E]" /> Hesap Durumu</div>
       <div className="flex flex-wrap gap-6">
-        <Toggle checked={isActive} onChange={(v) => { setIsActive(v); setValue("isActive", v); }} label="Aktif kullanıcı" color={isActive ? "#1E8A6E" : undefined} />
+        <Toggle checked={isActive} onChange={(v) => { setIsActive(v); setValue("isActive", v); }} label="Aktif" color={isActive ? "#1E8A6E" : undefined} />
         <Toggle checked={mustChange} onChange={(v) => { setMustChange(v); setValue("mustChangePassword", v); }} label="Şifre değişimi zorunlu" color={mustChange ? "#D4891A" : undefined} />
       </div>
-
       <div className="flex justify-end pt-4">
-        <button type="submit" disabled={isSaving}
-          className="flex items-center gap-2 rounded-lg px-5 py-2.5 text-[13px] font-medium transition-colors disabled:opacity-60"
-          style={{ background: "#1B3A5C", color: "#fff" }}>
-          {isSaving ? <Loader2 size={14} className="animate-spin" /> : <Check size={14} />}
-          {isSaving ? "Kaydediliyor..." : "Kaydet"}
+        <button type="submit" className="flex items-center gap-2 rounded-lg px-5 py-2.5 text-[13px] font-medium bg-[#1B3A5C] text-white hover:bg-[#2E6DA4]">
+          <Check size={14} /> Kaydet
         </button>
       </div>
     </form>
@@ -302,164 +235,62 @@ function InfoTab({ mode, user, onSaved, formRef }: { mode: "create" | "edit"; us
 /*  TAB 2: ROL ATAMA                       */
 /* ═══════════════════════════════════════ */
 
-function DraggableRole({ role, side }: { role: RoleItem; side: "available" | "assigned" }) {
-  const { attributes, listeners, setNodeRef, isDragging } = useDraggable({ id: role.id, data: { role, side } });
-  return (
-    <div ref={setNodeRef} {...listeners} {...attributes}
-      className="flex items-center gap-2.5 rounded-lg p-2.5 transition-all"
-      style={{ background: "#fff", border: "1px solid #E2EBF3", opacity: isDragging ? 0.4 : 1, cursor: "grab" }}>
-      <GripVertical size={14} style={{ color: "#D6E4F0" }} />
-      <div className="flex-1 min-w-0">
-        <div className="flex items-center gap-1.5">
-          <span className="text-[11px]" style={{ fontFamily: mono, color: "#5B9BD5" }}>{role.code || "KOD YOK"}</span>
-          {role.isSystemRole && <span className="text-[10px] px-1.5 py-0.5 rounded" style={{ background: "#EAF1FA", color: "#2E6DA4" }}>Sistem</span>}
-        </div>
-        <div className="text-[13px] font-medium" style={{ color: "#1B3A5C" }}>{role.name || "İSİM YOK"}</div>
-        {role.description && <div className="text-[11px] truncate" style={{ color: "#7A96B0" }}>{role.description}</div>}
-      </div>
-    </div>
-  );
-}
-
-function DroppableZone({ id, children, label }: { id: string; children: React.ReactNode; label: string }) {
-  const { setNodeRef, isOver } = useDroppable({ id });
-  return (
-    <div ref={setNodeRef} className="flex flex-col gap-2 min-h-[200px] rounded-lg p-3 transition-colors"
-      style={{ background: isOver ? "#F7FAFD" : "#FAFCFF", border: isOver ? "1.5px dashed #5B9BD5" : "1.5px dashed #E2EBF3" }}>
-      {children}
-      {!React.Children.count(children) && (
-        <div className="flex-1 flex items-center justify-center text-[12px]" style={{ color: "#B0BEC5" }}>{label}</div>
-      )}
-    </div>
-  );
-}
-
-import React from "react";
-
-function RolesTab({ userId }: { userId: number | null }) {
+function RolesTab({ userId, allRoles, userRoleIds }: { userId: number | null; allRoles: LookupItem[]; userRoleIds: number[] }) {
+  const [assignedIds, setAssignedIds] = useState<Set<number>>(new Set());
   const [search, setSearch] = useState("");
-  const [draggedRole, setDraggedRole] = useState<RoleItem | null>(null);
-  const [availableRoles, setAvailableRoles] = useState<RoleItem[]>([]);
-  const [assignedRoles, setAssignedRoles] = useState<RoleItem[]>([]);
-  const rolesInitialized = useRef(false);
+  const initialized = useRef(false);
 
-  const { data: allRoles } = useQuery({
-    queryKey: ["roles-all"],
-    queryFn: () => apiClient.get<RoleItem[]>("/api/roles").then((r) => r.data),
-    enabled: !!userId,
-    staleTime: Infinity,
-    refetchOnWindowFocus: false,
-    refetchOnMount: false,
-  });
-  const { data: userRoles } = useQuery({
-    queryKey: ["user-roles", userId],
-    queryFn: () => apiClient.get<RoleItem[]>(`/api/roles/users/${userId}`).then((r) => r.data),
-    enabled: !!userId,
-    staleTime: Infinity,
-    refetchOnWindowFocus: false,
-    refetchOnMount: false,
-  });
-
-  // Build full role objects from allRoles — runs only once
   useEffect(() => {
-    if (!allRoles || !userRoles) return;
-    if (rolesInitialized.current) return;
-    rolesInitialized.current = true;
-    const assignedIds = new Set(userRoles.map((r) => r.id));
-    setAssignedRoles(allRoles.filter((r) => assignedIds.has(r.id)));
-    setAvailableRoles(allRoles.filter((r) => !assignedIds.has(r.id)));
-  }, [allRoles, userRoles]);
+    if (initialized.current) return;
+    if (userRoleIds.length > 0 || allRoles.length > 0) {
+      initialized.current = true;
+      setAssignedIds(new Set(userRoleIds));
+    }
+  }, [userRoleIds, allRoles]);
 
-  const filteredAvailable = useMemo(() => {
-    if (!search) return availableRoles;
-    const q = search.toLowerCase();
-    return availableRoles.filter((r) => (r.name || "").toLowerCase().includes(q) || (r.code || "").toLowerCase().includes(q));
-  }, [availableRoles, search]);
+  if (!userId) return <p className="text-center py-12 text-[13px] text-[#7A96B0]">Önce kullanıcı oluşturun.</p>;
 
-  if (!userId) return (
-    <div className="text-center py-16">
-      <p className="text-[14px]" style={{ color: "#7A96B0" }}>Önce kullanıcı oluşturun, ardından rol atayabilirsiniz.</p>
-    </div>
-  );
-
-  async function handleAssign(roleId: number) {
-    const fullRole = allRoles?.find((r) => r.id === roleId);
-    if (!fullRole) { toast.error("Rol bulunamadı"); return; }
-    // Optimistic
-    setAvailableRoles((prev) => prev.filter((r) => r.id !== roleId));
-    setAssignedRoles((prev) => [...prev, fullRole]);
+  async function toggle(roleId: number) {
+    const wasAssigned = assignedIds.has(roleId);
+    const next = new Set(assignedIds);
+    if (wasAssigned) next.delete(roleId); else next.add(roleId);
+    setAssignedIds(next);
     try {
-      await apiClient.post(`/api/roles/${roleId}/assign/${userId}`);
-      toast.success(`"${fullRole.name}" rolü atandı`);
-    } catch (e) {
-      setAssignedRoles((prev) => prev.filter((r) => r.id !== roleId));
-      setAvailableRoles((prev) => [...prev, fullRole]);
-      toast.error(extractErr(e));
+      if (wasAssigned) await apiClient.delete(`/api/roles/${roleId}/assign/${userId}`);
+      else await apiClient.post(`/api/roles/${roleId}/assign/${userId}`);
+      toast.success(wasAssigned ? "Rol kaldırıldı" : "Rol atandı");
+    } catch {
+      // revert
+      const rev = new Set(assignedIds);
+      if (wasAssigned) rev.add(roleId); else rev.delete(roleId);
+      setAssignedIds(rev);
+      toast.error("İşlem başarısız");
     }
   }
 
-  async function handleUnassign(roleId: number) {
-    const fullRole = allRoles?.find((r) => r.id === roleId);
-    if (!fullRole) { toast.error("Rol bulunamadı"); return; }
-    // Optimistic
-    setAssignedRoles((prev) => prev.filter((r) => r.id !== roleId));
-    setAvailableRoles((prev) => [...prev, fullRole]);
-    try {
-      await apiClient.delete(`/api/roles/${roleId}/assign/${userId}`);
-      toast.success(`"${fullRole.name}" rolü kaldırıldı`);
-    } catch (e) {
-      setAvailableRoles((prev) => prev.filter((r) => r.id !== roleId));
-      setAssignedRoles((prev) => [...prev, fullRole]);
-      toast.error(extractErr(e));
-    }
-  }
-
-  function handleDragEnd(e: DragEndEvent) {
-    setDraggedRole(null);
-    const { active, over } = e;
-    if (!over) return;
-    const data = active.data.current as { role: RoleItem; side: string };
-    if (data.side === "available" && over.id === "assigned") handleAssign(data.role.id);
-    if (data.side === "assigned" && over.id === "available") handleUnassign(data.role.id);
-  }
+  const filtered = search ? allRoles.filter((r) => r.name.toLowerCase().includes(search.toLowerCase())) : allRoles;
 
   return (
-    <DndContext onDragStart={(e) => setDraggedRole((e.active.data.current as { role: RoleItem }).role)} onDragEnd={handleDragEnd}>
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        {/* Available */}
-        <div className="rounded-xl p-4" style={{ background: "#fff", border: "1px solid #E2EBF3" }}>
-          <div className="flex items-center justify-between mb-3">
-            <span className="text-[13px] font-semibold" style={{ color: "#1B3A5C" }}>Mevcut Roller</span>
-            <span className="text-[11px] px-2 py-0.5 rounded-full" style={{ background: "#F0F4F8", color: "#7A96B0" }}>{filteredAvailable.length}</span>
-          </div>
-          <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Rol ara..." className={inputCls + " mb-3 h-[32px] text-[12px]"} />
-          <DroppableZone id="available" label="Tüm roller atandı">
-            {filteredAvailable.map((r) => <DraggableRole key={r.id} role={r} side="available" />)}
-          </DroppableZone>
-        </div>
-
-        {/* Assigned */}
-        <div className="rounded-xl p-4" style={{ background: "#fff", border: "1px solid #E2EBF3" }}>
-          <div className="flex items-center justify-between mb-3">
-            <span className="text-[13px] font-semibold" style={{ color: "#1B3A5C" }}>Atanmış Roller</span>
-            <span className="text-[11px] px-2 py-0.5 rounded-full" style={{ background: "#EAF1FA", color: "#2E6DA4" }}>{assignedRoles.length}</span>
-          </div>
-          <DroppableZone id="assigned" label="Buraya sürükleyin">
-            {assignedRoles.map((r) => (
-              <div key={r.id} className="flex items-center gap-2">
-                <div className="flex-1"><DraggableRole role={r} side="assigned" /></div>
-                <button onClick={() => handleUnassign(r.id)} className="shrink-0 p-1 rounded hover:bg-[#FDECEA] transition-colors" style={{ color: "#D6E4F0" }}>
-                  <XIcon size={14} />
-                </button>
-              </div>
-            ))}
-          </DroppableZone>
-        </div>
+    <div className="space-y-4">
+      <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Rol ara..." className={inputCls + " max-w-xs"} />
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+        {filtered.map((role) => {
+          const on = assignedIds.has(role.id);
+          return (
+            <button key={role.id} type="button" onClick={() => toggle(role.id)}
+              className={`flex items-center gap-3 rounded-lg px-4 py-3 text-left transition-all border ${
+                on ? "bg-[#EAF1FA] border-[#5B9BD5] shadow-[0_0_0_1px_rgba(91,155,213,0.15)]" : "bg-white border-[#E2EBF3] hover:border-[#C5D5E3]"
+              }`}>
+              <span className={`flex items-center justify-center w-5 h-5 rounded border transition-all ${on ? "bg-[#2E6DA4] border-[#2E6DA4]" : "bg-white border-[#D6E4F0]"}`}>
+                {on && <Check size={12} className="text-white" />}
+              </span>
+              <span className={`text-[13px] font-medium ${on ? "text-[#2E6DA4]" : "text-[#7A96B0]"}`}>{role.name}</span>
+            </button>
+          );
+        })}
       </div>
-      <DragOverlay>{draggedRole && <div className="rounded-lg p-2.5 shadow-lg" style={{ background: "#fff", border: "1px solid #5B9BD5", width: 280 }}>
-        <span className="text-[13px] font-medium" style={{ color: "#1B3A5C" }}>{draggedRole.name || "—"}</span>
-      </div>}</DragOverlay>
-    </DndContext>
+      {!filtered.length && <p className="text-[13px] text-[#94A3B8] text-center py-8">Rol bulunamadı</p>}
+    </div>
   );
 }
 
@@ -467,93 +298,82 @@ function RolesTab({ userId }: { userId: number | null }) {
 /*  TAB 3: YETKİ ATAMA                     */
 /* ═══════════════════════════════════════ */
 
-function PermissionsTab({ userId }: { userId: number | null }) {
-  const [perms, setPerms] = useState<ActionPerm[]>([]);
-  const [loadingChips, setLoadingChips] = useState<Set<string>>(new Set());
+function PermissionsTab({ userId, allPermissions, userPermIds }: { userId: number | null; allPermissions: PermissionLookupItem[]; userPermIds: number[] }) {
+  const [assignedIds, setAssignedIds] = useState<Set<number>>(new Set());
+  const initialized = useRef(false);
 
-  const { data } = useQuery({
-    queryKey: ["user-permissions", userId],
-    queryFn: () => apiClient.get<ActionPerm[]>("/api/permissions/actions", { params: { userId } }).then((r) => r.data),
-    enabled: !!userId,
-    staleTime: Infinity,
-    refetchOnWindowFocus: false,
-  });
+  useEffect(() => {
+    if (initialized.current) return;
+    if (userPermIds.length > 0 || allPermissions.length > 0) {
+      initialized.current = true;
+      setAssignedIds(new Set(userPermIds));
+    }
+  }, [userPermIds, allPermissions]);
 
-  useEffect(() => { if (data) setPerms(data); }, [data]);
+  if (!userId) return <p className="text-center py-12 text-[13px] text-[#7A96B0]">Önce kullanıcı oluşturun.</p>;
 
-  if (!userId) return (
-    <div className="text-center py-16">
-      <p className="text-[14px]" style={{ color: "#7A96B0" }}>Önce kullanıcı oluşturun, ardından yetki atayabilirsiniz.</p>
-    </div>
-  );
+  // Group by transactionCode
+  const groups = useMemo(() => {
+    const map = new Map<string, PermissionLookupItem[]>();
+    for (const p of allPermissions) {
+      const key = p.transactionCode;
+      if (!map.has(key)) map.set(key, []);
+      map.get(key)!.push(p);
+    }
+    return Array.from(map.entries());
+  }, [allPermissions]);
 
-  function isAllowed(tcode: string, action: string) {
-    return perms.some((p) => p.transactionCode === tcode && p.actionCode === action && p.isAllowed);
-  }
-
-  function chipKey(tcode: string, action: string) { return `${tcode}:${action}`; }
-
-  async function toggleAction(tcode: string, action: string) {
-    const key = chipKey(tcode, action);
-    setLoadingChips((s) => new Set(s).add(key));
+  async function toggle(permId: number) {
+    const wasOn = assignedIds.has(permId);
+    const next = new Set(assignedIds);
+    if (wasOn) next.delete(permId); else next.add(permId);
+    setAssignedIds(next);
     try {
-      if (isAllowed(tcode, action)) {
-        const perm = perms.find((p) => p.transactionCode === tcode && p.actionCode === action);
-        if (perm) {
-          await apiClient.delete(`/api/permissions/actions/${perm.id}`);
-          setPerms((prev) => prev.filter((p) => p.id !== perm.id));
-          toast.success("Yetki kaldırıldı");
-        }
+      if (wasOn) {
+        // find the action permission ID from user's directPermissions — for now use subModulePageId approach
+        await apiClient.delete(`/api/permissions/actions/${permId}`);
       } else {
-        const { data: newPerm } = await apiClient.post<ActionPerm>("/api/permissions/actions", { userId, transactionCode: tcode, actionCode: action, isAllowed: true });
-        setPerms((prev) => [...prev, newPerm]);
-        toast.success("Yetki atandı");
+        const perm = allPermissions.find((p) => p.id === permId);
+        if (perm) {
+          await apiClient.post("/api/permissions/actions", {
+            userId, transactionCode: perm.transactionCode, actionCode: "ALL", isAllowed: true,
+          });
+        }
       }
-    } catch (e) { toast.error(extractErr(e)); }
-    setLoadingChips((s) => { const n = new Set(s); n.delete(key); return n; });
-  }
-
-  async function toggleAll(tcode: string, actions: string[]) {
-    const allOn = actions.every((a) => isAllowed(tcode, a));
-    for (const a of actions) {
-      if (allOn ? isAllowed(tcode, a) : !isAllowed(tcode, a)) await toggleAction(tcode, a);
+      toast.success(wasOn ? "İzin kaldırıldı" : "İzin atandı");
+    } catch {
+      const rev = new Set(assignedIds);
+      if (wasOn) rev.add(permId); else rev.delete(permId);
+      setAssignedIds(rev);
+      toast.error("İşlem başarısız");
     }
   }
 
   return (
     <div className="space-y-4">
-      {TCODE_DEFS.map((tc) => {
-        const allOn = tc.actions.every((a) => isAllowed(tc.code, a));
-        return (
-          <div key={tc.code} className="rounded-xl p-5" style={{ background: "#fff", border: "1px solid #E2EBF3" }}>
-            <div className="flex items-center justify-between mb-3">
-              <div className="flex items-center gap-2">
-                <span className="text-[11px] px-2 py-0.5 rounded" style={{ fontFamily: mono, background: "#EAF1FA", color: "#2E6DA4" }}>{tc.code}</span>
-                <span className="text-[13px] font-medium" style={{ color: "#1B3A5C" }}>{tc.label}</span>
-              </div>
-              <label className="flex items-center gap-2 cursor-pointer select-none">
-                <input type="checkbox" checked={allOn} onChange={() => toggleAll(tc.code, tc.actions)}
-                  className="h-4 w-4 rounded border-[#D6E4F0] accent-[#2E6DA4]" />
-                <span className="text-[11px]" style={{ color: "#7A96B0" }}>Tümünü Seç</span>
-              </label>
-            </div>
-            <div className="flex flex-wrap gap-2">
-              {tc.actions.map((action) => {
-                const on = isAllowed(tc.code, action);
-                const loading = loadingChips.has(chipKey(tc.code, action));
-                return (
-                  <button key={action} onClick={() => toggleAction(tc.code, action)} disabled={loading}
-                    className="flex items-center gap-1.5 rounded-full px-3 py-1.5 text-[12px] font-medium transition-all disabled:opacity-60"
-                    style={on ? { background: "#EAF1FA", border: "1px solid #BDD5EC", color: "#2E6DA4" } : { background: "#F0F4F8", border: "1px solid #E2EBF3", color: "#7A96B0" }}>
-                    {loading ? <Loader2 size={12} className="animate-spin" /> : on ? <Check size={12} /> : null}
-                    {action}
-                  </button>
-                );
-              })}
-            </div>
+      {groups.length === 0 && <p className="text-[13px] text-[#94A3B8] text-center py-8">İzin tanımı bulunamadı</p>}
+      {groups.map(([tcode, perms]) => (
+        <div key={tcode} className="rounded-xl p-4 bg-white border border-[#E2EBF3]">
+          <div className="flex items-center gap-2 mb-3">
+            <span className="text-[11px] px-2 py-0.5 rounded bg-[#EAF1FA] text-[#2E6DA4]" style={{ fontFamily: mono }}>{tcode}</span>
+            <span className="text-[13px] font-medium text-[#1B3A5C]">{perms[0]?.displayName ?? tcode}</span>
           </div>
-        );
-      })}
+          <div className="flex flex-wrap gap-2">
+            {perms.map((p) => {
+              const on = assignedIds.has(p.id);
+              return (
+                <button key={p.id} type="button" onClick={() => toggle(p.id)}
+                  className={`flex items-center gap-1.5 rounded-full px-3 py-1.5 text-[12px] font-medium transition-all border ${
+                    on ? "bg-[#FEF3E2] border-[#F5D99A] text-[#D4891A]" : "bg-[#F0F4F8] border-[#E2EBF3] text-[#7A96B0] hover:border-[#C5D5E3]"
+                  }`}>
+                  {on && <Check size={12} />}
+                  {p.actionCode}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      ))}
     </div>
   );
 }
@@ -563,12 +383,12 @@ function PermissionsTab({ userId }: { userId: number | null }) {
 /* ═══════════════════════════════════════ */
 
 const TABS = [
-  { key: "info", label: "Bilgiler", Icon: User },
-  { key: "roles", label: "Rol Atama", Icon: UserCog },
-  { key: "perms", label: "Yetki Atama", Icon: Shield },
-] as const;
+  { key: "info" as const, label: "Bilgiler", Icon: User },
+  { key: "roles" as const, label: "Rol Atama", Icon: UserCog },
+  { key: "perms" as const, label: "Yetki Atama", Icon: Shield },
+];
 
-type TabKey = (typeof TABS)[number]["key"];
+type TabKey = "info" | "roles" | "perms";
 
 export default function UserFormPage() {
   const { id } = useParams<{ id: string }>();
@@ -580,15 +400,17 @@ export default function UserFormPage() {
 
   const userId = isEdit ? Number(id) : createdUserId;
 
-  const { data: user } = useQuery({
-    queryKey: ["users", id],
-    queryFn: () => usersApi.getById(Number(id)),
-    enabled: isEdit,
-  });
+  // User detail
+  const { data: user } = useQuery({ queryKey: ["users", id], queryFn: () => usersApi.getById(Number(id)), enabled: isEdit });
 
-  // Role/perm counts for badges
-  const { data: userRoles } = useQuery({ queryKey: ["user-roles", userId], queryFn: () => apiClient.get<RoleItem[]>(`/api/roles/users/${userId}`).then((r) => r.data), enabled: !!userId, staleTime: Infinity, refetchOnWindowFocus: false });
-  const { data: userPerms } = useQuery({ queryKey: ["user-permissions", userId], queryFn: () => apiClient.get<ActionPerm[]>("/api/permissions/actions", { params: { userId } }).then((r) => r.data), enabled: !!userId, staleTime: Infinity, refetchOnWindowFocus: false });
+  // Lookups
+  const { data: lookups } = useQuery({ queryKey: ["user-lookups"], queryFn: () => usersApi.lookups(), staleTime: 60_000 });
+
+  // Derived
+  const userRoleIds = useMemo(() => (user?.roles ?? []).map((r) => r.roleId), [user]);
+  const userPermIds = useMemo(() => (user?.directPermissions ?? []).map((p) => p.subModulePageId), [user]);
+  const roleCount = isEdit ? userRoleIds.length : 0;
+  const permCount = isEdit ? userPermIds.length : 0;
 
   function handleCreated(newId: number) {
     setCreatedUserId(newId);
@@ -596,13 +418,13 @@ export default function UserFormPage() {
   }
 
   return (
-    <div className="flex flex-col gap-4">
+    <div className="flex flex-col gap-4 max-w-[820px]">
       <PageHeader
         title={isEdit ? `${user?.userCode ?? "..."} — Düzenle` : "Yeni Kullanıcı"}
         subtitle="Kullanıcı bilgilerini, rollerini ve yetkilerini yönetin"
         actions={
           <div className="flex gap-2 w-full sm:w-auto">
-            <PageAction variant="ghost" onClick={() => navigate("/users")}><ArrowLeft size={14} /> İptal</PageAction>
+            <PageAction variant="ghost" onClick={() => navigate("/users")}><ArrowLeft size={14} /> Vazgeç</PageAction>
             <PageAction onClick={() => {
               if (activeTab === "info") formRef.current?.requestSubmit();
               else if (userId) navigate(`/users/${userId}`);
@@ -612,18 +434,18 @@ export default function UserFormPage() {
       />
 
       {/* Tab bar */}
-      <div className="rounded-[10px] px-5 overflow-x-auto" style={{ background: "#fff", border: "1px solid #E2EBF3" }}>
-        <div className="flex" style={{ borderBottom: "1px solid #F0F4F8" }}>
+      <div className="rounded-xl px-5 overflow-x-auto bg-white border border-[#E2EBF3]">
+        <div className="flex border-b border-[#F0F4F8]">
           {TABS.map((tab) => {
             const active = activeTab === tab.key;
-            const count = tab.key === "roles" ? (userRoles?.length ?? 0) : tab.key === "perms" ? (userPerms?.filter((p) => p.isAllowed).length ?? 0) : 0;
+            const count = tab.key === "roles" ? roleCount : tab.key === "perms" ? permCount : 0;
             return (
               <button key={tab.key} onClick={() => setActiveTab(tab.key)}
                 className="flex items-center gap-2 px-5 py-3.5 text-[13px] font-medium transition-all whitespace-nowrap"
                 style={{ color: active ? "#1B3A5C" : "#7A96B0", borderBottom: active ? "2px solid #2E6DA4" : "2px solid transparent" }}>
                 <tab.Icon size={15} />
                 {tab.label}
-                {count > 0 && <span className="text-[11px] px-1.5 py-0.5 rounded-full" style={{ background: "#EAF1FA", color: "#2E6DA4" }}>{count}</span>}
+                {count > 0 && <span className="text-[11px] px-1.5 py-0.5 rounded-full bg-[#EAF1FA] text-[#2E6DA4]">{count}</span>}
               </button>
             );
           })}
@@ -631,10 +453,10 @@ export default function UserFormPage() {
       </div>
 
       {/* Tab content */}
-      <div className="rounded-[10px] p-6 sm:p-8" style={{ background: "#fff", border: "1px solid #E2EBF3" }}>
+      <div className="rounded-xl p-6 sm:p-8 bg-white border border-[#E2EBF3]">
         {activeTab === "info" && <InfoTab mode={isEdit ? "edit" : "create"} user={user ?? null} onSaved={handleCreated} formRef={formRef} />}
-        {activeTab === "roles" && <RolesTab userId={userId} />}
-        {activeTab === "perms" && <PermissionsTab userId={userId} />}
+        {activeTab === "roles" && <RolesTab userId={userId} allRoles={lookups?.roles ?? []} userRoleIds={userRoleIds} />}
+        {activeTab === "perms" && <PermissionsTab userId={userId} allPermissions={lookups?.permissions ?? []} userPermIds={userPermIds} />}
       </div>
     </div>
   );

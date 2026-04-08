@@ -7,8 +7,7 @@ import LoginPage from "@/pages/LoginPage";
 import ForbiddenPage from "@/pages/ForbiddenPage";
 
 // Kimlik & Erişim
-import { UsersListPage, UserDetailPage } from "@/modules/users";
-import UserCreateEditPage from "@/modules/users/UserCreateEditPage";
+import { UsersListPage, UserDetailPage, UserFormPage } from "@/modules/users";
 import RolesListPage from "@/modules/roles/ListPage";
 import SessionsPage from "@/pages/SessionsPage";
 
@@ -76,9 +75,9 @@ export default function AppRouter() {
         >
           {/* ── Kimlik & Erişim ── */}
           <Route path="/users" element={<UsersListPage />} />
-          <Route path="/users/new" element={<UserCreateEditPage />} />
+          <Route path="/users/new" element={<UserFormPage />} />
           <Route path="/users/:id" element={<UserDetailPage />} />
-          <Route path="/users/:id/edit" element={<UserCreateEditPage />} />
+          <Route path="/users/:id/edit" element={<UserFormPage />} />
           <Route path="/roles" element={<AdminRoute><RolesListPage /></AdminRoute>} />
           <Route path="/sessions" element={<SessionsPage />} />
 
