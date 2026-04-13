@@ -1,5 +1,6 @@
 import axios from "axios";
 import { useAuthStore } from "@/store/auth-store";
+import type { RefreshResponse, UserRole } from "@/types/auth";
 
 const apiClient = axios.create({
   baseURL: "/",
@@ -9,10 +10,11 @@ const apiClient = axios.create({
 apiClient.interceptors.request.use((config) => {
   const state = useAuthStore.getState();
   const token = state.accessToken;
-  console.log("[AXIOS] Request:", config.method?.toUpperCase(), config.url, "Token:", token ? token.slice(0, 20) + "..." : "NONE");
+  const language = localStorage.getItem("ui-language") ?? "tr-TR";
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;
   }
+  config.headers["X-Culture"] = language;
   return config;
 });
 
@@ -54,7 +56,7 @@ apiClient.interceptors.response.use(
     original._retry = true;
     isRefreshing = true;
 
-    const { refreshToken, setTokens, clear } = useAuthStore.getState();
+    const { refreshToken, setTokens, setUser, clear } = useAuthStore.getState();
 
     if (!refreshToken) {
       clear();
@@ -63,11 +65,19 @@ apiClient.interceptors.response.use(
     }
 
     try {
-      const { data } = await axios.post(
+      const { data } = await axios.post<RefreshResponse>(
         "/api/auth/refresh",
         { refreshToken },
       );
       setTokens(data.accessToken, data.refreshToken);
+      setUser({
+        id: String(data.userId),
+        userName: data.userCode,
+        displayName: data.userCode,
+        roles: (data.effectiveAuthorization?.roles ?? []) as UserRole[],
+        mustChangePassword: data.mustChangePassword,
+        permissions: data.effectiveAuthorization?.permissions ?? [],
+      });
       processQueue(null, data.accessToken);
       original.headers.Authorization = `Bearer ${data.accessToken}`;
       return apiClient(original);

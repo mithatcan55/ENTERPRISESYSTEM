@@ -15,6 +15,8 @@ export interface AuthUser {
   userName: string;
   displayName: string;
   roles: UserRole[];
+  mustChangePassword: boolean;
+  permissions: string[];
 }
 
 /** Matches backend LoginResponseDto */
@@ -30,6 +32,23 @@ export interface LoginResponse {
   passwordExpiresAt: string | null;
   isPasswordExpiringSoon: boolean;
   daysUntilPasswordExpiry: number | null;
+  effectiveAuthorization: {
+    roles: string[];
+    transactionCodes: string[];
+    permissions: string[];
+  };
+}
+
+/** Matches backend RefreshTokenResponseDto */
+export interface RefreshResponse {
+  userId: number;
+  userCode: string;
+  accessToken: string;
+  accessTokenExpiresAt: string;
+  refreshToken: string;
+  refreshTokenExpiresAt: string;
+  tokenType: string;
+  mustChangePassword: boolean;
   effectiveAuthorization: {
     roles: string[];
     transactionCodes: string[];

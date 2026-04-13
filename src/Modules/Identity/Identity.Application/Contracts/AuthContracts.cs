@@ -23,11 +23,15 @@ public sealed record LoginResponseDto(
     EffectiveAuthorizationSummaryDto EffectiveAuthorization);
 
 public sealed record RefreshTokenResponseDto(
+    int UserId,
+    string UserCode,
     string AccessToken,
     DateTime AccessTokenExpiresAt,
     string RefreshToken,
     DateTime RefreshTokenExpiresAt,
-    string TokenType);
+    string TokenType,
+    bool MustChangePassword,
+    EffectiveAuthorizationSummaryDto EffectiveAuthorization);
 
 public sealed class RefreshTokenRequest
 {

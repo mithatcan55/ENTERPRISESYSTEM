@@ -213,10 +213,23 @@ public sealed class AuthLifecycleService(
 
         var now = DateTime.UtcNow;
 
-        if (refreshToken.IsRevoked || refreshToken.IsUsed)
+        if (refreshToken.IsUsed)
         {
+            // Parallel refresh yarisinda ayni token kisa aralikla ikinci kez gelebilir.
+            if (string.Equals(refreshToken.RevokedBy, "rotation", StringComparison.OrdinalIgnoreCase)
+                && refreshToken.UsedAt.HasValue
+                && refreshToken.UsedAt.Value >= now.AddSeconds(-15))
+            {
+                throw new ForbiddenAppException("Refresh token zaten yenilendi.", errorCode: "refresh_token_already_rotated");
+            }
+
             await HandleRefreshTokenReuseAsync(refreshToken, cancellationToken);
             throw new ForbiddenAppException("Refresh token tekrar kullanımı tespit edildi.", errorCode: "refresh_token_reused");
+        }
+
+        if (refreshToken.IsRevoked)
+        {
+            throw new ForbiddenAppException("Refresh token revoke edildi.", errorCode: "refresh_token_revoked");
         }
 
         if (refreshToken.ExpiresAt <= now)
@@ -251,6 +264,16 @@ public sealed class AuthLifecycleService(
                 where userRole.UserId == user.Id && !userRole.IsDeleted && !role.IsDeleted
                 select role.Code)
             .Distinct()
+            .OrderBy(x => x)
+            .ToListAsync(cancellationToken);
+
+        var transactionCodes = await (
+                from userPagePermission in authorizationDbContext.UserPagePermissions.AsNoTracking()
+                join page in authorizationDbContext.SubModulePages.AsNoTracking() on userPagePermission.SubModulePageId equals page.Id
+                where userPagePermission.UserId == user.Id && !userPagePermission.IsDeleted && !page.IsDeleted
+                select page.TransactionCode)
+            .Distinct()
+            .OrderBy(x => x)
             .ToListAsync(cancellationToken);
 
         var permissions = await (
@@ -305,14 +328,26 @@ public sealed class AuthLifecycleService(
         await identityDbContext.SaveChangesAsync(cancellationToken);
 
         await LogSecurityEventAsync("RefreshToken", true, null, user.UserCode, user.Id, cancellationToken,
-            new { session.Id, accessToken.ExpiresAtUtc, newRefreshTokenExpiresAt });
+            new
+            {
+                session.Id,
+                accessToken.ExpiresAtUtc,
+                newRefreshTokenExpiresAt,
+                user.MustChangePassword
+            });
+
+        var effectiveAuthorization = new EffectiveAuthorizationSummaryDto(roles, transactionCodes, permissions);
 
         return new RefreshTokenResponseDto(
+            user.Id,
+            user.UserCode,
             accessToken.Token,
             accessToken.ExpiresAtUtc,
             newRefreshTokenValue,
             newRefreshTokenExpiresAt,
-            "Bearer");
+            "Bearer",
+            user.MustChangePassword,
+            effectiveAuthorization);
     }
 
     public async Task LogoutAsync(string reason, CancellationToken cancellationToken)
@@ -786,3 +821,4 @@ public sealed class AuthLifecycleService(
         await operationalEventPublisher.PublishAsync(operationalEvent, cancellationToken);
     }
 }
+
