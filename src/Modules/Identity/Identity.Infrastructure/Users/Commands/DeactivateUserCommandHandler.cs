@@ -1,5 +1,6 @@
 using Application.Exceptions;
 using Identity.Application.Users.Commands;
+using Identity.Infrastructure.Services;
 using Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 
@@ -15,5 +16,6 @@ public sealed class DeactivateUserCommandHandler(IdentityDbContext identityDbCon
 
         user.IsActive = false;
         await identityDbContext.SaveChangesAsync(cancellationToken);
+        await identityDbContext.RevokeAllSessionsAndRefreshTokensAsync(userId, "critical_change:user_deactivate", cancellationToken);
     }
 }

@@ -1,8 +1,10 @@
 using Application.Exceptions;
 using Identity.Application.Roles.Commands;
+using Identity.Infrastructure.Services;
 using Infrastructure.Persistence;
 using Infrastructure.Persistence.Entities.Identity;
 using Microsoft.EntityFrameworkCore;
+using Npgsql;
 
 namespace Identity.Infrastructure.Roles.Commands;
 
@@ -27,12 +29,21 @@ public sealed class AssignRoleCommandHandler(IdentityDbContext identityDbContext
             throw new NotFoundAppException($"Role bulunamadi. roleId={roleId}");
         }
 
-        var alreadyAssigned = await identityDbContext.UserRoles
-            .AsNoTracking()
-            .AnyAsync(x => x.UserId == userId && x.RoleId == roleId && !x.IsDeleted, cancellationToken);
+        var existingAssignment = await identityDbContext.UserRoles
+            .FirstOrDefaultAsync(x => x.UserId == userId && x.RoleId == roleId, cancellationToken);
 
-        if (alreadyAssigned)
+        if (existingAssignment is not null)
         {
+            if (!existingAssignment.IsDeleted)
+            {
+                return;
+            }
+
+            existingAssignment.IsDeleted = false;
+            existingAssignment.DeletedAt = null;
+            existingAssignment.DeletedBy = null;
+            await identityDbContext.SaveChangesAsync(cancellationToken);
+            await identityDbContext.RevokeAllSessionsAndRefreshTokensAsync(userId, "critical_change:role_change", cancellationToken);
             return;
         }
 
@@ -42,6 +53,14 @@ public sealed class AssignRoleCommandHandler(IdentityDbContext identityDbContext
             RoleId = roleId
         });
 
-        await identityDbContext.SaveChangesAsync(cancellationToken);
+        try
+        {
+            await identityDbContext.SaveChangesAsync(cancellationToken);
+            await identityDbContext.RevokeAllSessionsAndRefreshTokensAsync(userId, "critical_change:role_change", cancellationToken);
+        }
+        catch (DbUpdateException ex) when (ex.InnerException is PostgresException { SqlState: PostgresErrorCodes.UniqueViolation })
+        {
+            // Idempotent assign: another request inserted the same role concurrently.
+        }
     }
 }

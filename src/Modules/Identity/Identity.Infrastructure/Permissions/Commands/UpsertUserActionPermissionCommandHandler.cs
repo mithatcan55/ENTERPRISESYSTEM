@@ -1,6 +1,7 @@
 using Application.Exceptions;
 using Identity.Application.Contracts;
 using Identity.Application.Permissions.Commands;
+using Identity.Infrastructure.Services;
 using Infrastructure.Persistence;
 using Infrastructure.Persistence.Entities.Authorization;
 using Microsoft.EntityFrameworkCore;
@@ -76,6 +77,7 @@ public sealed class UpsertUserActionPermissionCommandHandler(
         }
 
         await authorizationDbContext.SaveChangesAsync(cancellationToken);
+        await identityDbContext.RevokeAllSessionsAndRefreshTokensAsync(request.UserId, "critical_change:permission_change", cancellationToken);
 
         return new UserActionPermissionDto(
             permission.Id,

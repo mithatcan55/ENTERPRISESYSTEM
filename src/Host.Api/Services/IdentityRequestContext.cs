@@ -7,6 +7,7 @@ public sealed class IdentityRequestContext(IHttpContextAccessor httpContextAcces
     : IIdentityRequestContext
 {
     public bool TryGetUserId(out int userId) => currentUserContext.TryGetUserId(out userId);
+    public bool TryGetSessionId(out int sessionId) => currentUserContext.TryGetSessionId(out sessionId);
 
     public bool TryGetUsername(out string username) => currentUserContext.TryGetUsername(out username);
 

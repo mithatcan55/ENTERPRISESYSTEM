@@ -19,6 +19,14 @@ public sealed class CurrentUserContext(IHttpContextAccessor httpContextAccessor)
         return int.TryParse(raw, out userId);
     }
 
+    public bool TryGetSessionId(out int sessionId)
+    {
+        sessionId = 0;
+        var user = httpContextAccessor.HttpContext?.User;
+        var raw = user?.FindFirst(SecurityClaimTypes.SessionId)?.Value;
+        return int.TryParse(raw, out sessionId);
+    }
+
     public bool TryGetCompanyId(out int companyId)
     {
         companyId = 0;

@@ -148,6 +148,12 @@ public sealed class ApprovalDelegationLifecycleTests
             return true;
         }
 
+        public bool TryGetSessionId(out int sessionId)
+        {
+            sessionId = 1;
+            return true;
+        }
+
         public bool TryGetActorIdentity(out string actorIdentity)
         {
             actorIdentity = $"user:{userId}";

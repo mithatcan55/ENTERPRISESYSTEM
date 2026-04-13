@@ -143,6 +143,12 @@ public sealed class AuthorizationFieldPolicyEvaluatorTests
             return true;
         }
 
+        public bool TryGetSessionId(out int sessionId)
+        {
+            sessionId = 1;
+            return true;
+        }
+
         public bool TryGetCompanyId(out int companyId)
         {
             companyId = 1;

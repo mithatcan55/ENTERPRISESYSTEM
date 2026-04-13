@@ -90,6 +90,12 @@ public sealed class RequestExecutionPipelineTests
             return true;
         }
 
+        public bool TryGetSessionId(out int sessionId)
+        {
+            sessionId = 1;
+            return true;
+        }
+
         public bool TryGetActorIdentity(out string actorIdentity)
         {
             actorIdentity = "core.admin";

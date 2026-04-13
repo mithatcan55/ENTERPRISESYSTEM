@@ -1,11 +1,14 @@
 using Application.Exceptions;
 using Identity.Application.Permissions.Commands;
+using Identity.Infrastructure.Services;
 using Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 
 namespace Identity.Infrastructure.Permissions.Commands;
 
-public sealed class DeleteUserActionPermissionCommandHandler(AuthorizationDbContext authorizationDbContext) : IDeleteUserActionPermissionCommandHandler
+public sealed class DeleteUserActionPermissionCommandHandler(
+    AuthorizationDbContext authorizationDbContext,
+    IdentityDbContext identityDbContext) : IDeleteUserActionPermissionCommandHandler
 {
     public async Task HandleAsync(int permissionId, CancellationToken cancellationToken)
     {
@@ -32,5 +35,6 @@ public sealed class DeleteUserActionPermissionCommandHandler(AuthorizationDbCont
         permission.IsDeleted = true;
         permission.DeletedAt = DateTime.UtcNow;
         await authorizationDbContext.SaveChangesAsync(cancellationToken);
+        await identityDbContext.RevokeAllSessionsAndRefreshTokensAsync(permission.UserId, "critical_change:permission_change", cancellationToken);
     }
 }

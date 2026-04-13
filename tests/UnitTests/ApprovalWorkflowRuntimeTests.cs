@@ -256,10 +256,10 @@ public sealed class ApprovalWorkflowRuntimeTests
     private static void SeedIdentity(IdentityDbContext identityDbContext)
     {
         identityDbContext.Users.AddRange(
-            new User { Id = 10, UserCode = "REQUESTER", Username = "requester", Email = "requester@test.local", PasswordHash = "x" },
-            new User { Id = 20, UserCode = "DIRECTOR", Username = "director", Email = "director@test.local", PasswordHash = "x" },
-            new User { Id = 30, UserCode = "DELEGATE", Username = "delegate", Email = "delegate@test.local", PasswordHash = "x" },
-            new User { Id = 40, UserCode = "CFO", Username = "cfo", Email = "cfo@test.local", PasswordHash = "x" });
+            new User { Id = 10, UserCode = "REQUESTER", Email = "requester@test.local", PasswordHash = "x" },
+            new User { Id = 20, UserCode = "DIRECTOR", Email = "director@test.local", PasswordHash = "x" },
+            new User { Id = 30, UserCode = "DELEGATE", Email = "delegate@test.local", PasswordHash = "x" },
+            new User { Id = 40, UserCode = "CFO", Email = "cfo@test.local", PasswordHash = "x" });
 
         identityDbContext.Roles.Add(new Role
         {
@@ -304,6 +304,12 @@ public sealed class ApprovalWorkflowRuntimeTests
         public bool TryGetUserId(out int resolvedUserId)
         {
             resolvedUserId = userId;
+            return true;
+        }
+
+        public bool TryGetSessionId(out int sessionId)
+        {
+            sessionId = 1;
             return true;
         }
 

@@ -22,20 +22,27 @@ public sealed class SessionsController(
         [FromQuery] bool onlyActive = true,
         CancellationToken cancellationToken = default)
     {
-        // Query parametresi verilmezse claim fallback devreye girer.
-        // Bu sayede kullanici genelde kendi session'larini ekstra bilgi vermeden gorebilir.
+        var isPrivilegedActor = currentUserContext.IsInRole("SYS_ADMIN")
+                                || currentUserContext.IsInRole("SYS_OPERATOR");
+
         var resolvedUserId = userId;
-        if (!resolvedUserId.HasValue && currentUserContext.TryGetUserId(out var claimUserId))
+
+        if (!currentUserContext.TryGetUserId(out var claimUserId))
         {
+            return BadRequest("Authenticated user claim icinde userId bulunamadi.");
+        }
+
+        if (!isPrivilegedActor)
+        {
+            if (resolvedUserId.HasValue && resolvedUserId.Value != claimUserId)
+            {
+                return Forbid();
+            }
+
             resolvedUserId = claimUserId;
         }
 
-        if (!resolvedUserId.HasValue)
-        {
-            return BadRequest("userId query ile veya claim icinde saglanmalidir.");
-        }
-
-        var sessions = await authLifecycleService.ListSessionsAsync(resolvedUserId.Value, onlyActive, cancellationToken);
+        var sessions = await authLifecycleService.ListSessionsAsync(resolvedUserId, onlyActive, cancellationToken);
         return Ok(sessions);
     }
 
@@ -52,5 +59,18 @@ public sealed class SessionsController(
         // Revoke gerekcesi opsiyoneldir ama denetim izi icin degerlidir.
         await authLifecycleService.RevokeSessionAsync(sessionId, request?.Reason, cancellationToken);
         return NoContent();
+    }
+
+    [HttpPost("revoke-bulk")]
+    [ProducesResponseType(typeof(RevokeBulkSessionsResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status403Forbidden)]
+    public async Task<ActionResult<RevokeBulkSessionsResponse>> RevokeBulk(
+        [FromBody] RevokeBulkSessionsRequest request,
+        CancellationToken cancellationToken)
+    {
+        var response = await authLifecycleService.RevokeSessionsBulkAsync(request, cancellationToken);
+        return Ok(response);
     }
 }

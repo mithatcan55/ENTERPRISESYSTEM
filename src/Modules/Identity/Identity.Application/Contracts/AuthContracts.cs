@@ -49,9 +49,32 @@ public sealed class RevokeSessionRequest
     public string? Reason { get; set; }
 }
 
+public enum SessionRevokeScope
+{
+    Current = 1,
+    Selected = 2,
+    All = 3,
+    AllExceptCurrent = 4
+}
+
+public sealed class RevokeBulkSessionsRequest
+{
+    public SessionRevokeScope Scope { get; set; } = SessionRevokeScope.Current;
+    public List<int>? SessionIds { get; set; }
+    public int? UserId { get; set; }
+    public string? Reason { get; set; }
+}
+
+public sealed record RevokeBulkSessionsResponse(
+    SessionRevokeScope Scope,
+    int RequestedCount,
+    int RevokedCount,
+    IReadOnlyList<int> RevokedSessionIds);
+
 public sealed record SessionListItemDto(
     int Id,
     int UserId,
+    string UserCode,
     string SessionKey,
     DateTime StartedAt,
     DateTime ExpiresAt,

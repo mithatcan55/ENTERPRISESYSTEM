@@ -45,10 +45,13 @@ public sealed class AuthLifecycleService(
         var identifier = request.Identifier.Trim();
         var normalizedEmail = identifier.ToLowerInvariant();
         var normalizedCode = identifier.ToUpperInvariant();
+        var alternativeCode = normalizedCode.Replace('.', '_');
 
         var user = await identityDbContext.Users
             .FirstOrDefaultAsync(x => !x.IsDeleted &&
-                                      (x.UserCode == normalizedCode || x.Email == normalizedEmail),
+                                      (x.UserCode == normalizedCode
+                                       || x.UserCode == alternativeCode
+                                       || x.Email == normalizedEmail),
                 cancellationToken);
 
         if (user is null)
@@ -109,13 +112,22 @@ public sealed class AuthLifecycleService(
             .OrderBy(x => x)
             .ToListAsync(cancellationToken);
 
-        var permissions = await authorizationDbContext.UserPageActionPermissions
-            .AsNoTracking()
-            .Where(x => x.UserId == user.Id && !x.IsDeleted && x.IsAllowed)
-            .Select(x => x.ActionCode)
+        var permissionPairs = await (
+            from userAction in authorizationDbContext.UserPageActionPermissions.AsNoTracking()
+            join page in authorizationDbContext.SubModulePages.AsNoTracking() on userAction.SubModulePageId equals page.Id
+            where userAction.UserId == user.Id
+                  && !userAction.IsDeleted
+                  && userAction.IsAllowed
+                  && !page.IsDeleted
+            select new { page.TransactionCode, userAction.ActionCode })
             .Distinct()
-            .OrderBy(x => x)
+            .OrderBy(x => x.TransactionCode)
+            .ThenBy(x => x.ActionCode)
             .ToListAsync(cancellationToken);
+
+        var permissions = permissionPairs
+            .Select(x => $"{x.TransactionCode}:{x.ActionCode}")
+            .ToList();
 
         var companyId = await authorizationDbContext.UserCompanyPermissions
             .AsNoTracking()
@@ -241,11 +253,16 @@ public sealed class AuthLifecycleService(
             .Distinct()
             .ToListAsync(cancellationToken);
 
-        var permissions = await authorizationDbContext.UserPageActionPermissions
-            .AsNoTracking()
-            .Where(x => x.UserId == user.Id && !x.IsDeleted && x.IsAllowed)
-            .Select(x => x.ActionCode)
+        var permissions = await (
+                from userAction in authorizationDbContext.UserPageActionPermissions.AsNoTracking()
+                join page in authorizationDbContext.SubModulePages.AsNoTracking() on userAction.SubModulePageId equals page.Id
+                where userAction.UserId == user.Id
+                      && !userAction.IsDeleted
+                      && userAction.IsAllowed
+                      && !page.IsDeleted
+                select $"{page.TransactionCode}:{userAction.ActionCode}")
             .Distinct()
+            .OrderBy(x => x)
             .ToListAsync(cancellationToken);
 
         var companyId = await authorizationDbContext.UserCompanyPermissions
@@ -296,6 +313,16 @@ public sealed class AuthLifecycleService(
             newRefreshTokenValue,
             newRefreshTokenExpiresAt,
             "Bearer");
+    }
+
+    public async Task LogoutAsync(string? reason, CancellationToken cancellationToken)
+    {
+        if (!identityRequestContext.TryGetSessionId(out var sessionId))
+        {
+            throw new ForbiddenAppException("Aktif session bilgisi cozumlenemedi.", errorCode: "session_context_missing");
+        }
+
+        await RevokeSessionAsync(sessionId, string.IsNullOrWhiteSpace(reason) ? "logout" : reason, cancellationToken);
     }
 
     public async Task ChangePasswordAsync(ChangePasswordRequest request, CancellationToken cancellationToken)
@@ -350,16 +377,22 @@ public sealed class AuthLifecycleService(
 
         await identityDbContext.SaveChangesAsync(cancellationToken);
         await passwordPolicyService.RecordPasswordHistoryAsync(user.Id, user.PasswordHash, cancellationToken);
+        await RevokeAllUserSessionsAsync(user.Id, "critical_change:password_change", "Password change -> ALL revoke", cancellationToken);
 
         await LogSecurityEventAsync("ChangePassword", true, null, user.UserCode, user.Id, cancellationToken,
             new { user.PasswordExpiresAt });
     }
 
-    public async Task<IReadOnlyList<SessionListItemDto>> ListSessionsAsync(int userId, bool onlyActive, CancellationToken cancellationToken)
+    public async Task<IReadOnlyList<SessionListItemDto>> ListSessionsAsync(int? userId, bool onlyActive, CancellationToken cancellationToken)
     {
         var query = identityDbContext.UserSessions
             .AsNoTracking()
-            .Where(x => x.UserId == userId && !x.IsDeleted);
+            .Where(x => !x.IsDeleted);
+
+        if (userId.HasValue)
+        {
+            query = query.Where(x => x.UserId == userId.Value);
+        }
 
         if (onlyActive)
         {
@@ -368,19 +401,29 @@ public sealed class AuthLifecycleService(
         }
 
         return await query
-            .OrderByDescending(x => x.StartedAt)
+            .Join(
+                identityDbContext.Users.AsNoTracking(),
+                session => session.UserId,
+                user => user.Id,
+                (session, user) => new
+                {
+                    Session = session,
+                    user.UserCode
+                })
+            .OrderByDescending(x => x.Session.StartedAt)
             .Select(x => new SessionListItemDto(
-                x.Id,
-                x.UserId,
-                x.SessionKey,
-                x.StartedAt,
-                x.ExpiresAt,
-                x.LastSeenAt,
-                x.IsRevoked,
-                x.RevokedAt,
-                x.RevokedBy,
-                x.ClientIpAddress,
-                x.UserAgent))
+                x.Session.Id,
+                x.Session.UserId,
+                x.UserCode,
+                x.Session.SessionKey,
+                x.Session.StartedAt,
+                x.Session.ExpiresAt,
+                x.Session.LastSeenAt,
+                x.Session.IsRevoked,
+                x.Session.RevokedAt,
+                x.Session.RevokedBy,
+                x.Session.ClientIpAddress,
+                x.Session.UserAgent))
             .ToListAsync(cancellationToken);
     }
 
@@ -393,11 +436,6 @@ public sealed class AuthLifecycleService(
         if (session is null)
         {
             throw new NotFoundAppException($"Session bulunamadı. sessionId={sessionId}", errorCode: "session_not_found");
-        }
-
-        if (session.IsRevoked)
-        {
-            return;
         }
 
         if (!identityRequestContext.TryGetUserId(out var actorUserId))
@@ -426,9 +464,12 @@ public sealed class AuthLifecycleService(
             ? actorIdentity
             : "system";
 
-        session.IsRevoked = true;
-        session.RevokedAt = DateTime.UtcNow;
-        session.RevokedBy = actor;
+        if (!session.IsRevoked)
+        {
+            session.IsRevoked = true;
+            session.RevokedAt = DateTime.UtcNow;
+            session.RevokedBy = actor;
+        }
 
         var refreshTokens = await identityDbContext.UserRefreshTokens
             .Where(x => x.UserSessionId == session.Id && !x.IsDeleted && !x.IsRevoked)
@@ -445,6 +486,149 @@ public sealed class AuthLifecycleService(
 
         await LogSecurityEventAsync("RevokeSession", true, reason, actor, session.UserId, cancellationToken,
             new { session.Id, session.SessionKey, session.RevokedAt, session.RevokedBy, reason });
+    }
+
+    public async Task<RevokeBulkSessionsResponse> RevokeSessionsBulkAsync(RevokeBulkSessionsRequest request, CancellationToken cancellationToken)
+    {
+        if (!identityRequestContext.TryGetUserId(out var actorUserId))
+        {
+            throw new ForbiddenAppException("Kimliği doğrulanmış kullanıcı bilgisi çözümlenemedi.", errorCode: "identity_context_missing");
+        }
+
+        if (!identityRequestContext.TryGetSessionId(out var currentSessionId))
+        {
+            throw new ForbiddenAppException("Aktif session bilgisi cozumlenemedi.", errorCode: "session_context_missing");
+        }
+
+        var isPrivilegedActor = identityRequestContext.IsInRole("SYS_ADMIN")
+                                || identityRequestContext.IsInRole("SYS_OPERATOR");
+
+        var targetUserId = request.UserId ?? actorUserId;
+        if (!isPrivilegedActor && targetUserId != actorUserId)
+        {
+            throw new ForbiddenAppException("Sadece kendi session kayitlariniz uzerinde islem yapabilirsiniz.", errorCode: "session_revoke_not_allowed");
+        }
+
+        var query = identityDbContext.UserSessions.Where(x => !x.IsDeleted);
+
+        if (!isPrivilegedActor)
+        {
+            query = query.Where(x => x.UserId == actorUserId);
+        }
+        else if (request.UserId.HasValue)
+        {
+            query = query.Where(x => x.UserId == request.UserId.Value);
+        }
+
+        IReadOnlyList<int> requestedSessionIds;
+        switch (request.Scope)
+        {
+            case SessionRevokeScope.Current:
+                requestedSessionIds = [currentSessionId];
+                query = query.Where(x => x.Id == currentSessionId);
+                break;
+            case SessionRevokeScope.Selected:
+                requestedSessionIds = (request.SessionIds ?? [])
+                    .Where(x => x > 0)
+                    .Distinct()
+                    .ToList();
+                if (requestedSessionIds.Count == 0)
+                {
+                    throw new ValidationAppException(
+                        "Toplu session revoke dogrulamasi basarisiz.",
+                        new Dictionary<string, string[]>
+                        {
+                            ["sessionIds"] = ["Selected scope icin en az bir gecerli session id zorunludur."]
+                        },
+                        errorCode: "session_revoke_bulk_validation_failed");
+                }
+
+                query = query.Where(x => requestedSessionIds.Contains(x.Id));
+                break;
+            case SessionRevokeScope.All:
+                requestedSessionIds = await query.Select(x => x.Id).ToListAsync(cancellationToken);
+                break;
+            case SessionRevokeScope.AllExceptCurrent:
+                query = query.Where(x => x.Id != currentSessionId);
+                requestedSessionIds = await query.Select(x => x.Id).ToListAsync(cancellationToken);
+                break;
+            default:
+                throw new ValidationAppException(
+                    "Toplu session revoke dogrulamasi basarisiz.",
+                    new Dictionary<string, string[]>
+                    {
+                        ["scope"] = ["Desteklenmeyen scope degeri."]
+                    },
+                    errorCode: "session_revoke_bulk_validation_failed");
+        }
+
+        if (request.Scope == SessionRevokeScope.Selected)
+        {
+            var resolvedCount = await query.CountAsync(cancellationToken);
+            if (resolvedCount != requestedSessionIds.Count)
+            {
+                throw new ForbiddenAppException("Secili session kayitlarinin tamami bu kullanici icin revokable degil.", errorCode: "session_revoke_not_allowed");
+            }
+        }
+
+        var sessions = await query.ToListAsync(cancellationToken);
+        if (sessions.Count == 0)
+        {
+            return new RevokeBulkSessionsResponse(request.Scope, requestedSessionIds.Count, 0, []);
+        }
+
+        var actor = identityRequestContext.TryGetActorIdentity(out var actorIdentity)
+            ? actorIdentity
+            : "system";
+        var now = DateTime.UtcNow;
+        var revokedSessionIds = new List<int>(sessions.Count);
+
+        foreach (var session in sessions)
+        {
+            if (!session.IsRevoked)
+            {
+                session.IsRevoked = true;
+                session.RevokedAt = now;
+                session.RevokedBy = actor;
+                revokedSessionIds.Add(session.Id);
+            }
+        }
+
+        var sessionIds = sessions.Select(x => x.Id).ToList();
+        var refreshTokens = await identityDbContext.UserRefreshTokens
+            .Where(x => !x.IsDeleted && !x.IsRevoked && sessionIds.Contains(x.UserSessionId))
+            .ToListAsync(cancellationToken);
+
+        foreach (var refreshToken in refreshTokens)
+        {
+            refreshToken.IsRevoked = true;
+            refreshToken.RevokedAt = now;
+            refreshToken.RevokedBy = actor;
+        }
+
+        await identityDbContext.SaveChangesAsync(cancellationToken);
+
+        await LogSecurityEventAsync(
+            "RevokeSessionBulk",
+            true,
+            request.Reason,
+            actor,
+            targetUserId.ToString(),
+            targetUserId,
+            cancellationToken,
+            new
+            {
+                request.Scope,
+                RequestedCount = requestedSessionIds.Count,
+                RevokedCount = revokedSessionIds.Count,
+                RevokedSessionIds = revokedSessionIds
+            });
+
+        return new RevokeBulkSessionsResponse(
+            request.Scope,
+            requestedSessionIds.Count,
+            revokedSessionIds.Count,
+            revokedSessionIds);
     }
 
     private async Task HandleRefreshTokenReuseAsync(UserRefreshToken refreshToken, CancellationToken cancellationToken)
@@ -483,6 +667,44 @@ public sealed class AuthLifecycleService(
             refreshToken.UserId,
             cancellationToken,
             new { refreshToken.UserSessionId, refreshToken.TokenId });
+    }
+
+    private async Task RevokeAllUserSessionsAsync(int userId, string revokedBy, string reason, CancellationToken cancellationToken)
+    {
+        var now = DateTime.UtcNow;
+
+        var sessions = await identityDbContext.UserSessions
+            .Where(x => x.UserId == userId && !x.IsDeleted)
+            .ToListAsync(cancellationToken);
+
+        foreach (var session in sessions.Where(x => !x.IsRevoked))
+        {
+            session.IsRevoked = true;
+            session.RevokedAt = now;
+            session.RevokedBy = revokedBy;
+        }
+
+        var refreshTokens = await identityDbContext.UserRefreshTokens
+            .Where(x => x.UserId == userId && !x.IsDeleted && !x.IsRevoked)
+            .ToListAsync(cancellationToken);
+
+        foreach (var refreshToken in refreshTokens)
+        {
+            refreshToken.IsRevoked = true;
+            refreshToken.RevokedAt = now;
+            refreshToken.RevokedBy = revokedBy;
+        }
+
+        await identityDbContext.SaveChangesAsync(cancellationToken);
+
+        await LogSecurityEventAsync(
+            "RevokeSessionBulk",
+            true,
+            reason,
+            revokedBy,
+            userId,
+            cancellationToken,
+            new { Scope = SessionRevokeScope.All, RevokedBy = revokedBy });
     }
 
     private (string TokenValue, string TokenHash, DateTime ExpiresAt) CreateRefreshToken()

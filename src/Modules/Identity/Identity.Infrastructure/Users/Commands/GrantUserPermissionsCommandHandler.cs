@@ -1,6 +1,7 @@
 using Application.Exceptions;
 using Identity.Application.Contracts;
 using Identity.Application.Users.Commands;
+using Identity.Infrastructure.Services;
 using Infrastructure.Persistence;
 using Infrastructure.Persistence.Entities.Authorization;
 using Microsoft.EntityFrameworkCore;
@@ -129,5 +130,6 @@ public sealed class GrantUserPermissionsCommandHandler(
         }
 
         await authorizationDbContext.SaveChangesAsync(cancellationToken);
+        await identityDbContext.RevokeAllSessionsAndRefreshTokensAsync(userId, "critical_change:permission_change", cancellationToken);
     }
 }

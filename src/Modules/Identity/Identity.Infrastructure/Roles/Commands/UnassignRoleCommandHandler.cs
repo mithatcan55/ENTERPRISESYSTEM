@@ -1,5 +1,6 @@
 using Application.Exceptions;
 using Identity.Application.Roles.Commands;
+using Identity.Infrastructure.Services;
 using Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 
@@ -20,5 +21,6 @@ public sealed class UnassignRoleCommandHandler(IdentityDbContext identityDbConte
         userRole.IsDeleted = true;
         userRole.DeletedAt = DateTime.UtcNow;
         await identityDbContext.SaveChangesAsync(cancellationToken);
+        await identityDbContext.RevokeAllSessionsAndRefreshTokensAsync(userId, "critical_change:role_change", cancellationToken);
     }
 }
