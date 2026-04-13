@@ -44,9 +44,9 @@ public sealed class AuthController(IAuthLifecycleService authLifecycleService) :
     [OperationLog("Auth.Logout", "Authentication")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status401Unauthorized)]
-    public async Task<IActionResult> Logout([FromBody] RevokeSessionRequest? request, CancellationToken cancellationToken)
+    public async Task<IActionResult> Logout([FromBody] RevokeSessionRequest request, CancellationToken cancellationToken)
     {
-        await authLifecycleService.LogoutAsync(request?.Reason, cancellationToken);
+        await authLifecycleService.LogoutAsync(request.Reason, cancellationToken);
         return NoContent();
     }
 

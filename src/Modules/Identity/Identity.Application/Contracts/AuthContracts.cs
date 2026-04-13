@@ -1,3 +1,5 @@
+using System.ComponentModel.DataAnnotations;
+
 namespace Identity.Application.Contracts;
 
 public sealed class LoginRequest
@@ -46,7 +48,9 @@ public sealed class ChangePasswordRequest
 
 public sealed class RevokeSessionRequest
 {
-    public string? Reason { get; set; }
+    [Required]
+    [MinLength(3)]
+    public string Reason { get; set; } = string.Empty;
 }
 
 public enum SessionRevokeScope
@@ -62,7 +66,9 @@ public sealed class RevokeBulkSessionsRequest
     public SessionRevokeScope Scope { get; set; } = SessionRevokeScope.Current;
     public List<int>? SessionIds { get; set; }
     public int? UserId { get; set; }
-    public string? Reason { get; set; }
+    [Required]
+    [MinLength(3)]
+    public string Reason { get; set; } = string.Empty;
 }
 
 public sealed record RevokeBulkSessionsResponse(

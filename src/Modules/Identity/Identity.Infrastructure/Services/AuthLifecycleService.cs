@@ -315,14 +315,14 @@ public sealed class AuthLifecycleService(
             "Bearer");
     }
 
-    public async Task LogoutAsync(string? reason, CancellationToken cancellationToken)
+    public async Task LogoutAsync(string reason, CancellationToken cancellationToken)
     {
         if (!identityRequestContext.TryGetSessionId(out var sessionId))
         {
             throw new ForbiddenAppException("Aktif session bilgisi cozumlenemedi.", errorCode: "session_context_missing");
         }
 
-        await RevokeSessionAsync(sessionId, string.IsNullOrWhiteSpace(reason) ? "logout" : reason, cancellationToken);
+        await RevokeSessionAsync(sessionId, reason, cancellationToken);
     }
 
     public async Task ChangePasswordAsync(ChangePasswordRequest request, CancellationToken cancellationToken)
@@ -427,8 +427,21 @@ public sealed class AuthLifecycleService(
             .ToListAsync(cancellationToken);
     }
 
-    public async Task RevokeSessionAsync(int sessionId, string? reason, CancellationToken cancellationToken)
+    public async Task RevokeSessionAsync(int sessionId, string reason, CancellationToken cancellationToken)
     {
+        if (string.IsNullOrWhiteSpace(reason))
+        {
+            throw new ValidationAppException(
+                "Session revoke dogrulamasi basarisiz.",
+                new Dictionary<string, string[]>
+                {
+                    ["reason"] = ["Reason zorunludur."]
+                },
+                errorCode: "session_revoke_validation_failed");
+        }
+
+        var normalizedReason = reason.Trim();
+
         // Session revoke davranisi self-service ve privileged actor senaryolarini ayni yerde toplar.
         var session = await identityDbContext.UserSessions
             .FirstOrDefaultAsync(x => x.Id == sessionId && !x.IsDeleted, cancellationToken);
@@ -484,12 +497,25 @@ public sealed class AuthLifecycleService(
 
         await identityDbContext.SaveChangesAsync(cancellationToken);
 
-        await LogSecurityEventAsync("RevokeSession", true, reason, actor, session.UserId, cancellationToken,
-            new { session.Id, session.SessionKey, session.RevokedAt, session.RevokedBy, reason });
+        await LogSecurityEventAsync("RevokeSession", true, normalizedReason, actor, session.UserId, cancellationToken,
+            new { session.Id, session.SessionKey, session.RevokedAt, session.RevokedBy, reason = normalizedReason });
     }
 
     public async Task<RevokeBulkSessionsResponse> RevokeSessionsBulkAsync(RevokeBulkSessionsRequest request, CancellationToken cancellationToken)
     {
+        if (string.IsNullOrWhiteSpace(request.Reason))
+        {
+            throw new ValidationAppException(
+                "Toplu session revoke dogrulamasi basarisiz.",
+                new Dictionary<string, string[]>
+                {
+                    ["reason"] = ["Reason zorunludur."]
+                },
+                errorCode: "session_revoke_bulk_validation_failed");
+        }
+
+        var normalizedReason = request.Reason.Trim();
+
         if (!identityRequestContext.TryGetUserId(out var actorUserId))
         {
             throw new ForbiddenAppException("Kimliği doğrulanmış kullanıcı bilgisi çözümlenemedi.", errorCode: "identity_context_missing");
@@ -611,7 +637,7 @@ public sealed class AuthLifecycleService(
         await LogSecurityEventAsync(
             "RevokeSessionBulk",
             true,
-            request.Reason,
+            normalizedReason,
             actor,
             targetUserId.ToString(),
             targetUserId,
@@ -621,7 +647,8 @@ public sealed class AuthLifecycleService(
                 request.Scope,
                 RequestedCount = requestedSessionIds.Count,
                 RevokedCount = revokedSessionIds.Count,
-                RevokedSessionIds = revokedSessionIds
+                RevokedSessionIds = revokedSessionIds,
+                Reason = normalizedReason
             });
 
         return new RevokeBulkSessionsResponse(

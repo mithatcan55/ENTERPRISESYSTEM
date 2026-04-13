@@ -53,11 +53,10 @@ public sealed class SessionsController(
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
     public async Task<IActionResult> Revoke(
         int sessionId,
-        [FromBody] RevokeSessionRequest? request,
+        [FromBody] RevokeSessionRequest request,
         CancellationToken cancellationToken)
     {
-        // Revoke gerekcesi opsiyoneldir ama denetim izi icin degerlidir.
-        await authLifecycleService.RevokeSessionAsync(sessionId, request?.Reason, cancellationToken);
+        await authLifecycleService.RevokeSessionAsync(sessionId, request.Reason, cancellationToken);
         return NoContent();
     }
 
