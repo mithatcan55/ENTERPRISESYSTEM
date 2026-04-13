@@ -45,7 +45,7 @@ public sealed class CreateUserCommandHandler(
         var normalizedEmail = request.Email.Trim().ToLowerInvariant();
 
         // Sifre karmasikligi teknik bir input kontrolu degil, merkezi policy kuralidir.
-        passwordPolicyService.ValidateComplexityOrThrow(request.Password, normalizedUserCode, normalizedEmail);
+        await passwordPolicyService.ValidateComplexityOrThrowAsync(request.Password, normalizedUserCode, normalizedEmail, cancellationToken);
 
         var duplicateExists = await identityDbContext.Users
             .AsNoTracking()
@@ -61,6 +61,46 @@ public sealed class CreateUserCommandHandler(
                 new Dictionary<string, string[]>
                 {
                     ["user"] = ["Ayni userCode veya email ile kayit zaten mevcut."]
+                });
+        }
+
+        var requestedRoleIds = request.RoleIds?.Distinct().ToList() ?? [];
+        var validRoleIds = requestedRoleIds.Count == 0
+            ? []
+            : await identityDbContext.Roles
+                .AsNoTracking()
+                .Where(r => !r.IsDeleted && requestedRoleIds.Contains(r.Id))
+                .Select(r => r.Id)
+                .ToListAsync(cancellationToken);
+
+        var invalidRoleIds = requestedRoleIds.Except(validRoleIds).ToList();
+        if (invalidRoleIds.Count > 0)
+        {
+            throw new ValidationAppException(
+                "INVALID_ROLE_IDS",
+                new Dictionary<string, string[]>
+                {
+                    ["roleIds"] = [$"Gecersiz rol ID'leri: {string.Join(", ", invalidRoleIds)}."]
+                });
+        }
+
+        var requestedPermissionIds = request.PermissionIds?.Distinct().ToList() ?? [];
+        var validPermissionIds = requestedPermissionIds.Count == 0
+            ? []
+            : await authorizationDbContext.SubModulePages
+                .AsNoTracking()
+                .Where(p => !p.IsDeleted && requestedPermissionIds.Contains(p.Id))
+                .Select(p => p.Id)
+                .ToListAsync(cancellationToken);
+
+        var invalidPermissionIds = requestedPermissionIds.Except(validPermissionIds).ToList();
+        if (invalidPermissionIds.Count > 0)
+        {
+            throw new ValidationAppException(
+                "INVALID_PERMISSION_IDS",
+                new Dictionary<string, string[]>
+                {
+                    ["permissionIds"] = [$"Gecersiz yetki ID'leri: {string.Join(", ", invalidPermissionIds)}."]
                 });
         }
 
@@ -120,14 +160,8 @@ public sealed class CreateUserCommandHandler(
         }
 
         // Assign roles if provided
-        if (request.RoleIds is { Count: > 0 })
+        if (validRoleIds.Count > 0)
         {
-            var validRoleIds = await identityDbContext.Roles
-                .AsNoTracking()
-                .Where(r => !r.IsDeleted && request.RoleIds.Contains(r.Id))
-                .Select(r => r.Id)
-                .ToListAsync(cancellationToken);
-
             foreach (var roleId in validRoleIds)
             {
                 identityDbContext.UserRoles.Add(new UserRole
@@ -141,22 +175,17 @@ public sealed class CreateUserCommandHandler(
         }
 
         // Assign direct permissions if provided (UserPageActionPermission)
-        if (request.PermissionIds is { Count: > 0 })
+        if (validPermissionIds.Count > 0)
         {
-            var validPageIds = await authorizationDbContext.SubModulePages
-                .AsNoTracking()
-                .Where(p => !p.IsDeleted && request.PermissionIds.Contains(p.Id))
-                .Select(p => new { p.Id, p.TransactionCode })
-                .ToListAsync(cancellationToken);
-
-            foreach (var page in validPageIds)
+            foreach (var pageId in validPermissionIds)
             {
                 authorizationDbContext.UserPageActionPermissions.Add(new UserPageActionPermission
                 {
                     UserId = user.Id,
-                    SubModulePageId = page.Id,
-                    ActionCode = "ALL",
-                    IsAllowed = true
+                    SubModulePageId = pageId,
+                    ActionCode = "VIEW",
+                    IsAllowed = true,
+                    CreatedAt = DateTime.UtcNow
                 });
             }
 

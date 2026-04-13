@@ -174,7 +174,7 @@ public sealed partial class UpdateUserCommandHandler(
                 {
                     UserId = userId,
                     SubModulePageId = pageId,
-                    ActionCode = "ALL",
+                    ActionCode = "VIEW",
                     IsAllowed = true,
                     CreatedAt = DateTime.UtcNow
                 });

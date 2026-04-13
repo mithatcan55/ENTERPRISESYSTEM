@@ -5,5 +5,5 @@ namespace Identity.Application.Permissions.Commands;
 
 public sealed record UpsertUserActionPermissionCommand(UpsertUserActionPermissionRequest Request) : IAdminOnlyRequest, IPermissionProtectedRequest
 {
-    public string PermissionCode => "PERMISSIONS_WRITE";
+    public string PermissionCode => "Permissions.Update";
 }

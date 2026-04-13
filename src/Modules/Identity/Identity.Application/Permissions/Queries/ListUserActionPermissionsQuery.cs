@@ -5,5 +5,5 @@ namespace Identity.Application.Permissions.Queries;
 
 public sealed record ListUserActionPermissionsQuery(UserActionPermissionQueryRequest Request) : IAdminOnlyRequest, IPermissionProtectedRequest
 {
-    public string PermissionCode => "PERMISSIONS_READ";
+    public string PermissionCode => "Permissions.View";
 }

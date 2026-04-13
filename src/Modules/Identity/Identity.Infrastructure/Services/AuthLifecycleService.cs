@@ -3,6 +3,7 @@ using System.Text;
 using System.Text.Json;
 using Application.Exceptions;
 using Application.Observability;
+using Authorization.Application.Services;
 using Identity.Application.Configuration;
 using Identity.Application.Contracts;
 using Identity.Application.Services;
@@ -21,6 +22,7 @@ public sealed class AuthLifecycleService(
     IOperationalEventPublisher operationalEventPublisher,
     IIdentityRequestContext identityRequestContext,
     IPasswordPolicyService passwordPolicyService,
+    IEffectivePermissionService effectivePermissionService,
     IJwtAccessTokenService jwtAccessTokenService,
     IOptions<JwtTokenOptions> jwtOptions) : IAuthLifecycleService
 {
@@ -112,22 +114,7 @@ public sealed class AuthLifecycleService(
             .OrderBy(x => x)
             .ToListAsync(cancellationToken);
 
-        var permissionPairs = await (
-            from userAction in authorizationDbContext.UserPageActionPermissions.AsNoTracking()
-            join page in authorizationDbContext.SubModulePages.AsNoTracking() on userAction.SubModulePageId equals page.Id
-            where userAction.UserId == user.Id
-                  && !userAction.IsDeleted
-                  && userAction.IsAllowed
-                  && !page.IsDeleted
-            select new { page.TransactionCode, userAction.ActionCode })
-            .Distinct()
-            .OrderBy(x => x.TransactionCode)
-            .ThenBy(x => x.ActionCode)
-            .ToListAsync(cancellationToken);
-
-        var permissions = permissionPairs
-            .Select(x => $"{x.TransactionCode}:{x.ActionCode}")
-            .ToList();
+        var permissions = await effectivePermissionService.ResolveEffectivePermissionsAsync(user.Id, cancellationToken);
 
         var companyId = await authorizationDbContext.UserCompanyPermissions
             .AsNoTracking()
@@ -276,17 +263,7 @@ public sealed class AuthLifecycleService(
             .OrderBy(x => x)
             .ToListAsync(cancellationToken);
 
-        var permissions = await (
-                from userAction in authorizationDbContext.UserPageActionPermissions.AsNoTracking()
-                join page in authorizationDbContext.SubModulePages.AsNoTracking() on userAction.SubModulePageId equals page.Id
-                where userAction.UserId == user.Id
-                      && !userAction.IsDeleted
-                      && userAction.IsAllowed
-                      && !page.IsDeleted
-                select $"{page.TransactionCode}:{userAction.ActionCode}")
-            .Distinct()
-            .OrderBy(x => x)
-            .ToListAsync(cancellationToken);
+        var permissions = await effectivePermissionService.ResolveEffectivePermissionsAsync(user.Id, cancellationToken);
 
         var companyId = await authorizationDbContext.UserCompanyPermissions
             .AsNoTracking()

@@ -1,4 +1,5 @@
 using Application.Security;
+using Authorization.Application.Services;
 using System.Security.Claims;
 using System.Text.Encodings.Web;
 using Infrastructure.Persistence;
@@ -13,7 +14,8 @@ public sealed class SessionAuthenticationHandler(
     ILoggerFactory logger,
     UrlEncoder encoder,
     IdentityDbContext identityDbContext,
-    AuthorizationDbContext authorizationDbContext) : AuthenticationHandler<AuthenticationSchemeOptions>(options, logger, encoder)
+    AuthorizationDbContext authorizationDbContext,
+    IEffectivePermissionService effectivePermissionService) : AuthenticationHandler<AuthenticationSchemeOptions>(options, logger, encoder)
 {
     public const string SchemeName = "SessionBearer";
 
@@ -95,12 +97,7 @@ public sealed class SessionAuthenticationHandler(
                 select role.Code)
             .ToListAsync(Context.RequestAborted);
 
-        var permissions = await authorizationDbContext.UserPageActionPermissions
-            .AsNoTracking()
-            .Where(x => x.UserId == user.Id && !x.IsDeleted && x.IsAllowed)
-            .Select(x => x.ActionCode)
-            .Distinct()
-            .ToListAsync(Context.RequestAborted);
+        var permissions = await effectivePermissionService.ResolveEffectivePermissionsAsync(user.Id, Context.RequestAborted);
 
         var claims = new List<Claim>
         {
