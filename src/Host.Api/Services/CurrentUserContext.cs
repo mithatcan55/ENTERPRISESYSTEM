@@ -1,12 +1,18 @@
 using Application.Security;
+using Infrastructure.Persistence;
+using Microsoft.EntityFrameworkCore;
 
 namespace Host.Api.Services;
 
 /// <summary>
 /// Claim set'i üzerinden kullanıcı ve şirket kimliğini çözer.
 /// </summary>
-public sealed class CurrentUserContext(IHttpContextAccessor httpContextAccessor) : ICurrentUserContext
+public sealed class CurrentUserContext(
+    IHttpContextAccessor httpContextAccessor,
+    IdentityDbContext identityDbContext) : ICurrentUserContext
 {
+    private const string DbRoleCacheKey = "__current_user_db_roles";
+
     public bool TryGetUserId(out int userId)
     {
         userId = 0;
@@ -107,11 +113,38 @@ public sealed class CurrentUserContext(IHttpContextAccessor httpContextAccessor)
             return false;
         }
 
-        var user = httpContextAccessor.HttpContext?.User;
-        return user?.IsInRole(roleCode) == true
-               || user?.Claims.Any(x =>
-                   (string.Equals(x.Type, SecurityClaimTypes.Role, StringComparison.OrdinalIgnoreCase)
-                    || string.Equals(x.Type, SecurityClaimTypes.RoleClaim, StringComparison.OrdinalIgnoreCase))
-                   && string.Equals(x.Value, roleCode, StringComparison.OrdinalIgnoreCase)) == true;
+        if (!TryGetUserId(out var userId))
+        {
+            return false;
+        }
+
+        var httpContext = httpContextAccessor.HttpContext;
+        if (httpContext is null)
+        {
+            return false;
+        }
+
+        if (httpContext.Items.TryGetValue(DbRoleCacheKey, out var cached) && cached is HashSet<string> cachedRoles)
+        {
+            return cachedRoles.Contains(roleCode);
+        }
+
+        var dbRoles = (
+                from user in identityDbContext.Users.AsNoTracking()
+                join userRole in identityDbContext.UserRoles.AsNoTracking() on user.Id equals userRole.UserId
+                join role in identityDbContext.Roles.AsNoTracking() on userRole.RoleId equals role.Id
+                where user.Id == userId
+                      && user.IsActive
+                      && !user.IsDeleted
+                      && !userRole.IsDeleted
+                      && !role.IsDeleted
+                select role.Code)
+            .Distinct()
+            .ToList();
+
+        var dbRoleSet = new HashSet<string>(dbRoles, StringComparer.OrdinalIgnoreCase);
+        httpContext.Items[DbRoleCacheKey] = dbRoleSet;
+
+        return dbRoleSet.Contains(roleCode);
     }
 }

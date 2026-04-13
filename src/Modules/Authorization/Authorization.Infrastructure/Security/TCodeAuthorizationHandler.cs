@@ -6,7 +6,9 @@ using Microsoft.AspNetCore.Http;
 
 namespace Authorization.Infrastructure.Security;
 
-public sealed class TCodeAuthorizationHandler(ITCodeAuthorizationService tCodeAuthorizationService)
+public sealed class TCodeAuthorizationHandler(
+    ITCodeAuthorizationService tCodeAuthorizationService,
+    ICurrentUserContext currentUserContext)
     : AuthorizationHandler<TCodeRequirement>
 {
     protected override async Task HandleRequirementAsync(AuthorizationHandlerContext context, TCodeRequirement requirement)
@@ -16,7 +18,7 @@ public sealed class TCodeAuthorizationHandler(ITCodeAuthorizationService tCodeAu
             return;
         }
 
-        if (context.User.IsInRole("SYS_ADMIN"))
+        if (currentUserContext.IsInRole("SYS_ADMIN"))
         {
             context.Succeed(requirement);
             return;

@@ -13,7 +13,7 @@ public sealed class IdentityRequestContext(IHttpContextAccessor httpContextAcces
 
     public bool TryGetActorIdentity(out string actorIdentity) => currentUserContext.TryGetActorIdentity(out actorIdentity);
 
-    public bool IsInRole(string roleCode) => httpContextAccessor.HttpContext?.User.IsInRole(roleCode) == true;
+    public bool IsInRole(string roleCode) => currentUserContext.IsInRole(roleCode);
 
     public string? RemoteIpAddress => httpContextAccessor.HttpContext?.Connection.RemoteIpAddress?.ToString();
 
