@@ -9,10 +9,11 @@ import { PageHeader, PageAction } from "@/components/ui/PageHeader";
 import { FilterBar } from "@/components/ui/FilterBar";
 import { DataGrid } from "@/components/ui/DataGrid";
 import { CrudModal } from "@/components/ui/CrudModal";
+import { ProfileImageDisplay } from "@/components/ui/ProfileImage";
 import { useDebounce } from "@/hooks/use-debounce";
 import { useAuthStore } from "@/store/auth-store";
 import { AppPermission, hasPermission } from "@/lib/permissions";
-import { UserPlus, X } from "lucide-react";
+import { ShieldAlert, UserCheck, UserPlus, Users, UserX, X } from "lucide-react";
 import UserFormPage from "./UserFormPage";
 
 type PanelMode = "create" | "edit" | "detail" | null;
@@ -36,9 +37,18 @@ function UserDetailModal({
     enabled: !!userId,
   });
 
+  function fmtDate(value: string | null | undefined) {
+    if (!value) return "-";
+    const parsed = new Date(value);
+    if (Number.isNaN(parsed.getTime())) return "-";
+    return parsed.toLocaleString("tr-TR", { dateStyle: "short", timeStyle: "short" });
+  }
+
+  const displayName = [detail?.firstName, detail?.lastName].filter(Boolean).join(" ").trim() || detail?.userCode || "-";
+
   return (
     <div className="fixed inset-0 z-[80] flex items-center justify-center p-4" style={{ background: "rgba(16,24,40,0.44)" }}>
-      <div className="w-full max-w-[560px] rounded-xl p-5" style={{ background: "var(--ui-card-bg)", border: "1px solid var(--ui-border)" }}>
+      <div className="w-full max-w-[920px] rounded-xl p-5" style={{ background: "var(--ui-card-bg)", border: "1px solid var(--ui-border)" }}>
         <div className="flex items-center justify-between mb-4">
           <h3 className="text-[15px] font-semibold ui-text">Kullanici Detay</h3>
           <button type="button" onClick={onClose} className="ui-text-muted"><X size={16} /></button>
@@ -48,13 +58,55 @@ function UserDetailModal({
         {!isLoading && !detail && <p className="text-[12px] ui-text-muted">Kullanici bulunamadi.</p>}
 
         {detail && (
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-[12px]">
-            <p><strong>Kod:</strong> {detail.userCode}</p>
-            <p><strong>E-posta:</strong> {detail.email}</p>
-            <p><strong>Durum:</strong> {detail.isActive ? "Aktif" : "Pasif"}</p>
-            <p><strong>Sifre Degisimi:</strong> {detail.mustChangePassword ? "Zorunlu" : "Normal"}</p>
-            <p><strong>Rol Sayisi:</strong> {detail.roles.length}</p>
-            <p><strong>Direct Permission:</strong> {detail.directPermissions.length}</p>
+          <div className="flex flex-col gap-4">
+            <div className="rounded-xl p-4 flex items-center gap-4" style={{ border: "1px solid var(--ui-border)" }}>
+              <ProfileImageDisplay src={detail.profileImageUrl} displayName={displayName} size={60} />
+              <div className="min-w-0">
+                <p className="text-[16px] font-semibold ui-text">{displayName}</p>
+                <p className="text-[13px] ui-text-muted break-all">{detail.email}</p>
+                <div className="mt-1 flex flex-wrap gap-2 text-[11px]">
+                  <span className="rounded-full px-2 py-0.5" style={{ background: "var(--ui-surface-alt)", border: "1px solid var(--ui-border)" }}>
+                    {detail.isActive ? "Aktif" : "Pasif"}
+                  </span>
+                  {detail.mustChangePassword && (
+                    <span className="rounded-full px-2 py-0.5" style={{ background: "var(--ui-warning-bg)", color: "var(--ui-warning)" }}>
+                      Sifre degisimi zorunlu
+                    </span>
+                  )}
+                  {detail.isDeleted && (
+                    <span className="rounded-full px-2 py-0.5" style={{ background: "var(--ui-danger-bg)", color: "var(--ui-danger)" }}>
+                      Silinmis
+                    </span>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-[12px]">
+              <div className="rounded-xl p-4" style={{ border: "1px solid var(--ui-border)" }}>
+                <p className="text-[13px] font-semibold ui-text mb-3">Kimlik Bilgileri</p>
+                <div className="grid grid-cols-[130px_1fr] gap-y-2 gap-x-3">
+                  <p className="ui-text-muted">Kod</p><p className="ui-text break-all">{detail.userCode}</p>
+                  <p className="ui-text-muted">Ad Soyad</p><p className="ui-text break-all">{displayName}</p>
+                  <p className="ui-text-muted">E-posta</p><p className="ui-text break-all">{detail.email}</p>
+                  <p className="ui-text-muted">Rol Sayisi</p><p className="ui-text">{detail.roles.length}</p>
+                  <p className="ui-text-muted">Direct Permission</p><p className="ui-text">{detail.directPermissions.length}</p>
+                  <p className="ui-text-muted">Sifre Son</p><p className="ui-text">{fmtDate(detail.passwordExpiresAt)}</p>
+                </div>
+              </div>
+
+              <div className="rounded-xl p-4" style={{ border: "1px solid var(--ui-border)" }}>
+                <p className="text-[13px] font-semibold ui-text mb-3">Denetim Bilgileri</p>
+                <div className="grid grid-cols-[130px_1fr] gap-y-2 gap-x-3">
+                  <p className="ui-text-muted">Olusturulma</p><p className="ui-text">{fmtDate(detail.createdAt)}</p>
+                  <p className="ui-text-muted">Olusturan</p><p className="ui-text break-all">{detail.createdBy ?? "-"}</p>
+                  <p className="ui-text-muted">Son Guncelleme</p><p className="ui-text">{fmtDate(detail.modifiedAt)}</p>
+                  <p className="ui-text-muted">Guncelleyen</p><p className="ui-text break-all">{detail.modifiedBy ?? "-"}</p>
+                  <p className="ui-text-muted">Silinme Tarihi</p><p className="ui-text">{fmtDate(detail.deletedAt)}</p>
+                  <p className="ui-text-muted">Silen</p><p className="ui-text break-all">{detail.deletedBy ?? "-"}</p>
+                </div>
+              </div>
+            </div>
           </div>
         )}
       </div>
@@ -80,6 +132,7 @@ export default function UsersFeaturePage() {
   const [sortBy, setSortBy] = useState<string | undefined>();
   const [sortDir, setSortDir] = useState<"asc" | "desc">("asc");
   const [isActiveFilter, setIsActiveFilter] = useState<string>("all");
+  const [includeDeleted, setIncludeDeleted] = useState(false);
   const debouncedSearch = useDebounce(search, 300);
 
   const [modalMode, setModalMode] = useState<"delete" | "deactivate" | "reactivate" | null>(null);
@@ -89,7 +142,7 @@ export default function UsersFeaturePage() {
   const panelUserId = searchParams.get("id") ? Number(searchParams.get("id")) : null;
 
   const { data, isLoading } = useQuery({
-    queryKey: ["users", page, pageSize, debouncedSearch, sortBy, sortDir, isActiveFilter],
+    queryKey: ["users", page, pageSize, debouncedSearch, sortBy, sortDir, isActiveFilter, includeDeleted],
     queryFn: () => usersApi.list({
       page,
       pageSize,
@@ -97,10 +150,19 @@ export default function UsersFeaturePage() {
       sortBy,
       sortDirection: sortDir,
       isActive: isActiveFilter === "all" ? undefined : isActiveFilter === "active",
+      includeDeleted,
     }),
     enabled: canView,
     placeholderData: (prev) => prev,
   });
+
+  const items = data?.items ?? [];
+  const stats = useMemo(() => ({
+    total: data?.totalCount ?? 0,
+    active: items.filter((u) => u.isActive).length,
+    inactive: items.filter((u) => !u.isActive).length,
+    mustChange: items.filter((u) => u.mustChangePassword).length,
+  }), [data, items]);
 
   function openPanel(mode: PanelMode, id?: number) {
     const next = new URLSearchParams(searchParams);
@@ -174,6 +236,12 @@ export default function UsersFeaturePage() {
   }
 
   const showFormOverlay = panelMode === "create" || panelMode === "edit";
+  const statCards = [
+    { label: "Toplam", value: stats.total, Icon: Users, accent: "#2E6DA4" },
+    { label: "Aktif", value: stats.active, Icon: UserCheck, accent: "#1E8A6E" },
+    { label: "Pasif", value: stats.inactive, Icon: UserX, accent: "#E05252" },
+    { label: "Sifre degismeli", value: stats.mustChange, Icon: ShieldAlert, accent: "#D4891A" },
+  ];
 
   return (
     <div className="flex flex-col gap-4">
@@ -183,22 +251,47 @@ export default function UsersFeaturePage() {
         actions={canCreate ? <PageAction onClick={() => openPanel("create")}><UserPlus size={16} /> Yeni Kullanici</PageAction> : undefined}
       />
 
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+        {statCards.map((s) => (
+          <div key={s.label} className="rounded-[10px] px-4 py-3 ui-card" style={{ borderTop: `3px solid ${s.accent}` }}>
+            <div className="flex items-center justify-between">
+              <span className="text-[22px] font-bold ui-text">{s.value}</span>
+              <s.Icon size={18} style={{ color: s.accent, opacity: 0.7 }} />
+            </div>
+            <span className="text-[11px] ui-text-muted">{s.label}</span>
+          </div>
+        ))}
+      </div>
+
       <FilterBar
         search={{ value: search, onChange: setSearch, placeholder: "Kod veya e-posta ara..." }}
-        filters={[{
-          key: "isActive",
-          label: "Durum",
-          type: "boolean",
-          value: isActiveFilter === "active" ? true : isActiveFilter === "inactive" ? false : "",
-          onChange: (v) => { setIsActiveFilter(v === true ? "active" : v === false ? "inactive" : "all"); setPage(1); },
-        }]}
-        onReset={() => { setSearch(""); setIsActiveFilter("all"); setPage(1); }}
-        activeCount={(search ? 1 : 0) + (isActiveFilter !== "all" ? 1 : 0)}
+        filters={[
+          {
+            key: "isActive",
+            label: "Durum",
+            type: "boolean",
+            value: isActiveFilter === "active" ? true : isActiveFilter === "inactive" ? false : "",
+            onChange: (v) => { setIsActiveFilter(v === true ? "active" : v === false ? "inactive" : "all"); setPage(1); },
+          },
+          {
+            key: "includeDeleted",
+            label: "Silinmis Kayitlar",
+            type: "select",
+            value: includeDeleted ? "1" : "0",
+            options: [
+              { value: "0", label: "Silinenler haric" },
+              { value: "1", label: "Silinenler dahil" },
+            ],
+            onChange: (v) => { setIncludeDeleted(v === "1"); setPage(1); },
+          },
+        ]}
+        onReset={() => { setSearch(""); setIsActiveFilter("all"); setIncludeDeleted(false); setPage(1); }}
+        activeCount={(search ? 1 : 0) + (isActiveFilter !== "all" ? 1 : 0) + (includeDeleted ? 1 : 0)}
       />
 
       <DataGrid
         columns={columns}
-        data={data?.items ?? []}
+        data={items}
         isLoading={isLoading}
         totalCount={data?.totalCount}
         pagination={{ page, pageSize, onPageChange: setPage, onPageSizeChange: (s) => { setPageSize(s); setPage(1); } }}
