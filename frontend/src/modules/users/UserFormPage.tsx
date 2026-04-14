@@ -1,19 +1,29 @@
 import { useState, useEffect, useRef, useMemo } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams, useNavigate, useSearchParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { toast } from "sonner";
-import apiClient from "@/api/client";
 import { usersApi } from "./api";
 import type { UserDetail, LookupItem, PermissionLookupItem } from "./api";
 import { createUserSchema, updateUserSchema } from "./schema";
 import type { CreateUserForm, UpdateUserForm } from "./schema";
+import { extractApiError } from "@/lib/api-error";
 import { PageHeader, PageAction } from "@/components/ui/PageHeader";
 import { PasswordField as PasswordFieldComponent } from "@/components/ui/PasswordField";
 import { ProfileImageEditor } from "@/components/ui/ProfileImage";
 import {
-  User, UserCog, Shield, Check, ArrowLeft, Wand2, Pencil,
+  DndContext,
+  PointerSensor,
+  useDraggable,
+  useDroppable,
+  useSensor,
+  useSensors,
+  type DragEndEvent,
+} from "@dnd-kit/core";
+import { CSS } from "@dnd-kit/utilities";
+import {
+  User, UserCog, Shield, Check, ArrowLeft, Wand2, Pencil, GripVertical,
 } from "lucide-react";
 
 /* ═══════════════════════════════════════ */
@@ -21,10 +31,19 @@ import {
 /* ═══════════════════════════════════════ */
 
 const mono = "'JetBrains Mono', monospace";
-const inputCls = "w-full rounded-lg h-[40px] px-3 text-[13px] outline-none transition-all bg-[#FAFCFF] border border-[#E2EBF3] text-[#1B3A5C] placeholder:text-[#C5CED8] focus:border-[#5B9BD5] focus:bg-white focus:shadow-[0_0_0_3px_rgba(91,155,213,0.08)]";
-const labelCls = "block mb-1 text-[12px] font-medium text-[#4A6580]";
-const errCls = "mt-1 text-[11px] text-[#E05252]";
-const sectionCls = "flex items-center gap-2 text-[12px] font-semibold tracking-[0.04em] pb-2.5 mb-4 border-b border-[#F0F4F8] text-[#1B3A5C]";
+const inputCls = "w-full rounded-lg h-[40px] px-3 text-[13px] outline-none transition-all bg-[var(--ui-surface-alt)] border border-[var(--ui-border)] text-[var(--ui-text)] placeholder:text-[var(--ui-text-muted)] focus:border-[var(--ui-primary)] focus:shadow-[0_0_0_3px_color-mix(in_srgb,var(--ui-primary)_18%,transparent)]";
+const labelCls = "block mb-1 text-[12px] font-medium ui-text";
+const errCls = "mt-1 text-[11px]";
+const sectionCls = "flex items-center gap-2 text-[12px] font-semibold tracking-[0.04em] pb-2.5 mb-4 border-b border-[var(--ui-border)] ui-text";
+
+type UserSaveState = {
+  firstName: string | null;
+  lastName: string | null;
+  email: string;
+  isActive: boolean;
+  mustChangePassword: boolean;
+  profileImageUrl: string | null;
+};
 
 const trMap: Record<string, string> = { ç: "C", Ç: "C", ğ: "G", Ğ: "G", ı: "I", İ: "I", ö: "O", Ö: "O", ş: "S", Ş: "S", ü: "U", Ü: "U" };
 function normalizeTr(str: string): string {
@@ -40,22 +59,143 @@ function Toggle({ checked, onChange, label, color }: { checked: boolean; onChang
   return (
     <label className="flex items-center gap-2.5 cursor-pointer select-none">
       <button type="button" role="switch" aria-checked={checked} onClick={() => onChange(!checked)}
-        className="relative h-5 w-9 rounded-full transition-colors" style={{ background: checked ? (color ?? "#5B9BD5") : "#D6E4F0" }}>
+        className="relative h-5 w-9 rounded-full transition-colors" style={{ background: checked ? (color ?? "var(--ui-primary)") : "var(--ui-border)" }}>
         <span className="absolute top-0.5 left-0.5 h-4 w-4 rounded-full bg-white transition-transform shadow-sm"
           style={{ transform: checked ? "translateX(16px)" : "translateX(0)" }} />
       </button>
-      <span className="text-[12px] font-medium text-[#2C4A6B]">{label}</span>
+      <span className="text-[12px] font-medium ui-text">{label}</span>
     </label>
   );
+}
+
+function AssignmentDropZone({
+  id,
+  title,
+  hint,
+  count,
+  emptyText,
+  children,
+}: {
+  id: string;
+  title: string;
+  hint: string;
+  count: number;
+  emptyText: string;
+  children: React.ReactNode;
+}) {
+  const { setNodeRef, isOver } = useDroppable({ id });
+
+  return (
+    <div
+      ref={setNodeRef}
+      className="rounded-xl border min-h-[280px] transition-all"
+      style={{
+        borderColor: isOver ? "var(--ui-primary)" : "var(--ui-border)",
+        background: "var(--ui-card-bg)",
+        boxShadow: isOver ? "0 0 0 3px color-mix(in srgb, var(--ui-primary) 18%, transparent)" : "none",
+      }}
+    >
+      <div className="flex items-center justify-between px-4 py-3" style={{ borderBottom: "1px solid var(--ui-border)" }}>
+        <div>
+          <p className="text-[13px] font-semibold ui-text">{title}</p>
+          <p className="text-[11px] ui-text-muted">{hint}</p>
+        </div>
+        <span className="text-[11px] px-2 py-0.5 rounded-full" style={{ background: "color-mix(in srgb, var(--ui-primary) 18%, transparent)", color: "var(--ui-primary)" }}>{count}</span>
+      </div>
+
+      <div className="p-3 space-y-2">
+        {count === 0 ? (
+          <p className="text-[12px] text-center py-10 border border-dashed rounded-lg ui-text-muted" style={{ borderColor: "var(--ui-border)", background: "var(--ui-surface-alt)" }}>
+            {emptyText}
+          </p>
+        ) : children}
+      </div>
+    </div>
+  );
+}
+
+function DraggableAssignmentItem({
+  id,
+  title,
+  subtitle,
+  activeTone,
+  onClick,
+  actionLabel,
+}: {
+  id: string;
+  title: string;
+  subtitle?: string;
+  activeTone: "available" | "assigned";
+  onClick: () => void;
+  actionLabel: string;
+}) {
+  const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({ id });
+
+  return (
+    <div
+      ref={setNodeRef}
+      className="flex items-center justify-between gap-2 rounded-lg border px-3 py-2.5"
+      style={{
+        borderColor: activeTone === "assigned" ? "color-mix(in srgb, var(--ui-primary) 30%, transparent)" : "var(--ui-border)",
+        background: activeTone === "assigned" ? "color-mix(in srgb, var(--ui-primary) 12%, transparent)" : "var(--ui-card-bg)",
+        transform: CSS.Translate.toString(transform),
+        opacity: isDragging ? 0.7 : 1,
+      }}
+    >
+      <div className="flex items-start gap-2 min-w-0">
+        <button
+          type="button"
+          className="mt-0.5 rounded p-0.5 ui-text-muted"
+          {...listeners}
+          {...attributes}
+          aria-label="Sürükle"
+        >
+          <GripVertical size={14} />
+        </button>
+        <div className="min-w-0">
+          <p className="text-[12px] font-medium ui-text truncate">{title}</p>
+          {subtitle && <p className="text-[11px] ui-text-muted truncate">{subtitle}</p>}
+        </div>
+      </div>
+
+      <button
+        type="button"
+        onClick={onClick}
+        className="shrink-0 rounded-md px-2 py-1 text-[11px] border"
+        style={activeTone === "assigned"
+          ? { borderColor: "color-mix(in srgb, var(--ui-danger) 35%, transparent)", color: "var(--ui-danger)", background: "var(--ui-danger-bg)" }
+          : { borderColor: "color-mix(in srgb, var(--ui-primary) 30%, transparent)", color: "var(--ui-primary)", background: "color-mix(in srgb, var(--ui-primary) 12%, transparent)" }}
+      >
+        {actionLabel}
+      </button>
+    </div>
+  );
+}
+
+function groupPermissions(items: PermissionLookupItem[]) {
+  const map = new Map<string, PermissionLookupItem[]>();
+  for (const item of items) {
+    const key = item.transactionCode || "GENEL";
+    if (!map.has(key)) {
+      map.set(key, []);
+    }
+    map.get(key)!.push(item);
+  }
+
+  return Array.from(map.entries()).sort(([a], [b]) => a.localeCompare(b));
 }
 
 /* ═══════════════════════════════════════ */
 /*  TAB 1: BİLGİLER                        */
 /* ═══════════════════════════════════════ */
 
-function InfoTab({ mode, user, onSaved, formRef }: {
+function InfoTab({ mode, user, onSaved, onStateSaved, selectedRoleIds, selectedPermissionIds, formRef }: {
   mode: "create" | "edit"; user: UserDetail | null;
-  onSaved: (id: number) => void; formRef?: React.RefObject<HTMLFormElement | null>;
+  onSaved: (id: number) => void;
+  onStateSaved: (state: UserSaveState) => void;
+  selectedRoleIds: number[];
+  selectedPermissionIds: number[];
+  formRef?: React.RefObject<HTMLFormElement | null>;
 }) {
   const [notify, setNotify] = useState(false);
   const [isActive, setIsActive] = useState(true);
@@ -81,27 +221,44 @@ function InfoTab({ mode, user, onSaved, formRef }: {
         firstName: d.firstName || null, lastName: d.lastName || null,
         email: d.email, password: d.password, companyId: d.companyId,
         notifyAdminByMail: d.notifyAdminByMail, adminEmail: d.adminEmail,
+        roleIds: selectedRoleIds,
+        permissionIds: selectedPermissionIds,
+      });
+      onStateSaved({
+        firstName: d.firstName || null,
+        lastName: d.lastName || null,
+        email: d.email,
+        isActive: true,
+        mustChangePassword: d.mustChangePassword ?? true,
+        profileImageUrl: d.profileImageUrl || null,
       });
       toast.success("Kullanıcı oluşturuldu");
       onSaved(res?.id ?? 0);
     } catch (e: unknown) {
-      const msg = (e as { response?: { data?: { detail?: string } } }).response?.data?.detail ?? "Oluşturma başarısız";
-      toast.error(msg);
+      toast.error(extractApiError(e, "Oluşturma başarısız"));
     }
   };
 
   const updateMut = async (d: UpdateUserForm) => {
     if (!user) return;
     try {
-      await usersApi.update(user.id, {
-        firstName: d.firstName || null, lastName: d.lastName || null,
-        email: d.email, isActive: d.isActive, mustChangePassword: d.mustChangePassword,
+      const nextState: UserSaveState = {
+        firstName: d.firstName || null,
+        lastName: d.lastName || null,
+        email: d.email,
+        isActive: d.isActive,
+        mustChangePassword: d.mustChangePassword,
         profileImageUrl: d.profileImageUrl || null,
+      };
+      await usersApi.update(user.id, {
+        ...nextState,
+        roleIds: selectedRoleIds,
+        permissionIds: selectedPermissionIds,
       });
+      onStateSaved(nextState);
       toast.success("Bilgiler güncellendi");
     } catch (e: unknown) {
-      const msg = (e as { response?: { data?: { detail?: string } } }).response?.data?.detail ?? "Güncelleme başarısız";
-      toast.error(msg);
+      toast.error(extractApiError(e, "Güncelleme başarısız"));
     }
   };
 
@@ -135,18 +292,18 @@ function InfoTab({ mode, user, onSaved, formRef }: {
 
         {/* Code hint */}
         {(wFirst || wLast) && (
-          <div className="flex items-center gap-1.5 text-[11px] text-[#7A96B0]">
-            <Wand2 size={11} className="text-[#B0BEC5]" />
+          <div className="flex items-center gap-1.5 text-[11px] ui-text-muted">
+            <Wand2 size={11} className="ui-text-muted" />
             <span>Kod: </span>
-            <span style={{ fontFamily: mono, fontWeight: 500, color: "#2E6DA4" }}>{preview || "—"}</span>
+            <span style={{ fontFamily: mono, fontWeight: 500, color: "var(--ui-primary)" }}>{preview || "—"}</span>
             {preview && wCode !== preview && (
               <button type="button" onClick={() => { setValue("userCode", preview); setAutoGen(true); toast.success(`Kod: ${preview}`, { duration: 1500 }); }}
-                className="text-[#5B9BD5] hover:underline" style={{ background: "none", border: "none", cursor: "pointer", padding: 0, fontSize: 11 }}>Uygula</button>
+                className="hover:underline" style={{ background: "none", border: "none", cursor: "pointer", padding: 0, fontSize: 11, color: "var(--ui-primary)" }}>Uygula</button>
             )}
           </div>
         )}
 
-        <div className={sectionCls}><User size={14} className="text-[#5B9BD5]" /> Hesap Bilgileri</div>
+        <div className={sectionCls}><User size={14} style={{ color: "var(--ui-primary)" }} /> Hesap Bilgileri</div>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-5 gap-y-4">
           <div>
             <label className={labelCls}>Kod *</label>
@@ -158,13 +315,14 @@ function InfoTab({ mode, user, onSaved, formRef }: {
                 {wCode && (
                   <div className="absolute right-2 top-1/2 -translate-y-1/2">
                     {preview && wCode === preview && autoGen
-                      ? <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-[#E8F5EE] text-[#1E8A6E]">otomatik</span>
-                      : <Pencil size={12} className="text-[#B0BEC5]" />}
+                      ? <span className="text-[10px] px-1.5 py-0.5 rounded-full" style={{ background: "var(--ui-success-bg)", color: "var(--ui-success)" }}>otomatik</span>
+                      : <Pencil size={12} className="ui-text-muted" />}
                   </div>
                 )}
               </div>
               <button type="button" disabled={!preview} onClick={() => { if (preview) { setValue("userCode", preview); setAutoGen(true); toast.success(`Kod: ${preview}`, { duration: 1500 }); } }}
-                className="shrink-0 rounded-lg px-3.5 h-[40px] text-[12px] font-medium transition-all disabled:opacity-40 bg-[#EAF1FA] border border-[#BDD5EC] text-[#2E6DA4] hover:bg-[#2E6DA4] hover:text-white">
+                className="shrink-0 rounded-lg px-3.5 h-[40px] text-[12px] font-medium transition-all disabled:opacity-40"
+                style={{ background: "color-mix(in srgb, var(--ui-primary) 14%, transparent)", border: "1px solid color-mix(in srgb, var(--ui-primary) 30%, transparent)", color: "var(--ui-primary)" }}>
                 <Wand2 size={14} />
               </button>
             </div>
@@ -186,7 +344,7 @@ function InfoTab({ mode, user, onSaved, formRef }: {
             {errors.companyId && <p className={errCls}>{errors.companyId.message}</p>}
           </div>
         </div>
-        <div className={sectionCls + " mt-6"}><Shield size={14} className="text-[#D4891A]" /> Bildirim</div>
+        <div className={sectionCls + " mt-6"}><Shield size={14} style={{ color: "var(--ui-warning)" }} /> Bildirim</div>
         <Toggle checked={notify} onChange={(v) => { setNotify(v); setValue("notifyAdminByMail", v); }} label="Admin'e bildirim gönder" />
         {notify && (
           <div className="max-w-sm">
@@ -221,7 +379,7 @@ function InfoTab({ mode, user, onSaved, formRef }: {
         </div>
       </div>
 
-      <div className={sectionCls}><User size={14} className="text-[#5B9BD5]" /> Hesap Bilgileri</div>
+      <div className={sectionCls}><User size={14} style={{ color: "var(--ui-primary)" }} /> Hesap Bilgileri</div>
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-5 gap-y-4">
         <div>
           <label className={labelCls}>E-posta *</label>
@@ -229,15 +387,15 @@ function InfoTab({ mode, user, onSaved, formRef }: {
           {errors.email && <p className={errCls}>{errors.email.message}</p>}
         </div>
         {user?.passwordExpiresAt && (
-          <div className="flex items-center text-[12px] text-[#7A96B0] px-3 py-2 rounded-lg bg-[#F7FAFD] border border-[#E2EBF3]">
-            Şifre geçerliliği: <strong className="ml-1 text-[#1B3A5C]">{new Date(user.passwordExpiresAt).toLocaleDateString("tr-TR")}</strong>
+          <div className="flex items-center text-[12px] px-3 py-2 rounded-lg ui-text-muted" style={{ background: "var(--ui-surface-alt)", border: "1px solid var(--ui-border)" }}>
+            Şifre geçerliliği: <strong className="ml-1 ui-text">{new Date(user.passwordExpiresAt).toLocaleDateString("tr-TR")}</strong>
           </div>
         )}
       </div>
-      <div className={sectionCls + " mt-6"}><Shield size={14} className="text-[#1E8A6E]" /> Hesap Durumu</div>
+      <div className={sectionCls + " mt-6"}><Shield size={14} style={{ color: "var(--ui-success)" }} /> Hesap Durumu</div>
       <div className="flex flex-wrap gap-6">
-        <Toggle checked={isActive} onChange={(v) => { setIsActive(v); setValue("isActive", v); }} label="Aktif" color={isActive ? "#1E8A6E" : undefined} />
-        <Toggle checked={mustChange} onChange={(v) => { setMustChange(v); setValue("mustChangePassword", v); }} label="Şifre değişimi zorunlu" color={mustChange ? "#D4891A" : undefined} />
+        <Toggle checked={isActive} onChange={(v) => { setIsActive(v); setValue("isActive", v); }} label="Aktif" color={isActive ? "var(--ui-success)" : undefined} />
+        <Toggle checked={mustChange} onChange={(v) => { setMustChange(v); setValue("mustChangePassword", v); }} label="Şifre değişimi zorunlu" color={mustChange ? "var(--ui-warning)" : undefined} />
       </div>
     </form>
   );
@@ -247,61 +405,88 @@ function InfoTab({ mode, user, onSaved, formRef }: {
 /*  TAB 2: ROL ATAMA                       */
 /* ═══════════════════════════════════════ */
 
-function RolesTab({ userId, allRoles, userRoleIds }: { userId: number | null; allRoles: LookupItem[]; userRoleIds: number[] }) {
-  const [assignedIds, setAssignedIds] = useState<Set<number>>(new Set());
+function RolesTab({ userId, allRoles, selectedRoleIds, onToggleRole }: { userId: number | null; allRoles: LookupItem[]; selectedRoleIds: number[]; onToggleRole: (roleId: number) => void }) {
   const [search, setSearch] = useState("");
-  const initialized = useRef(false);
+  const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 8 } }));
 
-  useEffect(() => {
-    if (initialized.current) return;
-    if (userRoleIds.length > 0 || allRoles.length > 0) {
-      initialized.current = true;
-      setAssignedIds(new Set(userRoleIds));
+  const searchQuery = search.trim().toLowerCase();
+  const assigned = allRoles.filter((r) => selectedRoleIds.includes(r.id));
+  const available = allRoles.filter((r) => !selectedRoleIds.includes(r.id));
+  const filteredAvailable = searchQuery
+    ? available.filter((r) => r.name.toLowerCase().includes(searchQuery))
+    : available;
+
+  function handleDragEnd(event: DragEndEvent) {
+    const activeId = String(event.active.id);
+    const overId = event.over ? String(event.over.id) : "";
+    if (!activeId.startsWith("role:")) {
+      return;
     }
-  }, [userRoleIds, allRoles]);
 
-  if (!userId) return <p className="text-center py-12 text-[13px] text-[#7A96B0]">Önce kullanıcı oluşturun.</p>;
+    const roleId = Number(activeId.replace("role:", ""));
+    if (!Number.isFinite(roleId)) {
+      return;
+    }
 
-  async function toggle(roleId: number) {
-    const wasAssigned = assignedIds.has(roleId);
-    const next = new Set(assignedIds);
-    if (wasAssigned) next.delete(roleId); else next.add(roleId);
-    setAssignedIds(next);
-    try {
-      if (wasAssigned) await apiClient.delete(`/api/roles/${roleId}/assign/${userId}`);
-      else await apiClient.post(`/api/roles/${roleId}/assign/${userId}`);
-      toast.success(wasAssigned ? "Rol kaldırıldı" : "Rol atandı");
-    } catch {
-      // revert
-      const rev = new Set(assignedIds);
-      if (wasAssigned) rev.add(roleId); else rev.delete(roleId);
-      setAssignedIds(rev);
-      toast.error("İşlem başarısız");
+    if (overId === "roles:assigned" && !selectedRoleIds.includes(roleId)) {
+      onToggleRole(roleId);
+    }
+
+    if (overId === "roles:available" && selectedRoleIds.includes(roleId)) {
+      onToggleRole(roleId);
     }
   }
 
-  const filtered = search ? allRoles.filter((r) => r.name.toLowerCase().includes(search.toLowerCase())) : allRoles;
-
   return (
     <div className="space-y-4">
-      <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Rol ara..." className={inputCls + " max-w-xs"} />
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-        {filtered.map((role) => {
-          const on = assignedIds.has(role.id);
-          return (
-            <button key={role.id} type="button" onClick={() => toggle(role.id)}
-              className={`flex items-center gap-3 rounded-lg px-4 py-3 text-left transition-all border ${
-                on ? "bg-[#EAF1FA] border-[#5B9BD5] shadow-[0_0_0_1px_rgba(91,155,213,0.15)]" : "bg-white border-[#E2EBF3] hover:border-[#C5D5E3]"
-              }`}>
-              <span className={`flex items-center justify-center w-5 h-5 rounded border transition-all ${on ? "bg-[#2E6DA4] border-[#2E6DA4]" : "bg-white border-[#D6E4F0]"}`}>
-                {on && <Check size={12} className="text-white" />}
-              </span>
-              <span className={`text-[13px] font-medium ${on ? "text-[#2E6DA4]" : "text-[#7A96B0]"}`}>{role.name}</span>
-            </button>
-          );
-        })}
+      <div className="flex items-center justify-between gap-3">
+        <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Mevcut rollerde ara..." className={inputCls + " max-w-xs"} />
+        <p className="text-[12px] ui-text-muted">{userId ? "Rolleri sürükleyip bırakarak atayın" : "Seçimler kullanıcı oluşturulduğunda uygulanır"}</p>
       </div>
-      {!filtered.length && <p className="text-[13px] text-[#94A3B8] text-center py-8">Rol bulunamadı</p>}
+
+      <DndContext sensors={sensors} onDragEnd={handleDragEnd}>
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+          <AssignmentDropZone
+            id="roles:available"
+            title="Mevcut Roller"
+            hint="Kullanıcıya atanabilir roller"
+            count={filteredAvailable.length}
+            emptyText={searchQuery ? "Aramaya uygun rol bulunamadı" : "Atanmamış rol bulunmuyor"}
+          >
+            {filteredAvailable.map((role) => (
+              <DraggableAssignmentItem
+                key={role.id}
+                id={`role:${role.id}`}
+                title={role.name}
+                subtitle={`Rol ID: ${role.id}`}
+                activeTone="available"
+                actionLabel="Ekle"
+                onClick={() => onToggleRole(role.id)}
+              />
+            ))}
+          </AssignmentDropZone>
+
+          <AssignmentDropZone
+            id="roles:assigned"
+            title="Atanan Roller"
+            hint="Kaydet ile kullanıcıya uygulanır"
+            count={assigned.length}
+            emptyText="Henüz rol atanmadı"
+          >
+            {assigned.map((role) => (
+              <DraggableAssignmentItem
+                key={role.id}
+                id={`role:${role.id}`}
+                title={role.name}
+                subtitle={`Rol ID: ${role.id}`}
+                activeTone="assigned"
+                actionLabel="Çıkar"
+                onClick={() => onToggleRole(role.id)}
+              />
+            ))}
+          </AssignmentDropZone>
+        </div>
+      </DndContext>
     </div>
   );
 }
@@ -310,82 +495,118 @@ function RolesTab({ userId, allRoles, userRoleIds }: { userId: number | null; al
 /*  TAB 3: YETKİ ATAMA                     */
 /* ═══════════════════════════════════════ */
 
-function PermissionsTab({ userId, allPermissions, userPermIds }: { userId: number | null; allPermissions: PermissionLookupItem[]; userPermIds: number[] }) {
-  const [assignedIds, setAssignedIds] = useState<Set<number>>(new Set());
-  const initialized = useRef(false);
+function PermissionsTab({ userId, allPermissions, selectedPermissionIds, onTogglePermission }: { userId: number | null; allPermissions: PermissionLookupItem[]; selectedPermissionIds: number[]; onTogglePermission: (permissionId: number) => void }) {
+  const [search, setSearch] = useState("");
+  const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 8 } }));
 
-  useEffect(() => {
-    if (initialized.current) return;
-    if (userPermIds.length > 0 || allPermissions.length > 0) {
-      initialized.current = true;
-      setAssignedIds(new Set(userPermIds));
+  const searchQuery = search.trim().toLowerCase();
+  const assigned = allPermissions.filter((p) => selectedPermissionIds.includes(p.id));
+  const available = allPermissions.filter((p) => !selectedPermissionIds.includes(p.id));
+  const filteredAvailable = searchQuery
+    ? available.filter((p) => {
+      const haystack = `${p.transactionCode} ${p.actionCode} ${p.displayName}`.toLowerCase();
+      return haystack.includes(searchQuery);
+    })
+    : available;
+
+  const availableGroups = useMemo(() => groupPermissions(filteredAvailable), [filteredAvailable]);
+  const assignedGroups = useMemo(() => groupPermissions(assigned), [assigned]);
+
+  function handleDragEnd(event: DragEndEvent) {
+    const activeId = String(event.active.id);
+    const overId = event.over ? String(event.over.id) : "";
+    if (!activeId.startsWith("perm:")) {
+      return;
     }
-  }, [userPermIds, allPermissions]);
 
-  if (!userId) return <p className="text-center py-12 text-[13px] text-[#7A96B0]">Önce kullanıcı oluşturun.</p>;
-
-  // Group by transactionCode
-  const groups = useMemo(() => {
-    const map = new Map<string, PermissionLookupItem[]>();
-    for (const p of allPermissions) {
-      const key = p.transactionCode;
-      if (!map.has(key)) map.set(key, []);
-      map.get(key)!.push(p);
+    const permissionId = Number(activeId.replace("perm:", ""));
+    if (!Number.isFinite(permissionId)) {
+      return;
     }
-    return Array.from(map.entries());
-  }, [allPermissions]);
 
-  async function toggle(permId: number) {
-    const wasOn = assignedIds.has(permId);
-    const next = new Set(assignedIds);
-    if (wasOn) next.delete(permId); else next.add(permId);
-    setAssignedIds(next);
-    try {
-      if (wasOn) {
-        // find the action permission ID from user's directPermissions — for now use subModulePageId approach
-        await apiClient.delete(`/api/permissions/actions/${permId}`);
-      } else {
-        const perm = allPermissions.find((p) => p.id === permId);
-        if (perm) {
-          await apiClient.post("/api/permissions/actions", {
-            userId, transactionCode: perm.transactionCode, actionCode: "ALL", isAllowed: true,
-          });
-        }
-      }
-      toast.success(wasOn ? "İzin kaldırıldı" : "İzin atandı");
-    } catch {
-      const rev = new Set(assignedIds);
-      if (wasOn) rev.add(permId); else rev.delete(permId);
-      setAssignedIds(rev);
-      toast.error("İşlem başarısız");
+    if (overId === "perms:assigned" && !selectedPermissionIds.includes(permissionId)) {
+      onTogglePermission(permissionId);
+    }
+
+    if (overId === "perms:available" && selectedPermissionIds.includes(permissionId)) {
+      onTogglePermission(permissionId);
     }
   }
 
   return (
     <div className="space-y-4">
-      {groups.length === 0 && <p className="text-[13px] text-[#94A3B8] text-center py-8">İzin tanımı bulunamadı</p>}
-      {groups.map(([tcode, perms]) => (
-        <div key={tcode} className="rounded-xl p-4 bg-white border border-[#E2EBF3]">
-          <div className="flex items-center gap-2 mb-3">
-            <span className="text-[11px] px-2 py-0.5 rounded bg-[#EAF1FA] text-[#2E6DA4]" style={{ fontFamily: mono }}>{tcode}</span>
-            <span className="text-[13px] font-medium text-[#1B3A5C]">{perms[0]?.displayName ?? tcode}</span>
-          </div>
-          <div className="flex flex-wrap gap-2">
-            {perms.map((p) => {
-              const on = assignedIds.has(p.id);
-              return (
-                <button key={p.id} type="button" onClick={() => toggle(p.id)}
-                  className={`flex items-center gap-1.5 rounded-full px-3 py-1.5 text-[12px] font-medium transition-all border ${
-                    on ? "bg-[#FEF3E2] border-[#F5D99A] text-[#D4891A]" : "bg-[#F0F4F8] border-[#E2EBF3] text-[#7A96B0] hover:border-[#C5D5E3]"
-                  }`}>
-                  {on && <Check size={12} />}
-                  {p.actionCode}
-                </button>
-              );
-            })}
-          </div>
+      <div className="flex items-center justify-between gap-3">
+        <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="TCode, action veya ad ile ara..." className={inputCls + " max-w-xs"} />
+        <p className="text-[12px] ui-text-muted">{userId ? "Yetkileri gruplu şekilde sürükleyip bırakın" : "Seçimler kullanıcı oluşturulduğunda uygulanır"}</p>
+      </div>
+
+      <DndContext sensors={sensors} onDragEnd={handleDragEnd}>
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+          <AssignmentDropZone
+            id="perms:available"
+            title="Mevcut Yetkiler"
+            hint="Atanmamış izinler"
+            count={filteredAvailable.length}
+            emptyText={searchQuery ? "Aramaya uygun yetki bulunamadı" : "Atanabilir yetki yok"}
+          >
+            {availableGroups.map(([tcode, perms]) => (
+              <div key={`available-${tcode}`} className="rounded-lg border" style={{ borderColor: "var(--ui-border)", background: "var(--ui-surface-alt)" }}>
+                <div className="px-3 py-2 flex items-center justify-between" style={{ borderBottom: "1px solid var(--ui-border)" }}>
+                  <span className="text-[11px] px-1.5 py-0.5 rounded" style={{ fontFamily: mono, background: "color-mix(in srgb, var(--ui-primary) 14%, transparent)", color: "var(--ui-primary)" }}>{tcode}</span>
+                  <span className="text-[11px] ui-text-muted">{perms.length}</span>
+                </div>
+                <div className="p-2 space-y-2">
+                  {perms.map((p) => (
+                    <DraggableAssignmentItem
+                      key={p.id}
+                      id={`perm:${p.id}`}
+                      title={p.displayName || `${p.transactionCode} ${p.actionCode}`}
+                      subtitle={`${p.transactionCode} · ${p.actionCode}`}
+                      activeTone="available"
+                      actionLabel="Ekle"
+                      onClick={() => onTogglePermission(p.id)}
+                    />
+                  ))}
+                </div>
+              </div>
+            ))}
+          </AssignmentDropZone>
+
+          <AssignmentDropZone
+            id="perms:assigned"
+            title="Atanan Yetkiler"
+            hint="Kaydet ile kullanıcıya uygulanır"
+            count={assigned.length}
+            emptyText="Henüz yetki atanmadı"
+          >
+            {assignedGroups.map(([tcode, perms]) => (
+              <div key={`assigned-${tcode}`} className="rounded-lg border" style={{ borderColor: "var(--ui-border)", background: "var(--ui-surface-alt)" }}>
+                <div className="px-3 py-2 flex items-center justify-between" style={{ borderBottom: "1px solid var(--ui-border)" }}>
+                  <span className="text-[11px] px-1.5 py-0.5 rounded" style={{ fontFamily: mono, background: "var(--ui-warning-bg)", color: "var(--ui-warning)" }}>{tcode}</span>
+                  <span className="text-[11px] ui-text-muted">{perms.length}</span>
+                </div>
+                <div className="p-2 space-y-2">
+                  {perms.map((p) => (
+                    <DraggableAssignmentItem
+                      key={p.id}
+                      id={`perm:${p.id}`}
+                      title={p.displayName || `${p.transactionCode} ${p.actionCode}`}
+                      subtitle={`${p.transactionCode} · ${p.actionCode}`}
+                      activeTone="assigned"
+                      actionLabel="Çıkar"
+                      onClick={() => onTogglePermission(p.id)}
+                    />
+                  ))}
+                </div>
+              </div>
+            ))}
+          </AssignmentDropZone>
         </div>
-      ))}
+      </DndContext>
+
+      {allPermissions.length === 0 && (
+        <p className="text-[13px] ui-text-muted text-center py-8">İzin tanımı bulunamadı</p>
+      )}
     </div>
   );
 }
@@ -403,31 +624,119 @@ const TABS = [
 type TabKey = "info" | "roles" | "perms";
 
 export default function UserFormPage() {
-  const { id } = useParams<{ id: string }>();
+  const { id: routeId } = useParams<{ id: string }>();
+  const [searchParams] = useSearchParams();
   const navigate = useNavigate();
-  const isEdit = !!id;
+  const queryMode = searchParams.get("mode");
+  const queryId = searchParams.get("id");
+  const isFeatureMode = queryMode === "create" || queryMode === "edit";
+
+  const isEdit = !!routeId || queryMode === "edit";
+  const parsedRouteId = routeId ? Number(routeId) : null;
+  const routeUserId = Number.isFinite(parsedRouteId) ? parsedRouteId : null;
+  const queryUserId = queryId ? Number(queryId) : null;
+  const effectiveEditUserId = routeUserId ?? (Number.isFinite(queryUserId) ? queryUserId : null);
   const [activeTab, setActiveTab] = useState<TabKey>("info");
   const [createdUserId, setCreatedUserId] = useState<number | null>(null);
+  const [selectedRoleIds, setSelectedRoleIds] = useState<number[]>([]);
+  const [selectedPermissionIds, setSelectedPermissionIds] = useState<number[]>([]);
+  const [savedState, setSavedState] = useState<UserSaveState | null>(null);
   const formRef = useRef<HTMLFormElement>(null);
 
-  const userId = isEdit ? Number(id) : createdUserId;
+  const userId = isEdit ? effectiveEditUserId : createdUserId;
 
-  // User detail
-  const { data: user } = useQuery({ queryKey: ["users", id], queryFn: () => usersApi.getById(Number(id)), enabled: isEdit });
+  const { data: user } = useQuery({
+    queryKey: ["users", userId],
+    queryFn: () => usersApi.getById(userId as number),
+    enabled: !!userId,
+  });
 
-  // Lookups
   const { data: lookups } = useQuery({ queryKey: ["user-lookups"], queryFn: () => usersApi.lookups(), staleTime: 60_000 });
 
-  // Derived
-  const userRoleIds = useMemo(() => (user?.roles ?? []).map((r) => r.roleId), [user]);
-  const userPermIds = useMemo(() => (user?.directPermissions ?? []).map((p) => p.subModulePageId), [user]);
-  const roleCount = isEdit ? userRoleIds.length : 0;
-  const permCount = isEdit ? userPermIds.length : 0;
+  useEffect(() => {
+    if (!user) return;
+    setSavedState({
+      firstName: user.firstName ?? null,
+      lastName: user.lastName ?? null,
+      email: user.email,
+      isActive: user.isActive,
+      mustChangePassword: user.mustChangePassword,
+      profileImageUrl: user.profileImageUrl ?? null,
+    });
+    setSelectedRoleIds((user.roles ?? []).map((r) => r.roleId));
+    setSelectedPermissionIds((user.directPermissions ?? []).map((p) => p.subModulePageId));
+  }, [user?.id]);
 
   function handleCreated(newId: number) {
     setCreatedUserId(newId);
     setActiveTab("roles");
   }
+
+  function toggleRole(roleId: number) {
+    setSelectedRoleIds((prev) => prev.includes(roleId)
+      ? prev.filter((x) => x !== roleId)
+      : [...prev, roleId]);
+  }
+
+  function togglePermission(permissionId: number) {
+    setSelectedPermissionIds((prev) => prev.includes(permissionId)
+      ? prev.filter((x) => x !== permissionId)
+      : [...prev, permissionId]);
+  }
+
+  async function saveAssignments() {
+    if (!userId || !savedState) {
+      toast.error("Önce kullanıcı bilgilerini kaydedin");
+      return;
+    }
+
+    // Validate permission IDs exist in lookups
+    if (selectedPermissionIds.length > 0 && lookups?.permissions) {
+      const validIds = new Set(lookups.permissions.map((p) => p.id));
+      const invalidIds = selectedPermissionIds.filter((id) => !validIds.has(id));
+      
+      if (invalidIds.length > 0) {
+        toast.error(`Geçersiz yetki ID'leri: ${invalidIds.join(", ")}`);
+        return;
+      }
+    }
+
+    // Validate role IDs exist in lookups
+    if (selectedRoleIds.length > 0 && lookups?.roles) {
+      const validIds = new Set(lookups.roles.map((r) => r.id));
+      const invalidIds = selectedRoleIds.filter((id) => !validIds.has(id));
+      
+      if (invalidIds.length > 0) {
+        toast.error(`Geçersiz rol ID'leri: ${invalidIds.join(", ")}`);
+        return;
+      }
+    }
+
+    try {
+      await usersApi.update(userId, {
+        ...savedState,
+        roleIds: selectedRoleIds,
+        permissionIds: selectedPermissionIds,
+      });
+      toast.success("Rol ve yetkiler kaydedildi");
+      navigate(isFeatureMode ? `/users?mode=detail&id=${userId}` : `/users/${userId}`);
+    } catch (e: unknown) {
+      const errorData = (e as { response?: { data?: { detail?: string; errors?: Record<string, string[]> } } }).response?.data;
+      
+      // Handle validation errors
+      if (errorData?.errors?.permissionIds) {
+        toast.error(`Yetki Hatası: ${errorData.errors.permissionIds.join(", ")}`);
+      } else if (errorData?.errors?.roleIds) {
+        toast.error(`Rol Hatası: ${errorData.errors.roleIds.join(", ")}`);
+      } else {
+        const msg = errorData?.detail ?? "Kaydetme başarısız";
+        toast.error(msg);
+      }
+    }
+  }
+
+  const roleCount = selectedRoleIds.length;
+  const permCount = selectedPermissionIds.length;
 
   return (
     <div className="flex flex-col gap-4 max-w-[820px]">
@@ -438,37 +747,69 @@ export default function UserFormPage() {
           <div className="flex gap-2 w-full sm:w-auto">
             <PageAction variant="ghost" onClick={() => navigate("/users")}><ArrowLeft size={14} /> Vazgeç</PageAction>
             <PageAction onClick={() => {
-              if (activeTab === "info") formRef.current?.requestSubmit();
-              else if (userId) navigate(`/users/${userId}`);
+              if (activeTab === "info") {
+                formRef.current?.requestSubmit();
+                return;
+              }
+
+              if (!userId) {
+                setActiveTab("info");
+                requestAnimationFrame(() => formRef.current?.requestSubmit());
+                return;
+              }
+
+              void saveAssignments();
             }}><Check size={14} /> Kaydet</PageAction>
           </div>
         }
       />
 
-      {/* Tab bar */}
-      <div className="rounded-xl px-5 overflow-x-auto bg-white border border-[#E2EBF3]">
-        <div className="flex border-b border-[#F0F4F8]">
+      <div className="rounded-xl px-5 overflow-x-auto" style={{ background: "var(--ui-card-bg)", border: "1px solid var(--ui-border)" }}>
+        <div className="flex" style={{ borderBottom: "1px solid var(--ui-border)" }}>
           {TABS.map((tab) => {
             const active = activeTab === tab.key;
             const count = tab.key === "roles" ? roleCount : tab.key === "perms" ? permCount : 0;
             return (
               <button key={tab.key} onClick={() => setActiveTab(tab.key)}
                 className="flex items-center gap-2 px-5 py-3.5 text-[13px] font-medium transition-all whitespace-nowrap"
-                style={{ color: active ? "#1B3A5C" : "#7A96B0", borderBottom: active ? "2px solid #2E6DA4" : "2px solid transparent" }}>
+                style={{ color: active ? "var(--ui-text)" : "var(--ui-text-muted)", borderBottom: active ? "2px solid var(--ui-primary)" : "2px solid transparent" }}>
                 <tab.Icon size={15} />
                 {tab.label}
-                {count > 0 && <span className="text-[11px] px-1.5 py-0.5 rounded-full bg-[#EAF1FA] text-[#2E6DA4]">{count}</span>}
+                {count > 0 && <span className="text-[11px] px-1.5 py-0.5 rounded-full" style={{ background: "color-mix(in srgb, var(--ui-primary) 14%, transparent)", color: "var(--ui-primary)" }}>{count}</span>}
               </button>
             );
           })}
         </div>
       </div>
 
-      {/* Tab content */}
-      <div className="rounded-xl p-6 sm:p-8 bg-white border border-[#E2EBF3]">
-        {activeTab === "info" && <InfoTab mode={isEdit ? "edit" : "create"} user={user ?? null} onSaved={handleCreated} formRef={formRef} />}
-        {activeTab === "roles" && <RolesTab userId={userId} allRoles={lookups?.roles ?? []} userRoleIds={userRoleIds} />}
-        {activeTab === "perms" && <PermissionsTab userId={userId} allPermissions={lookups?.permissions ?? []} userPermIds={userPermIds} />}
+      <div className="rounded-xl p-6 sm:p-8" style={{ background: "var(--ui-card-bg)", border: "1px solid var(--ui-border)" }}>
+        {activeTab === "info" && (
+          <InfoTab
+            mode={isEdit ? "edit" : "create"}
+            user={user ?? null}
+            onSaved={handleCreated}
+            onStateSaved={setSavedState}
+            selectedRoleIds={selectedRoleIds}
+            selectedPermissionIds={selectedPermissionIds}
+            formRef={formRef}
+          />
+        )}
+        {activeTab === "roles" && (
+          <RolesTab
+            userId={userId}
+            allRoles={lookups?.roles ?? []}
+            selectedRoleIds={selectedRoleIds}
+            onToggleRole={toggleRole}
+          />
+        )}
+        {activeTab === "perms" && (
+          <PermissionsTab
+            userId={userId}
+            allPermissions={lookups?.permissions ?? []}
+            selectedPermissionIds={selectedPermissionIds}
+            onTogglePermission={togglePermission}
+          />
+        )}
       </div>
     </div>
   );
