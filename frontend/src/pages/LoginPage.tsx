@@ -7,6 +7,7 @@ import { toast } from "sonner";
 import apiClient from "@/api/client";
 import { useAuthStore } from "@/store/auth-store";
 import { decodeJwt } from "@/lib/jwt";
+import { resolveDefaultRoute } from "@/lib/default-route";
 import type { LoginResponse, UserRole } from "@/types/auth";
 import { User, Lock, Loader2, Users, GitBranch, BarChart3 } from "lucide-react";
 
@@ -20,7 +21,7 @@ const inputCls =
   "w-full bg-[#FAFCFF] border-[1.5px] border-[#E2EBF3] text-[#1B3A5C] rounded-[10px] h-[44px] pl-10 pr-3 text-[14px] placeholder:text-[#B0BEC5] focus:border-[#5B9BD5] focus:ring-2 focus:ring-[#5B9BD5]/10 focus:bg-white focus:outline-none transition-all";
 
 const features = [
-  { iconBg: "rgba(46,109,164,0.22)", Icon: Users, iconColor: "#5B9BD5", title: "Kimlik & Yetki Yönetimi", sub: "6 seviyeli TCode sistemi, rol tabanlı erişim kontrolü" },
+  { iconBg: "rgba(46,109,164,0.22)", Icon: Users, iconColor: "#5B9BD5", title: "Kimlik & Yetki Yönetimi", sub: "Permission tabanlı erişim kontrolü, rol desteği" },
   { iconBg: "rgba(30,138,110,0.22)", Icon: GitBranch, iconColor: "#1E8A6E", title: "Onay & Delegasyon Akışı", sub: "Dinamik iş akışı, çok adımlı onay süreçleri" },
   { iconBg: "rgba(212,137,26,0.22)", Icon: BarChart3, iconColor: "#D4891A", title: "Audit & ERP Entegrasyonu", sub: "Gerçek zamanlı log izleme, Canias ERP bağlantısı" },
 ];
@@ -33,7 +34,7 @@ const stats = [
 
 export default function LoginPage() {
   const navigate = useNavigate();
-  const { setTokens, setUser } = useAuthStore();
+  const { syncAuth } = useAuthStore();
   const [loading, setLoading] = useState(false);
   const { register, handleSubmit, formState: { errors } } = useForm<LoginForm>({ resolver: zodResolver(loginSchema) });
 
@@ -41,7 +42,6 @@ export default function LoginPage() {
     setLoading(true);
     try {
       const { data } = await apiClient.post<LoginResponse>("/api/auth/login", values);
-      setTokens(data.accessToken, data.refreshToken);
       const jwt = decodeJwt(data.accessToken);
 
       let roles: UserRole[] = [];
@@ -53,13 +53,21 @@ export default function LoginPage() {
         else if (typeof jwtRole === "string") roles = [jwtRole as UserRole];
       }
 
-      setUser({
+      const nextUser = {
         id: String(data.userId ?? jwt.sub ?? ""),
         userName: data.userCode ?? (jwt.user_code as string) ?? "",
         displayName: data.userCode ?? (jwt.user_code as string) ?? "",
         roles,
-      });
-      navigate("/dashboard", { replace: true });
+        mustChangePassword: data.mustChangePassword,
+        permissions: data.effectiveAuthorization?.permissions ?? [],
+      };
+      syncAuth(data.accessToken, data.refreshToken, nextUser);
+      if (data.mustChangePassword) {
+        window.location.replace("/change-password");
+        return;
+      }
+
+      navigate(resolveDefaultRoute(nextUser), { replace: true });
     } catch (err: unknown) {
       const message = (err as { response?: { data?: { message?: string } } }).response?.data?.message ?? "Giriş başarısız";
       toast.error(message);

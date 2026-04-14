@@ -56,7 +56,7 @@ apiClient.interceptors.response.use(
     original._retry = true;
     isRefreshing = true;
 
-    const { refreshToken, setTokens, setUser, clear } = useAuthStore.getState();
+    const { refreshToken, syncAuth, clear } = useAuthStore.getState();
 
     if (!refreshToken) {
       clear();
@@ -69,8 +69,7 @@ apiClient.interceptors.response.use(
         "/api/auth/refresh",
         { refreshToken },
       );
-      setTokens(data.accessToken, data.refreshToken);
-      setUser({
+      syncAuth(data.accessToken, data.refreshToken, {
         id: String(data.userId),
         userName: data.userCode,
         displayName: data.userCode,
