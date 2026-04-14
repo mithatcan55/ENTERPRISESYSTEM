@@ -11,8 +11,50 @@ namespace Authorization.Presentation.Controllers;
 [Authorize]
 public sealed class TCodeController(
     ITCodeAuthorizationService authorizationService,
+    ITCodeNavigationService navigationService,
     ICurrentUserContext currentUserContext) : ControllerBase
 {
+    [HttpGet("navigation")]
+    [ProducesResponseType(typeof(IReadOnlyList<TCodeNavigationItemDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status401Unauthorized)]
+    public async Task<ActionResult<IReadOnlyList<TCodeNavigationItemDto>>> SearchNavigation(
+        [FromQuery] string? query,
+        [FromQuery] int take = 20,
+        CancellationToken cancellationToken = default)
+    {
+        if (!currentUserContext.TryGetUserId(out var userId))
+        {
+            return BadRequest("Authenticated user claim icinde userId bulunamadi.");
+        }
+
+        var items = await navigationService.SearchAsync(userId, query, take, cancellationToken);
+        return Ok(items);
+    }
+
+    [HttpGet("navigation/{transactionCode}")]
+    [ProducesResponseType(typeof(TCodeNavigationItemDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    public async Task<ActionResult<TCodeNavigationItemDto>> ResolveNavigation(
+        string transactionCode,
+        CancellationToken cancellationToken = default)
+    {
+        if (!currentUserContext.TryGetUserId(out var userId))
+        {
+            return BadRequest("Authenticated user claim icinde userId bulunamadi.");
+        }
+
+        var item = await navigationService.ResolveAsync(userId, transactionCode, cancellationToken);
+        if (item is null)
+        {
+            return NotFound();
+        }
+
+        return Ok(item);
+    }
+
     [HttpGet("{transactionCode}")]
     [ProducesResponseType(typeof(TCodeAccessResult), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(TCodeAccessResult), StatusCodes.Status403Forbidden)]
