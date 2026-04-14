@@ -84,7 +84,10 @@ public sealed record PermissionLookupItemDto(
     int Id,
     string TransactionCode,
     string ActionCode,
-    string DisplayName);
+    string DisplayName,
+    string PermissionCode,
+    string StoredKey,
+    string NavigationCode);
 
 public sealed record UserLookupsDto(
     IReadOnlyList<LookupItemDto> Roles,

@@ -504,7 +504,7 @@ function PermissionsTab({ userId, allPermissions, selectedPermissionIds, onToggl
   const available = allPermissions.filter((p) => !selectedPermissionIds.includes(p.id));
   const filteredAvailable = searchQuery
     ? available.filter((p) => {
-      const haystack = `${p.transactionCode} ${p.actionCode} ${p.displayName}`.toLowerCase();
+      const haystack = `${p.transactionCode} ${p.actionCode} ${p.displayName} ${p.permissionCode} ${p.storedKey}`.toLowerCase();
       return haystack.includes(searchQuery);
     })
     : available;
@@ -560,8 +560,8 @@ function PermissionsTab({ userId, allPermissions, selectedPermissionIds, onToggl
                     <DraggableAssignmentItem
                       key={p.id}
                       id={`perm:${p.id}`}
-                      title={p.displayName || `${p.transactionCode} ${p.actionCode}`}
-                      subtitle={`${p.transactionCode} · ${p.actionCode}`}
+                      title={p.permissionCode || p.displayName || `${p.transactionCode} ${p.actionCode}`}
+                      subtitle={`Nav: ${p.navigationCode} · Key: ${p.storedKey}`}
                       activeTone="available"
                       actionLabel="Ekle"
                       onClick={() => onTogglePermission(p.id)}
@@ -590,8 +590,8 @@ function PermissionsTab({ userId, allPermissions, selectedPermissionIds, onToggl
                     <DraggableAssignmentItem
                       key={p.id}
                       id={`perm:${p.id}`}
-                      title={p.displayName || `${p.transactionCode} ${p.actionCode}`}
-                      subtitle={`${p.transactionCode} · ${p.actionCode}`}
+                      title={p.permissionCode || p.displayName || `${p.transactionCode} ${p.actionCode}`}
+                      subtitle={`Nav: ${p.navigationCode} · Key: ${p.storedKey}`}
                       activeTone="assigned"
                       actionLabel="Çıkar"
                       onClick={() => onTogglePermission(p.id)}

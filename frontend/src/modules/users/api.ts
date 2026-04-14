@@ -106,6 +106,9 @@ export interface PermissionLookupItem {
   transactionCode: string;
   actionCode: string;
   displayName: string;
+  permissionCode: string;
+  storedKey: string;
+  navigationCode: string;
 }
 
 export interface UserLookupsResponse {
